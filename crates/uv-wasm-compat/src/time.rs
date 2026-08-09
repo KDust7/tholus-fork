@@ -1,6 +1,8 @@
 use std::future::Future;
 
+#[cfg(target_family = "wasm")]
 use futures::FutureExt;
+#[cfg(target_family = "wasm")]
 use futures::future::{Either, select};
 use web_time::Duration;
 
@@ -40,6 +42,15 @@ pub async fn sleep(duration: Duration) {
     let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
 }
 
+#[cfg(not(target_family = "wasm"))]
+pub async fn timeout<F>(duration: Duration, future: F) -> Result<F::Output, Elapsed>
+where
+    F: Future,
+{
+    tokio::time::timeout(duration, future).await.map_err(|_| Elapsed)
+}
+
+#[cfg(target_family = "wasm")]
 pub async fn timeout<F>(duration: Duration, future: F) -> Result<F::Output, Elapsed>
 where
     F: Future,
@@ -60,6 +71,12 @@ mod tests {
     #[test]
     fn elapsed_describes_itself() {
         assert_eq!(Elapsed.to_string(), "the operation timed out");
+    }
+
+    #[test]
+    fn a_timeout_over_a_send_future_stays_send() {
+        fn require_send<T: Send>(_: T) {}
+        require_send(timeout(Duration::from_secs(1), async {}));
     }
 
     #[tokio::test]
