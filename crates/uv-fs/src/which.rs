@@ -48,6 +48,7 @@ pub fn is_executable(path: &Path) -> bool {
 
     #[cfg(not(target_os = "windows"))]
     {
+        #[cfg(unix)]
         use std::os::unix::fs::PermissionsExt;
 
         if !uv_vfs::fs::metadata(path)

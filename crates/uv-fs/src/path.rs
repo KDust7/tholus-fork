@@ -147,6 +147,14 @@ fn escape_path_for_python<P: AsRef<Path>>(path: P) -> String {
     )
 }
 
+#[cfg(all(target_family = "wasm", not(unix)))]
+fn escape_path_for_python<P: AsRef<Path>>(path: P) -> String {
+    format!(
+        r#"__import__("os").fsdecode(b"{}")"#,
+        path.as_ref().as_os_str().as_encoded_bytes().escape_ascii()
+    )
+}
+
 /// Serialize a path as a Python expression that evaluates to a `str`.
 #[cfg(windows)]
 fn escape_path_for_python<P: AsRef<Path>>(path: P) -> String {

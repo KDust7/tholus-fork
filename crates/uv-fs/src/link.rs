@@ -889,7 +889,7 @@ where
 }
 
 /// Create a symbolic link.
-#[cfg(unix)]
+#[cfg(any(unix, target_family = "wasm"))]
 fn create_symlink(original: &Path, link: &Path) -> io::Result<()> {
     uv_vfs::fs::os::unix::fs::symlink(original, link)
 }

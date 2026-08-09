@@ -207,7 +207,7 @@ fn replace_with_symlink_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
 /// Create a symlink at `dst` pointing to `src`, replacing any existing symlink if necessary.
 ///
 /// On Unix, this method creates a temporary file, then moves it into place.
-#[cfg(unix)]
+#[cfg(any(unix, target_family = "wasm"))]
 pub fn replace_symlink(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
     // Attempt to create the symlink directly.
     match uv_vfs::fs::os::unix::fs::symlink(src.as_ref(), dst.as_ref()) {
@@ -259,7 +259,7 @@ pub fn create_symlink(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::
 }
 
 /// Create a symlink at `dst` pointing to `src`.
-#[cfg(unix)]
+#[cfg(any(unix, target_family = "wasm"))]
 pub fn create_symlink(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
     uv_vfs::fs::os::unix::fs::symlink(src.as_ref(), dst.as_ref())
 }
@@ -356,7 +356,7 @@ pub fn symlink_or_copy_file(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std
         windows => {
             uv_vfs::fs::copy(src.as_ref(), dst.as_ref())?;
         },
-        unix => {
+        any(unix, target_family = "wasm") => {
             uv_vfs::fs::os::unix::fs::symlink(src.as_ref(), dst.as_ref())?;
         },
     }
