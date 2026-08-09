@@ -17,7 +17,7 @@ use clap::{CommandFactory, Error, Parser};
 use futures::FutureExt;
 use owo_colors::OwoColorize;
 use settings::PipTreeSettings;
-use tokio::task::spawn_blocking;
+use uv_wasm_compat::spawn_blocking;
 use tracing::{debug, instrument, trace};
 
 #[cfg(not(feature = "self-update"))]

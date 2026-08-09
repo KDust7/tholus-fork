@@ -6,6 +6,6 @@ pub mod time;
 
 pub use locks::{DEFAULT_LOCK_TIMEOUT, LockRegistry, LockedFile};
 pub use prompt::{PromptError, PromptPolicy};
-pub use spawn::spawn;
+pub use spawn::{spawn, spawn_blocking};
 pub use term::TermConfig;
 pub use time::{Elapsed, sleep, timeout};

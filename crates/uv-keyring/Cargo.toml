@@ -24,6 +24,7 @@ secret-service = ["dep:secret-service"]
 windows-native = ["dep:windows", "dep:byteorder"]
 
 [dependencies]
+uv-wasm-compat = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }

@@ -6,7 +6,7 @@ pub async fn uninstall(
     dist: &InstalledDist,
     layout: &Layout,
 ) -> Result<uv_install_wheel::Uninstall, UninstallError> {
-    let uninstall = tokio::task::spawn_blocking({
+    let uninstall = uv_wasm_compat::spawn_blocking({
         let dist = dist.clone();
         let layout = layout.clone();
         move || match dist.kind {

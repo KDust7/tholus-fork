@@ -202,7 +202,7 @@ impl LockedFile {
             file.path().user_display()
         );
         // If there's no contention, return directly.
-        let try_lock_exclusive = tokio::task::spawn_blocking(move || (mode.try_lock(&file), file));
+        let try_lock_exclusive = uv_wasm_compat::spawn_blocking(move || (mode.try_lock(&file), file));
         let file = match try_lock_exclusive.await? {
             (Ok(()), file) => {
                 trace!("Acquired {mode} lock for `{resource}`");
@@ -223,7 +223,7 @@ impl LockedFile {
             file.path().user_display(),
         );
         let path = file.path().to_path_buf();
-        let lock_exclusive = tokio::task::spawn_blocking(move || (mode.lock(&file), file));
+        let lock_exclusive = uv_wasm_compat::spawn_blocking(move || (mode.lock(&file), file));
         let (result, file) = uv_wasm_compat::time::timeout(*LOCK_TIMEOUT, lock_exclusive)
             .await
             .map_err(|_| LockedFileError::Timeout {

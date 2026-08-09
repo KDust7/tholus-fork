@@ -970,7 +970,7 @@ async fn build_sdist(
         BuildAction::List => {
             let source_tree_ = source_tree.to_path_buf();
             let sources_enabled = sources.is_none();
-            let (filename, file_list) = tokio::task::spawn_blocking(move || {
+            let (filename, file_list) = uv_wasm_compat::spawn_blocking(move || {
                 uv_build_backend::list_source_dist(
                     &source_tree_,
                     uv_version::version(),
@@ -1000,7 +1000,7 @@ async fn build_sdist(
             let source_tree = source_tree.to_path_buf();
             let output_dir_ = output_dir.to_path_buf();
             let sources_enabled = sources.is_none();
-            let filename = tokio::task::spawn_blocking(move || {
+            let filename = uv_wasm_compat::spawn_blocking(move || {
                 uv_build_backend::build_source_dist(
                     &source_tree,
                     &output_dir_,
@@ -1083,7 +1083,7 @@ async fn build_wheel(
         BuildAction::List => {
             let source_tree_ = source_tree.to_path_buf();
             let sources_enabled = sources.is_none();
-            let (filename, file_list) = tokio::task::spawn_blocking(move || {
+            let (filename, file_list) = uv_wasm_compat::spawn_blocking(move || {
                 uv_build_backend::list_wheel(&source_tree_, uv_version::version(), sources_enabled)
             })
             .await??;
@@ -1109,7 +1109,7 @@ async fn build_wheel(
             let source_tree = source_tree.to_path_buf();
             let output_dir_ = output_dir.to_path_buf();
             let sources_enabled = sources.is_none();
-            let filename = tokio::task::spawn_blocking(move || {
+            let filename = uv_wasm_compat::spawn_blocking(move || {
                 uv_build_backend::build_wheel(
                     &source_tree,
                     &output_dir_,

@@ -6425,6 +6425,7 @@ dependencies = [
  "uv-resolver",
  "uv-types",
  "uv-version",
+ "uv-wasm-compat",
  "uv-workspace",
 ]
 
@@ -6474,6 +6475,7 @@ dependencies = [
  "uv-redacted",
  "uv-types",
  "uv-vfs",
+ "uv-wasm-compat",
  "uv-workspace",
  "walkdir",
 ]
@@ -6652,6 +6654,7 @@ dependencies = [
  "uv-version",
  "uv-vfs",
  "uv-warnings",
+ "uv-wasm-compat",
  "which",
 ]
 
@@ -6778,6 +6781,7 @@ dependencies = [
  "security-framework",
  "thiserror",
  "tokio",
+ "uv-wasm-compat",
  "windows",
  "zeroize",
 ]

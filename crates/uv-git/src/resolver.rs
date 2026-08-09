@@ -220,7 +220,7 @@ impl GitResolver {
             source
         };
 
-        let fetch = tokio::task::spawn_blocking(move || source.fetch())
+        let fetch = uv_wasm_compat::spawn_blocking(move || source.fetch())
             .await?
             .map_err(GitResolverError::Git)?;
 

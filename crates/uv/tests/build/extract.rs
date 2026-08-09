@@ -51,7 +51,7 @@ async fn unzip_seekable(url: &str) -> anyhow::Result<(), uv_extract::Error> {
 
     let target = uv_vfs::temp::TempDir::new().map_err(uv_extract::Error::Io)?;
     let target_path = target.path().to_path_buf();
-    tokio::task::spawn_blocking(move || uv_extract::unzip(archive, &target_path))
+    uv_wasm_compat::spawn_blocking(move || uv_extract::unzip(archive, &target_path))
         .await
         .expect("seekable ZIP extraction task should not panic")?;
     Ok(())

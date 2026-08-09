@@ -5,7 +5,7 @@ where
     F: FnOnce() -> Result<T> + Send + 'static,
     T: Send + 'static,
 {
-    tokio::task::spawn_blocking(f)
+    uv_wasm_compat::spawn_blocking(f)
         .await
         .map_err(|e| ErrorCode::PlatformFailure(Box::new(e)))?
 }

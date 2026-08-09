@@ -963,7 +963,7 @@ impl<'a, Context: BuildContext> DistributionDatabase<'a, Context> {
                 let files = match extension {
                     WheelExtension::Whl => {
                         let file = file.into_std().await;
-                        tokio::task::spawn_blocking(move || uv_extract::unzip(file, &target))
+                        uv_wasm_compat::spawn_blocking(move || uv_extract::unzip(file, &target))
                             .await?
                     }
                     WheelExtension::WhlZst => uv_extract::stream::untar_zst(file, &target).await,
@@ -1225,7 +1225,7 @@ impl<'a, Context: BuildContext> DistributionDatabase<'a, Context> {
         target: &Path,
         dist: DistRef<'_>,
     ) -> Result<ArchiveId, Error> {
-        let (temp_dir, files) = tokio::task::spawn_blocking({
+        let (temp_dir, files) = uv_wasm_compat::spawn_blocking({
             let path = path.to_owned();
             let root = self.build_context.cache().root().to_path_buf();
             move || -> Result<_, Error> {
