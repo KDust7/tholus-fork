@@ -27,7 +27,6 @@ uv-pypi-types = { workspace = true }
 uv-redacted = { workspace = true }
 uv-warnings = { workspace = true }
 
-fs-err = { workspace = true }
 memchr = { workspace = true }
 reqwest = { workspace = true, optional = true }
 reqwest-middleware = { workspace = true, optional = true }
@@ -47,6 +46,5 @@ indoc = { workspace = true }
 insta = { workspace = true }
 itertools = { workspace = true }
 regex = { workspace = true }
-tempfile = { workspace = true }
 test-case = { workspace = true }
 tokio = { workspace = true }

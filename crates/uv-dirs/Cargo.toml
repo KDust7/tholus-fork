@@ -20,7 +20,6 @@ uv-vfs = { workspace = true }
 uv-static = { workspace = true }
 
 etcetera = { workspace = true }
-fs-err = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]

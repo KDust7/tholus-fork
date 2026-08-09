@@ -31,7 +31,6 @@ uv-shell = { workspace = true }
 uv-version = { workspace = true }
 
 console = { workspace = true }
-fs-err = { workspace = true }
 itertools = { workspace = true }
 owo-colors = { workspace = true }
 pathdiff = { workspace = true }

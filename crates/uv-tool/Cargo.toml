@@ -35,7 +35,6 @@ uv-state = { workspace = true }
 uv-static = { workspace = true }
 uv-virtualenv = { workspace = true }
 
-fs-err = { workspace = true }
 owo-colors = { workspace = true }
 pathdiff = { workspace = true }
 serde = { workspace = true }

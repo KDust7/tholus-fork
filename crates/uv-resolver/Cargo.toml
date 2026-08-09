@@ -53,7 +53,6 @@ clap = { workspace = true, features = ["derive"], optional = true }
 cyclonedx-bom = { workspace = true }
 papaya = { workspace = true }
 either = { workspace = true }
-fs-err = { workspace = true, features = ["tokio"] }
 futures = { workspace = true }
 hashbrown = { workspace = true }
 indexmap = { workspace = true }

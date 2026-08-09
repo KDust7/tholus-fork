@@ -25,7 +25,6 @@ clap = { workspace = true, optional = true }
 dunce = { workspace = true }
 either = { workspace = true }
 encoding_rs_io = { workspace = true }
-fs-err = { workspace = true }
 path-slash = { workspace = true }
 percent-encoding = { workspace = true }
 reflink-copy = { workspace = true }
@@ -55,4 +54,4 @@ windows = { workspace = true }
 [features]
 default = []
 clap = ["dep:clap"]
-tokio = ["dep:tokio", "fs-err/tokio"]
+tokio = ["dep:tokio", "uv-vfs/tokio"]

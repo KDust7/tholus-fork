@@ -36,7 +36,6 @@ uv-warnings = { workspace = true }
 
 arcstr = { workspace = true }
 bitflags = { workspace = true }
-fs-err = { workspace = true }
 http = { workspace = true }
 itertools = { workspace = true }
 jiff = { workspace = true }

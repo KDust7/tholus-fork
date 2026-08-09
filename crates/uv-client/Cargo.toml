@@ -50,7 +50,6 @@ async-trait = { workspace = true }
 async_http_range_reader = { workspace = true }
 async_zip = { workspace = true }
 bytecheck = { workspace = true }
-fs-err = { workspace = true, features = ["tokio"] }
 futures = { workspace = true }
 hex = { workspace = true }
 h2 = { workspace = true }
@@ -90,7 +89,6 @@ insta = { workspace = true }
 rcgen = { workspace = true }
 regex = { workspace = true }
 temp-env = { workspace = true }
-tempfile = { workspace = true }
 tokio = { workspace = true }
 tokio-rustls = { workspace = true }
 wiremock = { workspace = true }

@@ -29,7 +29,6 @@ uv-settings = { workspace = true }
 uv-warnings = { workspace = true }
 uv-workspace = { workspace = true }
 
-fs-err = { workspace = true, features = ["tokio"] }
 indoc = { workspace = true }
 memchr = { workspace = true }
 regex = { workspace = true }

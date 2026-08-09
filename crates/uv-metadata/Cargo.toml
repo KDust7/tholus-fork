@@ -19,7 +19,6 @@ uv-normalize = { workspace = true }
 uv-pypi-types = { workspace = true }
 
 async_zip = { workspace = true }
-fs-err = { workspace = true }
 futures = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }

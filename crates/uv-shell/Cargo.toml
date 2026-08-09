@@ -21,7 +21,6 @@ uv-fs = { workspace = true }
 uv-static = { workspace = true }
 
 anyhow = { workspace = true }
-fs-err = { workspace = true }
 same-file = { workspace = true }
 tracing = { workspace = true }
 
@@ -33,6 +32,4 @@ windows = { workspace = true }
 windows-registry = { workspace = true }
 
 [dev-dependencies]
-fs-err = { workspace = true }
 temp-env = { workspace = true }
-tempfile = { workspace = true }

@@ -43,7 +43,6 @@ uv-warnings = { workspace = true }
 uv-workspace = { workspace = true, features = ["clap"] }
 
 clap = { workspace = true }
-fs-err = { workspace = true }
 schemars = { workspace = true, optional = true }
 serde = { workspace = true }
 serde-untagged = { workspace = true }

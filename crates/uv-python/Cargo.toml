@@ -44,7 +44,6 @@ anyhow = { workspace = true }
 clap = { workspace = true, optional = true }
 configparser = { workspace = true }
 dunce = { workspace = true }
-fs-err = { workspace = true, features = ["tokio"] }
 futures = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
@@ -61,7 +60,6 @@ schemars = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 target-lexicon = { workspace = true }
-tempfile = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true, features = ["compat"] }
@@ -83,7 +81,6 @@ indoc = { workspace = true }
 insta = { workspace = true }
 itertools = { workspace = true }
 temp-env = { workspace = true }
-tempfile = { workspace = true }
 test-log = { workspace = true }
 
 [build-dependencies]
