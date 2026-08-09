@@ -75,12 +75,12 @@ pub use crate::lock::tree::{TreeDisplay, TreeJsonTarget};
 use crate::resolution::{AnnotatedDist, ResolutionGraphNode};
 use crate::universal_marker::{ConflictMarker, UniversalMarker};
 use crate::{
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
     ExcludeNewer, ExcludeNewerOverride, ExcludeNewerPackage, ExcludeNewerSpan, ExcludeNewerValue,
     InMemoryIndex, MetadataResponse, Prerelease, PrereleaseMode, PrereleasePackage, ResolutionMode,
     ResolverOutput,
 };
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 mod deserialize;
 pub(crate) mod export;

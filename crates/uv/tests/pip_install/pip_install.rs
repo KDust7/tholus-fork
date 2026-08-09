@@ -35,11 +35,11 @@ use uv_test::decode_token;
 use uv_test::find_links::FindLinksServer;
 use uv_test::packse::PackseServer;
 use uv_test::{
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
     DEFAULT_PYTHON_VERSION, TestContext, apply_filters, download_to_disk, get_bin, uv_snapshot,
     venv_bin_path,
 };
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 fn write_tar_gz(file: File, entries: &[(&str, &str)]) -> Result<()> {
     let enc = GzEncoder::new(file, flate2::Compression::default());
