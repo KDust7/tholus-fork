@@ -85,7 +85,7 @@ impl ProblemDetails {
     pub(crate) async fn try_from_response(response: Response) -> Option<Self> {
         let is_problem = response
             .headers()
-            .get(reqwest::header::CONTENT_TYPE)
+            .get(http::header::CONTENT_TYPE)
             .and_then(|ct| ct.to_str().ok())
             .is_some_and(|ct| ct == Self::CONTENT_TYPE);
         if !is_problem {
@@ -308,26 +308,26 @@ impl Error {
             ErrorKind::WrappedReqwestError(_, err) if let Some(status) = err.status() => {
                 // If the server doesn't support HEAD requests, we can't check for range
                 // requests.
-                if status == reqwest::StatusCode::METHOD_NOT_ALLOWED {
+                if status == http::StatusCode::METHOD_NOT_ALLOWED {
                     return true;
                 }
 
                 // In some cases, registries return a 404 for HEAD requests when they're not
                 // supported. In the worst case, we'll now just proceed to attempt to stream the
                 // entire file, so it's fine to be somewhat lenient here.
-                if status == reqwest::StatusCode::NOT_FOUND {
+                if status == http::StatusCode::NOT_FOUND {
                     return true;
                 }
 
                 // In some cases, registries (like PyPICloud) return a 403 for HEAD requests
                 // when they're not supported. Again, it's better to be lenient here.
-                if status == reqwest::StatusCode::FORBIDDEN {
+                if status == http::StatusCode::FORBIDDEN {
                     return true;
                 }
 
                 // In some cases, registries (like Alibaba Cloud) return a 400 for HEAD requests
                 // when they're not supported. Again, it's better to be lenient here.
-                if status == reqwest::StatusCode::BAD_REQUEST {
+                if status == http::StatusCode::BAD_REQUEST {
                     return true;
                 }
             }

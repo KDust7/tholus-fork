@@ -9,7 +9,7 @@ use itertools::Itertools;
 use jiff::Timestamp;
 use owo_colors::OwoColorize;
 use pubgrub::{DerivationTree, Derived, External, Map, ReportFormatter, Term};
-use reqwest::StatusCode;
+use http::StatusCode;
 use rustc_hash::FxHashMap;
 
 use uv_configuration::{IndexStrategy, NoBinary, NoBuild};

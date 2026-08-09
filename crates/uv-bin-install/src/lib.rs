@@ -824,7 +824,7 @@ async fn download_and_unpack(
     // Get the download size from headers if available
     let size = response
         .headers()
-        .get(reqwest::header::CONTENT_LENGTH)
+        .get(http::header::CONTENT_LENGTH)
         .and_then(|val| val.to_str().ok())
         .and_then(|val| val.parse::<u64>().ok());
 

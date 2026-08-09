@@ -1265,7 +1265,7 @@ impl<'a, Context: BuildContext> DistributionDatabase<'a, Context> {
                 // Specify identity encoding to get consistent .whl downloading
                 // behavior from servers. ref: https://github.com/pypa/pip/pull/1688
                 "accept-encoding",
-                reqwest::header::HeaderValue::from_static("identity"),
+                http::header::HeaderValue::from_static("identity"),
             )
             .build()
     }
@@ -1322,7 +1322,7 @@ impl<'a> ManagedClient<'a> {
 fn content_length(response: &reqwest::Response) -> Option<u64> {
     response
         .headers()
-        .get(reqwest::header::CONTENT_LENGTH)
+        .get(http::header::CONTENT_LENGTH)
         .and_then(|val| val.to_str().ok())
         .and_then(|val| val.parse::<u64>().ok())
 }

@@ -219,7 +219,7 @@ pub(crate) async fn pyx_login_with_browser(
             .await?;
         match response.status() {
             // Retry on 404.
-            reqwest::StatusCode::NOT_FOUND => {
+            http::StatusCode::NOT_FOUND => {
                 uv_wasm_compat::time::sleep(std::time::Duration::from_secs(1)).await;
                 retry += 1;
             }

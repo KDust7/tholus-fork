@@ -12,7 +12,7 @@ use reqsign::aws::DefaultSigner as AwsDefaultSigner;
 use reqsign::azure::DefaultSigner as AzureDefaultSigner;
 use reqsign::google::DefaultSigner as GcsDefaultSigner;
 use reqwest::Request;
-use reqwest::header::{HeaderName, HeaderValue};
+use http::header::{HeaderName, HeaderValue};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::Url;
@@ -290,7 +290,7 @@ impl Credentials {
         // Then, attempt to pull the credentials from the headers
         Ok(request
             .headers()
-            .get(reqwest::header::AUTHORIZATION)
+            .get(http::header::AUTHORIZATION)
             .and_then(Self::from_header_value))
     }
 
@@ -391,7 +391,7 @@ impl Credentials {
     pub fn authenticate(&self, mut request: Request) -> Request {
         request
             .headers_mut()
-            .insert(reqwest::header::AUTHORIZATION, Self::to_header_value(self));
+            .insert(http::header::AUTHORIZATION, Self::to_header_value(self));
         request
     }
 }
@@ -746,12 +746,12 @@ mod tests {
         auth_url.set_password(Some("password")).unwrap();
         let credentials = Credentials::from_url(&auth_url).unwrap().unwrap();
 
-        let mut request = Request::new(reqwest::Method::GET, url);
+        let mut request = Request::new(http::Method::GET, url);
         request = credentials.authenticate(request);
 
         let mut header = request
             .headers()
-            .get(reqwest::header::AUTHORIZATION)
+            .get(http::header::AUTHORIZATION)
             .expect("Authorization header should be set")
             .clone();
         header.set_sensitive(false);
@@ -768,12 +768,12 @@ mod tests {
         auth_url.set_password(Some("password")).unwrap();
         let credentials = Credentials::from_url(&auth_url).unwrap().unwrap();
 
-        let mut request = Request::new(reqwest::Method::GET, url);
+        let mut request = Request::new(http::Method::GET, url);
         request = credentials.authenticate(request);
 
         let mut header = request
             .headers()
-            .get(reqwest::header::AUTHORIZATION)
+            .get(http::header::AUTHORIZATION)
             .expect("Authorization header should be set")
             .clone();
         header.set_sensitive(false);
@@ -790,12 +790,12 @@ mod tests {
         auth_url.set_password(Some("password==")).unwrap();
         let credentials = Credentials::from_url(&auth_url).unwrap().unwrap();
 
-        let mut request = Request::new(reqwest::Method::GET, url);
+        let mut request = Request::new(http::Method::GET, url);
         request = credentials.authenticate(request);
 
         let mut header = request
             .headers()
-            .get(reqwest::header::AUTHORIZATION)
+            .get(http::header::AUTHORIZATION)
             .expect("Authorization header should be set")
             .clone();
         header.set_sensitive(false);
@@ -812,14 +812,14 @@ mod tests {
         let authentication = Authentication::from(signer);
 
         let request = Request::new(
-            reqwest::Method::GET,
+            http::Method::GET,
             Url::parse("https://account.blob.core.windows.net/container/blob.whl").unwrap(),
         );
         let request = authentication.authenticate(request).await.unwrap();
 
         let authorization = request
             .headers()
-            .get(reqwest::header::AUTHORIZATION)
+            .get(http::header::AUTHORIZATION)
             .expect("Authorization header should be set");
         assert_eq!(authorization.to_str().unwrap(), "Bearer token");
         assert!(request.headers().contains_key("x-ms-date"));
@@ -841,7 +841,7 @@ mod tests {
         let authentication = Authentication::from(signer);
 
         let request = Request::new(
-            reqwest::Method::GET,
+            http::Method::GET,
             Url::parse("https://s3.amazonaws.com/bucket/blob.whl").unwrap(),
         );
         let err = authentication.authenticate(request).await.unwrap_err();
@@ -859,7 +859,7 @@ mod tests {
         let authentication = Authentication::from(signer);
 
         let request = Request::new(
-            reqwest::Method::GET,
+            http::Method::GET,
             Url::parse("https://account.blob.core.windows.net/container/blob.whl").unwrap(),
         );
         let err = authentication.authenticate(request).await.unwrap_err();

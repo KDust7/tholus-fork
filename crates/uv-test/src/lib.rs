@@ -2420,7 +2420,7 @@ pub async fn download_to_disk(url: &str, path: &Path) {
     let url = url.parse().unwrap();
     let response = client
         .for_host(&url)
-        .get(reqwest::Url::from(url))
+        .get(url::Url::from(url))
         .send()
         .await
         .unwrap();

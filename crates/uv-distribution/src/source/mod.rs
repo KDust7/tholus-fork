@@ -3300,7 +3300,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
                 // Specify identity encoding to get consistent .whl downloading
                 // behavior from servers. ref: https://github.com/pypa/pip/pull/1688
                 "accept-encoding",
-                reqwest::header::HeaderValue::from_static("identity"),
+                http::header::HeaderValue::from_static("identity"),
             )
             .build()
     }

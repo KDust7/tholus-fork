@@ -335,8 +335,8 @@ fn extract_package_name(path: &str) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use reqwest::StatusCode;
-    use reqwest::header::{ACCEPT_RANGES, CONTENT_RANGE, RANGE};
+    use http::StatusCode;
+    use http::header::{ACCEPT_RANGES, CONTENT_RANGE, RANGE};
 
     use crate::vendor::vendor_artifacts;
 

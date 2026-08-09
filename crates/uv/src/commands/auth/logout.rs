@@ -119,14 +119,14 @@ async fn pyx_logout(
     };
 
     // Build a basic request first, then authenticate it
-    let request = reqwest::Request::new(reqwest::Method::GET, url.into());
+    let request = reqwest::Request::new(http::Method::GET, url.into());
     let request = Credentials::from(tokens).authenticate(request);
 
     // Hit the logout endpoint using the client's execute method
     let response = client.execute(request).await?;
     match response.error_for_status_ref() {
         Ok(..) => {}
-        Err(err) if matches!(err.status(), Some(reqwest::StatusCode::UNAUTHORIZED)) => {
+        Err(err) if matches!(err.status(), Some(http::StatusCode::UNAUTHORIZED)) => {
             tracing::debug!(
                 "Received 401 (Unauthorized) response from logout endpoint; removing tokens..."
             );

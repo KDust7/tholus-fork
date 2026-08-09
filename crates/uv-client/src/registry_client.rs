@@ -45,10 +45,10 @@ use crate::html::SimpleDetailHTML;
 use crate::remote_metadata::wheel_metadata_from_remote_zip;
 use crate::rkyvutil::OwnedArchive;
 use crate::{
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
     BaseClient, CachedClient, Error, ErrorKind, FlatIndexClient, RedirectClientWithMiddleware,
 };
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// A builder for an [`RegistryClient`].
 #[derive(Debug, Clone)]
@@ -1231,8 +1231,8 @@ impl RegistryClient {
             // [1]: https://github.com/seanmonstar/reqwest/pull/2840
             // [2]: https://github.com/astral-sh/async_http_range_reader/pull/3#discussion_r2700194798
             headers.insert(
-                reqwest::header::ACCEPT_ENCODING,
-                reqwest::header::HeaderValue::from_static("identity"),
+                http::header::ACCEPT_ENCODING,
+                http::header::HeaderValue::from_static("identity"),
             );
             // This response callback is special, we actually make a number of subsequent requests to
             // fetch the file from the remote zip.
@@ -1299,7 +1299,7 @@ impl RegistryClient {
                 // Specify identity encoding to get consistent .whl downloading
                 // behavior from servers. ref: https://github.com/pypa/pip/pull/1688
                 "accept-encoding",
-                reqwest::header::HeaderValue::from_static("identity"),
+                http::header::HeaderValue::from_static("identity"),
             )
             .build()
             .map_err(|err| {

@@ -9,7 +9,7 @@ use uv_vfs::fs::tokio::File;
 use futures::TryStreamExt;
 use glob::{GlobError, PatternError, glob};
 use itertools::Itertools;
-use reqwest::header::{AUTHORIZATION, LOCATION, ToStrError};
+use http::header::{AUTHORIZATION, LOCATION, ToStrError};
 use reqwest::multipart::Part;
 use reqwest::{Body, Response, StatusCode};
 use reqwest_retry::RetryError;
@@ -851,8 +851,8 @@ pub async fn upload_two_phase(
                 .for_host(&s3_url)
                 .raw_client()
                 .put(Url::from(s3_url.clone()))
-                .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
-                .header(reqwest::header::CONTENT_LENGTH, file_size);
+                .header(http::header::CONTENT_TYPE, "application/octet-stream")
+                .header(http::header::CONTENT_LENGTH, file_size);
 
             // Add any required headers from the reserve response (e.g., x-amz-tagging).
             if let Some(headers) = &reserve_response.upload_headers {
@@ -1373,7 +1373,7 @@ async fn build_upload_request<'a>(
         // For other registries, we ask them to return plain text over HTML. See
         // [`PublishSendError::extract_remote_error`].
         .header(
-            reqwest::header::ACCEPT,
+            http::header::ACCEPT,
             "application/json;q=0.9, text/plain;q=0.8, text/html;q=0.7",
         );
 
@@ -1428,7 +1428,7 @@ fn build_metadata_request<'a>(
         // For other registries, we ask them to return plain text over HTML. See
         // [`PublishSendError::extract_remote_error`].
         .header(
-            reqwest::header::ACCEPT,
+            http::header::ACCEPT,
             "application/json;q=0.9, text/plain;q=0.8, text/html;q=0.7",
         );
 
@@ -1473,7 +1473,7 @@ async fn handle_response(
 
     let content_type = response
         .headers()
-        .get(reqwest::header::CONTENT_TYPE)
+        .get(http::header::CONTENT_TYPE)
         .and_then(|content_type| content_type.to_str().ok())
         .map(ToString::to_string);
     let upload_error = response.bytes().await.map_err(|err| {

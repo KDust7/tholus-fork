@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::iter;
 use std::sync::Arc;
 
-use reqwest::StatusCode;
+use http::StatusCode;
 
 use uv_distribution_types::{IncompatibleDist, Requirement, RequirementSource};
 use uv_normalize::{ExtraName, PackageName};

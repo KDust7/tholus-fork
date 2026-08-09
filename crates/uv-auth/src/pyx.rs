@@ -419,10 +419,10 @@ impl PyxTokenStore {
         let mut url = self.api.clone();
         url.set_path("auth/cli/access-token");
 
-        let mut request = reqwest::Request::new(reqwest::Method::POST, Url::from(url));
+        let mut request = reqwest::Request::new(http::Method::POST, Url::from(url));
         request.headers_mut().insert(
             "Authorization",
-            reqwest::header::HeaderValue::from_str(&format!("Bearer {api_key}"))?,
+            http::header::HeaderValue::from_str(&format!("Bearer {api_key}"))?,
         );
 
         let response = client.execute(request).await?;
@@ -488,7 +488,7 @@ impl PyxTokenStore {
                 let mut url = self.api.clone();
                 url.set_path("auth/cli/refresh");
 
-                let mut request = reqwest::Request::new(reqwest::Method::POST, Url::from(url));
+                let mut request = reqwest::Request::new(http::Method::POST, Url::from(url));
                 let body = serde_json::json!({
                     "refresh_token": refresh_token
                 });
@@ -511,10 +511,10 @@ impl PyxTokenStore {
                 let mut url = self.api.clone();
                 url.set_path("auth/cli/access-token");
 
-                let mut request = reqwest::Request::new(reqwest::Method::POST, Url::from(url));
+                let mut request = reqwest::Request::new(http::Method::POST, Url::from(url));
                 request.headers_mut().insert(
                     "Authorization",
-                    reqwest::header::HeaderValue::from_str(&format!("Bearer {api_key}"))?,
+                    http::header::HeaderValue::from_str(&format!("Bearer {api_key}"))?,
                 );
 
                 let response = client.execute(request).await?;
@@ -561,7 +561,7 @@ pub enum TokenStoreError {
     #[error(transparent)]
     ReqwestMiddleware(#[from] reqwest_middleware::Error),
     #[error(transparent)]
-    InvalidHeaderValue(#[from] reqwest::header::InvalidHeaderValue),
+    InvalidHeaderValue(#[from] http::header::InvalidHeaderValue),
     #[error(transparent)]
     Jiff(#[from] jiff::Error),
     #[error(transparent)]
@@ -572,8 +572,8 @@ impl TokenStoreError {
     /// Returns `true` if the error is a 401 (Unauthorized) error.
     pub fn is_unauthorized(&self) -> bool {
         match self {
-            Self::Reqwest(err) => err.status() == Some(reqwest::StatusCode::UNAUTHORIZED),
-            Self::ReqwestMiddleware(err) => err.status() == Some(reqwest::StatusCode::UNAUTHORIZED),
+            Self::Reqwest(err) => err.status() == Some(http::StatusCode::UNAUTHORIZED),
+            Self::ReqwestMiddleware(err) => err.status() == Some(http::StatusCode::UNAUTHORIZED),
             _ => false,
         }
     }
