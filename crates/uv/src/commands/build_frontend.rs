@@ -272,7 +272,7 @@ async fn build_impl(
     // Determine the source to build.
     let src = if let Some(src) = src {
         let src = std::path::absolute(src)?;
-        let metadata = match fs_err::tokio::metadata(&src).await {
+        let metadata = match uv_vfs::fs::tokio::metadata(&src).await {
             Ok(metadata) => metadata,
             Err(err) if err.kind() == io::ErrorKind::NotFound => {
                 return Err(anyhow::anyhow!(
@@ -542,7 +542,7 @@ async fn build_package(
 
     // Clear the output directory if requested
     if clear && output_dir.exists() {
-        fs_err::remove_dir_all(&*output_dir)?;
+        uv_vfs::fs::remove_dir_all(&*output_dir)?;
     }
 
     // (1) Explicit request from user
@@ -776,10 +776,10 @@ async fn build_package(
 
             // Extract the source distribution into a temporary directory.
             let path = output_dir.join(sdist_build.raw_filename());
-            let reader = fs_err::tokio::File::open(&path).await?;
+            let reader = uv_vfs::fs::tokio::File::open(&path).await?;
             let ext = SourceDistExtension::from_path(path.as_path())
                 .map_err(|err| Error::InvalidSourceDistExt(path.user_display().to_string(), err))?;
-            let temp_dir = tempfile::tempdir_in(cache.bucket(CacheBucket::SourceDistributions))?;
+            let temp_dir = uv_vfs::temp::tempdir_in(cache.bucket(CacheBucket::SourceDistributions))?;
             uv_extract::stream::archive(reader, ext, temp_dir.path()).await?;
 
             // Extract the top-level directory from the archive.
@@ -882,11 +882,11 @@ async fn build_package(
         }
         BuildPlan::WheelFromSdist => {
             // Extract the source distribution into a temporary directory.
-            let reader = fs_err::tokio::File::open(source.path()).await?;
+            let reader = uv_vfs::fs::tokio::File::open(source.path()).await?;
             let ext = SourceDistExtension::from_path(source.path()).map_err(|err| {
                 Error::InvalidSourceDistExt(source.path().user_display().to_string(), err)
             })?;
-            let temp_dir = tempfile::tempdir_in(&output_dir)?;
+            let temp_dir = uv_vfs::temp::tempdir_in(&output_dir)?;
             uv_extract::stream::archive(reader, ext, temp_dir.path()).await?;
 
             // If the source distribution has a normalized filename, check its identity.
@@ -1184,11 +1184,11 @@ async fn build_wheel(
 /// Create the output directory and add a `.gitignore`.
 async fn prepare_output_directory(output_dir: &Path, gitignore: bool) -> Result<(), Error> {
     // Create the output directory.
-    fs_err::tokio::create_dir_all(&output_dir).await?;
+    uv_vfs::fs::tokio::create_dir_all(&output_dir).await?;
 
     // Add a .gitignore.
     if gitignore {
-        match fs_err::OpenOptions::new()
+        match uv_vfs::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
             .open(output_dir.join(".gitignore"))
@@ -1272,8 +1272,8 @@ impl Source<'_> {
 
 /// Return `true` if `path` is within `directory`, resolving symlinks when possible.
 fn is_path_within(path: &Path, directory: &Path) -> bool {
-    if let Ok(path) = fs_err::canonicalize(path)
-        && let Ok(directory) = fs_err::canonicalize(directory)
+    if let Ok(path) = uv_vfs::fs::canonicalize(path)
+        && let Ok(directory) = uv_vfs::fs::canonicalize(directory)
     {
         return path.starts_with(directory);
     }

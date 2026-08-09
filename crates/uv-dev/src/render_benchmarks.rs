@@ -19,7 +19,7 @@ pub(crate) struct RenderBenchmarksArgs {
 }
 
 pub(crate) fn render_benchmarks(args: &RenderBenchmarksArgs) -> Result<()> {
-    let mut results: BenchmarkResults = serde_json::from_slice(&fs_err::read(&args.path)?)?;
+    let mut results: BenchmarkResults = serde_json::from_slice(&uv_vfs::fs::read(&args.path)?)?;
 
     // Replace the command with a shorter name. (The command typically includes the benchmark name,
     // but we assume we're running over a single benchmark here.)
@@ -98,7 +98,7 @@ fn render_to_png(data: &str, path: &Path, fontdb: fontdb::Database) -> Result<()
     resvg::render(&tree, transform, &mut pixmap.as_mut());
 
     if let Some(parent) = path.parent() {
-        fs_err::create_dir_all(parent)?;
+        uv_vfs::fs::create_dir_all(parent)?;
     }
     pixmap.save_png(path)?;
     Ok(())

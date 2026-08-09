@@ -16,7 +16,7 @@ use uv_redacted::DisplaySafeUrl;
 #[tokio::test]
 async fn remote_metadata_with_and_without_cache() -> Result<()> {
     let server = MockServer::start().await;
-    let wheel = fs_err::read(
+    let wheel = uv_vfs::fs::read(
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../test/links/ok-1.0.0-py3-none-any.whl"),
     )?;
     Mock::given(method("GET"))

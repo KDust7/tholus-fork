@@ -11,8 +11,8 @@ use async_compression::tokio::write::ZstdEncoder;
 use async_zip::base::write::ZipFileWriter;
 use async_zip::{Compression, ZipEntryBuilder};
 use flate2::write::GzEncoder;
-use fs_err as fs;
-use fs_err::File;
+use uv_vfs::fs as fs;
+use uv_vfs::fs::File;
 use futures::executor::block_on;
 use futures::io::AllowStdIo;
 use indoc::{formatdoc, indoc};
@@ -35,6 +35,8 @@ use uv_test::decode_token;
 use uv_test::find_links::FindLinksServer;
 use uv_test::packse::PackseServer;
 use uv_test::{
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
     DEFAULT_PYTHON_VERSION, TestContext, apply_filters, download_to_disk, get_bin, uv_snapshot,
     venv_bin_path,
 };
@@ -97,7 +99,7 @@ fn write_many_files_wheel(path: &Path, source_files: usize) -> Result<()> {
     );
     block_on(writer.write_entry_whole(entry, record.as_bytes()))?;
 
-    fs_err::write(path, block_on(writer.close())?)?;
+    uv_vfs::fs::write(path, block_on(writer.close())?)?;
     Ok(())
 }
 
@@ -1522,7 +1524,7 @@ fn reinstall_incomplete() -> Result<()> {
     );
 
     // Manually remove the `RECORD` file.
-    fs_err::remove_file(context.site_packages().join("anyio-3.7.0.dist-info/RECORD"))?;
+    uv_vfs::fs::remove_file(context.site_packages().join("anyio-3.7.0.dist-info/RECORD"))?;
 
     // Re-install anyio.
     let requirements_txt = context.temp_dir.child("requirements.txt");
@@ -3895,7 +3897,7 @@ fn install_executable_clone() -> anyhow::Result<()> {
             .join("executable_file")
             .join("bin")
             .join("run.sh");
-        let mode = fs_err::metadata(&script)?.permissions().mode();
+        let mode = uv_vfs::fs::metadata(&script)?.permissions().mode();
         assert!(
             mode & 0o111 != 0,
             "Expected executable permissions on {}, got {:o}",
@@ -4966,7 +4968,7 @@ fn direct_url_zip_file_bunk_permissions() -> Result<()> {
 #[test]
 fn launcher() -> Result<()> {
     let context = uv_test::test_context!("3.12");
-    let project_root = fs_err::canonicalize(std::env::current_dir()?.join("../.."))?;
+    let project_root = uv_vfs::fs::canonicalize(std::env::current_dir()?.join("../.."))?;
 
     let filters = [
         (r"(\d+m )?(\d+\.)?\d+(ms|s)", "[TIME]"),
@@ -5006,7 +5008,7 @@ fn launcher() -> Result<()> {
 #[test]
 fn launcher_with_symlink() -> Result<()> {
     let context = uv_test::test_context!("3.12");
-    let project_root = fs_err::canonicalize(std::env::current_dir()?.join("../.."))?;
+    let project_root = uv_vfs::fs::canonicalize(std::env::current_dir()?.join("../.."))?;
 
     let filters = [
         (r"(\d+m )?(\d+\.)?\d+(ms|s)", "[TIME]"),
@@ -5031,7 +5033,7 @@ fn launcher_with_symlink() -> Result<()> {
     );
 
     #[cfg(windows)]
-    if let Err(error) = fs_err::os::windows::fs::symlink_file(
+    if let Err(error) = uv_vfs::fs::os::windows::fs::symlink_file(
         context.venv.join("Scripts\\simple_launcher.exe"),
         context.temp_dir.join("simple_launcher.exe"),
     ) {
@@ -5044,7 +5046,7 @@ fn launcher_with_symlink() -> Result<()> {
     }
 
     #[cfg(unix)]
-    fs_err::os::unix::fs::symlink(
+    uv_vfs::fs::os::unix::fs::symlink(
         context.venv.join("bin/simple_launcher"),
         context.temp_dir.join("simple_launcher"),
     )?;
@@ -5893,8 +5895,8 @@ fn path_changes_with_same_name() -> Result<()> {
     two.create_dir_all()?;
     let two_wheel = two.child(wheel.file_name().unwrap());
 
-    fs_err::copy(&wheel, &one_wheel)?;
-    fs_err::copy(&wheel, &two_wheel)?;
+    uv_vfs::fs::copy(&wheel, &one_wheel)?;
+    uv_vfs::fs::copy(&wheel, &two_wheel)?;
 
     uv_snapshot!(context.filters(), context.pip_install()
         .arg(one_wheel.as_os_str()), @"
@@ -9053,13 +9055,13 @@ fn tool_uv_sources() -> Result<()> {
         poetry_editable = { path = "../poetry_editable", editable = true }
     "#})?;
 
-    let project_root = fs_err::canonicalize(std::env::current_dir()?.join("../.."))?;
-    fs_err::create_dir_all(context.temp_dir.join("poetry_editable/poetry_editable"))?;
-    fs_err::copy(
+    let project_root = uv_vfs::fs::canonicalize(std::env::current_dir()?.join("../.."))?;
+    uv_vfs::fs::create_dir_all(context.temp_dir.join("poetry_editable/poetry_editable"))?;
+    uv_vfs::fs::copy(
         project_root.join("test/packages/poetry_editable/pyproject.toml"),
         context.temp_dir.join("poetry_editable/pyproject.toml"),
     )?;
-    fs_err::copy(
+    uv_vfs::fs::copy(
         project_root.join("test/packages/poetry_editable/poetry_editable/__init__.py"),
         context
             .temp_dir
@@ -9225,10 +9227,10 @@ fn prefer_editable() -> Result<()> {
 /// Create a local PEP 503-compatible index containing the `tqdm` test wheel.
 fn create_local_index_with_tqdm(context: &TestContext, root: &Path) -> Result<()> {
     let tqdm = root.join("tqdm");
-    fs_err::create_dir_all(&tqdm)?;
+    uv_vfs::fs::create_dir_all(&tqdm)?;
 
     let index = tqdm.join("index.html");
-    fs_err::write(
+    uv_vfs::fs::write(
         index,
         indoc::formatdoc! {r#"
         <!DOCTYPE html>
@@ -9373,10 +9375,10 @@ fn local_index_fallback() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let root = context.temp_dir.child("simple-html");
-    fs_err::create_dir_all(&root)?;
+    uv_vfs::fs::create_dir_all(&root)?;
 
     let tqdm = root.child("tqdm");
-    fs_err::create_dir_all(&tqdm)?;
+    uv_vfs::fs::create_dir_all(&tqdm)?;
 
     let index = tqdm.child("index.html");
     index.write_str(
@@ -9533,7 +9535,7 @@ fn install_relocatable() -> Result<()> {
     #[cfg(unix)]
     {
         let script_symlink_path = context.temp_dir.join("black");
-        fs_err::os::unix::fs::symlink(script_path, script_symlink_path.clone())?;
+        uv_vfs::fs::os::unix::fs::symlink(script_path, script_symlink_path.clone())?;
         Command::new(script_symlink_path.as_os_str())
             .assert()
             .success()
@@ -9580,11 +9582,11 @@ fn install_incompatible_python_version_interpreter_broken_in_path() -> Result<()
     let python = context
         .bin_dir
         .join(format!("python3{}", std::env::consts::EXE_SUFFIX));
-    fs_err::write(&python, contents)?;
+    uv_vfs::fs::write(&python, contents)?;
 
-    let mut perms = fs_err::metadata(&python)?.permissions();
+    let mut perms = uv_vfs::fs::metadata(&python)?.permissions();
     perms.set_mode(0o755);
-    fs_err::set_permissions(&python, perms)?;
+    uv_vfs::fs::set_permissions(&python, perms)?;
 
     // Put the broken interpreter _before_ the other interpreters in the PATH
     let path = std::env::join_paths(
@@ -10782,7 +10784,7 @@ fn direct_url_json_git_preserves_repository_url() -> Result<()> {
     });
     direct_url.assert(predicates::path::is_file());
 
-    let direct_url_content = fs_err::read_to_string(direct_url.path())?;
+    let direct_url_content = uv_vfs::fs::read_to_string(direct_url.path())?;
     insta::assert_snapshot!(direct_url_content, @r#"{"url":"https://github.com/astral-test/uv-public-pypackage.git","vcs_info":{"vcs":"git","commit_id":"b270df1a2fb5d012294e9aaf05e7e0bab1e6a389"}}"#);
 
     Ok(())
@@ -10817,7 +10819,7 @@ fn direct_url_json_git_tag() -> Result<()> {
     });
     direct_url.assert(predicates::path::is_file());
 
-    let direct_url_content = fs_err::read_to_string(direct_url.path())?;
+    let direct_url_content = uv_vfs::fs::read_to_string(direct_url.path())?;
     insta::assert_snapshot!(direct_url_content, @r#"{"url":"https://github.com/astral-test/uv-public-pypackage","vcs_info":{"vcs":"git","commit_id":"0dacfd662c64cb4ceb16e6cf65a157a8b715b979","requested_revision":"0.0.1"}}"#);
 
     Ok(())
@@ -10851,7 +10853,7 @@ fn direct_url_json_direct_url() -> Result<()> {
     });
     direct_url.assert(predicates::path::is_file());
 
-    let direct_url_content = fs_err::read_to_string(direct_url.path())?;
+    let direct_url_content = uv_vfs::fs::read_to_string(direct_url.path())?;
     insta::assert_snapshot!(direct_url_content, @r#"{"url":"https://files.pythonhosted.org/packages/1f/e5/5b016c945d745f8b108e759d428341488a6aee8f51f07c6c4e33498bb91f/source_distribution-0.0.3.tar.gz","archive_info":{}}"#);
 
     Ok(())
@@ -12124,7 +12126,7 @@ fn change_layout_src() -> Result<()> {
     );
 
     // Replace the `src` layout with a flat layout.
-    fs_err::remove_dir_all(context.temp_dir.child("src").path())?;
+    uv_vfs::fs::remove_dir_all(context.temp_dir.child("src").path())?;
 
     context
         .temp_dir
@@ -12209,7 +12211,7 @@ fn change_layout_custom_directory() -> Result<()> {
     );
 
     // Create the `build` directory.
-    fs_err::create_dir(context.temp_dir.child("build"))?;
+    uv_vfs::fs::create_dir(context.temp_dir.child("build"))?;
 
     // Installing should rebuild the package.
     uv_snapshot!(context.filters(), context.pip_install().arg("-r").arg("requirements.txt"), @"
@@ -12232,7 +12234,7 @@ fn change_layout_custom_directory() -> Result<()> {
     );
 
     // Remove the `build` directory.
-    fs_err::remove_dir(context.temp_dir.child("build"))?;
+    uv_vfs::fs::remove_dir(context.temp_dir.child("build"))?;
 
     // Installing should rebuild the package.
     uv_snapshot!(context.filters(), context.pip_install().arg("-r").arg("requirements.txt"), @"
@@ -13505,7 +13507,7 @@ fn reject_reserved_wheel_data_script_name() -> Result<()> {
                 let entry = ZipEntryBuilder::new(name.into(), Compression::Stored);
                 block_on(writer.write_entry_whole(entry, contents.as_bytes()))?;
             }
-            fs_err::write(&wheel, block_on(writer.close())?)?;
+            uv_vfs::fs::write(&wheel, block_on(writer.close())?)?;
 
             uv_snapshot!(context.filters(), context.pip_install().arg(&wheel), @"
         exit_code: 2 (failure)
@@ -13568,10 +13570,10 @@ fn repacked_wheel_with_entrypoint(
             block_on(writer.write_entry_whole(entry, &[]))?;
         } else {
             let entry = ZipEntryBuilder::new(name.into(), Compression::Stored);
-            block_on(writer.write_entry_whole(entry, &fs_err::read(path)?))?;
+            block_on(writer.write_entry_whole(entry, &uv_vfs::fs::read(path)?))?;
         }
     }
-    fs_err::write(&repacked_wheel, block_on(writer.close())?)?;
+    uv_vfs::fs::write(&repacked_wheel, block_on(writer.close())?)?;
 
     Ok(repacked_wheel)
 }
@@ -16060,7 +16062,7 @@ fn handle_record_mismatches() -> Result<()> {
 
     // Snapshot the current (correct) RECORD.
     let record = unpacked.join("foo-0.1.0.dist-info/RECORD");
-    let correct_record = fs_err::read_to_string(&record)?;
+    let correct_record = uv_vfs::fs::read_to_string(&record)?;
     let correct_record = apply_filters(correct_record, context.filters());
     assert_snapshot!(correct_record, @"
     foo/__init__.py,sha256=jv2QBpHSNajIRNeADSmtqOWL9QcdUddyMK277kbp06o,49
@@ -16071,7 +16073,7 @@ fn handle_record_mismatches() -> Result<()> {
     ");
 
     // Create a broken RECORD: Remove 2 files, and add a bogus one.
-    fs_err::write(
+    uv_vfs::fs::write(
         &record,
         indoc! {"
         foo/py.typed,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
@@ -16099,10 +16101,10 @@ fn handle_record_mismatches() -> Result<()> {
             block_on(writer.write_entry_whole(entry, &[]))?;
         } else {
             let entry = ZipEntryBuilder::new(name.into(), Compression::Stored);
-            block_on(writer.write_entry_whole(entry, &fs_err::read(path)?))?;
+            block_on(writer.write_entry_whole(entry, &uv_vfs::fs::read(path)?))?;
         }
     }
-    fs_err::write(&repacked_wheel, block_on(writer.close())?)?;
+    uv_vfs::fs::write(&repacked_wheel, block_on(writer.close())?)?;
 
     uv_snapshot!(context.filters(), context.pip_install()
         .arg("--find-links")
@@ -16120,7 +16122,7 @@ fn handle_record_mismatches() -> Result<()> {
 
     // Read the healed RECORD.
     let installed_record =
-        fs_err::read_to_string(context.site_packages().join("foo-0.1.0.dist-info/RECORD"))?;
+        uv_vfs::fs::read_to_string(context.site_packages().join("foo-0.1.0.dist-info/RECORD"))?;
     let snapshot = apply_filters(installed_record, context.filters());
 
     // Ensure that all expected files are present.
@@ -16146,7 +16148,7 @@ async fn tar_wheel_traversal_is_not_recorded() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let victim = venv_bin_path(&context.venv).join("victim");
-    fs_err::write(&victim, "I should not be deleted")?;
+    uv_vfs::fs::write(&victim, "I should not be deleted")?;
 
     let record = indoc! {"
         tar_wheel/__init__.py,,
@@ -16232,7 +16234,7 @@ async fn tar_wheel_traversal_is_not_recorded() -> Result<()> {
         .assert()
         .success();
 
-    let installed_record = fs_err::read_to_string(
+    let installed_record = uv_vfs::fs::read_to_string(
         context
             .site_packages()
             .join("tar_wheel-1.0.0.dist-info/RECORD"),
@@ -16240,7 +16242,7 @@ async fn tar_wheel_traversal_is_not_recorded() -> Result<()> {
     assert!(!installed_record.contains("../../../bin/victim"));
 
     context.pip_uninstall().arg("tar-wheel").assert().success();
-    assert_eq!(fs_err::read_to_string(&victim)?, "I should not be deleted");
+    assert_eq!(uv_vfs::fs::read_to_string(&victim)?, "I should not be deleted");
 
     Ok(())
 }

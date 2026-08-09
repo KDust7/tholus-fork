@@ -632,7 +632,7 @@ fn workspace_lock_idempotence(workspace: &str, subdirectories: &[&str]) -> Resul
             .assert()
             .success();
 
-        let lock = fs_err::read_to_string(work_dir.join("uv.lock"))?;
+        let lock = uv_vfs::fs::read_to_string(work_dir.join("uv.lock"))?;
         // Check the lockfile is the same for all resolutions.
         if let Some(shared_lock) = &shared_lock {
             assert_eq!(shared_lock, &lock);
@@ -767,7 +767,7 @@ fn workspace_to_workspace_paths_dependencies() -> Result<()> {
     );
 
     let lock: SourceLock =
-        toml::from_str(&fs_err::read_to_string(main_workspace.join("uv.lock"))?)?;
+        toml::from_str(&uv_vfs::fs::read_to_string(main_workspace.join("uv.lock"))?)?;
 
     assert_json_snapshot!(lock.sources(), @r#"
     {
@@ -817,7 +817,7 @@ fn workspace_empty_member() -> Result<()> {
     make_project(&workspace.join("packages").join("b"), "b", deps)?;
 
     // ... and an empty c.
-    fs_err::create_dir_all(workspace.join("packages").join("c"))?;
+    uv_vfs::fs::create_dir_all(workspace.join("packages").join("c"))?;
 
     uv_snapshot!(context.filters(), context.lock().current_dir(&workspace), @"
     exit_code: 0 (success)
@@ -861,8 +861,8 @@ fn workspace_gitignored_member() -> Result<()> {
     make_project(&workspace.join("packages").join("b"), "b", deps)?;
 
     // ... and a c that only contains gitignored files.
-    fs_err::create_dir_all(workspace.join("packages").join("c").join("__pycache__"))?;
-    fs_err::write(
+    uv_vfs::fs::create_dir_all(workspace.join("packages").join("c").join("__pycache__"))?;
+    uv_vfs::fs::write(
         workspace
             .join("packages")
             .join("c")
@@ -879,7 +879,7 @@ fn workspace_gitignored_member() -> Result<()> {
     "
     );
 
-    let lock: SourceLock = toml::from_str(&fs_err::read_to_string(workspace.join("uv.lock"))?)?;
+    let lock: SourceLock = toml::from_str(&uv_vfs::fs::read_to_string(workspace.join("uv.lock"))?)?;
 
     assert_json_snapshot!(lock.sources(), @r#"
     {
@@ -927,14 +927,14 @@ fn workspace_gitignored_member_in_subdirectory() -> Result<()> {
     make_project(&workspace.join("packages").join("b"), "b", deps)?;
 
     // ... and a c that only contains gitignored files.
-    fs_err::create_dir_all(
+    uv_vfs::fs::create_dir_all(
         workspace
             .join("packages")
             .join("c")
             .join("foo")
             .join("__pycache__"),
     )?;
-    fs_err::write(
+    uv_vfs::fs::write(
         workspace
             .join("packages")
             .join("c")
@@ -952,7 +952,7 @@ fn workspace_gitignored_member_in_subdirectory() -> Result<()> {
     "
     );
 
-    let lock: SourceLock = toml::from_str(&fs_err::read_to_string(workspace.join("uv.lock"))?)?;
+    let lock: SourceLock = toml::from_str(&uv_vfs::fs::read_to_string(workspace.join("uv.lock"))?)?;
 
     assert_json_snapshot!(lock.sources(), @r#"
     {
@@ -1000,8 +1000,8 @@ fn workspace_ignored_member() -> Result<()> {
     make_project(&workspace.join("packages").join("b"), "b", deps)?;
 
     // ... and a c that only contains ignored files.
-    fs_err::create_dir_all(workspace.join("packages").join("c").join("__pycache__"))?;
-    fs_err::write(
+    uv_vfs::fs::create_dir_all(workspace.join("packages").join("c").join("__pycache__"))?;
+    uv_vfs::fs::write(
         workspace
             .join("packages")
             .join("c")
@@ -1018,7 +1018,7 @@ fn workspace_ignored_member() -> Result<()> {
     "
     );
 
-    let lock: SourceLock = toml::from_str(&fs_err::read_to_string(workspace.join("uv.lock"))?)?;
+    let lock: SourceLock = toml::from_str(&uv_vfs::fs::read_to_string(workspace.join("uv.lock"))?)?;
 
     assert_json_snapshot!(lock.sources(), @r#"
     {
@@ -1066,8 +1066,8 @@ fn workspace_nonempty_member_no_pyproject() -> Result<()> {
     make_project(&workspace.join("packages").join("b"), "b", deps)?;
 
     // ... and a c that contains non-gitignored files but no `pyproject.toml`.
-    fs_err::create_dir_all(workspace.join("packages").join("c"))?;
-    fs_err::write(
+    uv_vfs::fs::create_dir_all(workspace.join("packages").join("c"))?;
+    uv_vfs::fs::write(
         workspace.join("packages").join("c").join("README.md"),
         "# Hello",
     )?;
@@ -1110,7 +1110,7 @@ fn workspace_hidden_files() -> Result<()> {
     make_project(&workspace.join("packages").join("b"), "b", deps)?;
 
     // ... and a hidden c.
-    fs_err::create_dir_all(workspace.join("packages").join(".c"))?;
+    uv_vfs::fs::create_dir_all(workspace.join("packages").join(".c"))?;
 
     uv_snapshot!(context.filters(), context.lock().current_dir(&workspace), @"
     exit_code: 0 (success)
@@ -1120,7 +1120,7 @@ fn workspace_hidden_files() -> Result<()> {
     "
     );
 
-    let lock: SourceLock = toml::from_str(&fs_err::read_to_string(workspace.join("uv.lock"))?)?;
+    let lock: SourceLock = toml::from_str(&uv_vfs::fs::read_to_string(workspace.join("uv.lock"))?)?;
 
     assert_json_snapshot!(lock.sources(), @r#"
     {
@@ -1181,7 +1181,7 @@ fn workspace_hidden_member() -> Result<()> {
     "
     );
 
-    let lock: SourceLock = toml::from_str(&fs_err::read_to_string(workspace.join("uv.lock"))?)?;
+    let lock: SourceLock = toml::from_str(&uv_vfs::fs::read_to_string(workspace.join("uv.lock"))?)?;
 
     assert_json_snapshot!(lock.sources(), @r#"
     {
@@ -1243,7 +1243,7 @@ fn workspace_non_included_member() -> Result<()> {
     "
     );
 
-    let lock: SourceLock = toml::from_str(&fs_err::read_to_string(
+    let lock: SourceLock = toml::from_str(&uv_vfs::fs::read_to_string(
         workspace.join("c").join("uv.lock"),
     )?)?;
 
@@ -1391,7 +1391,7 @@ fn workspace_inherit_sources() -> Result<()> {
     "
     );
 
-    let lock = fs_err::read_to_string(workspace.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(workspace.join("uv.lock")).unwrap();
 
     // The lockfile should use a path relative to the workspace root.
     insta::with_settings!({
@@ -1921,7 +1921,7 @@ fn test_path_hopping() -> Result<()> {
     );
 
     let lock: SourceLock =
-        toml::from_str(&fs_err::read_to_string(main_project_dir.join("uv.lock"))?)?;
+        toml::from_str(&uv_vfs::fs::read_to_string(main_project_dir.join("uv.lock"))?)?;
     assert_json_snapshot!(lock.sources(), @r#"
     {
       "bar": {
@@ -1964,7 +1964,7 @@ fn transitive_dep_in_git_workspace_no_root() -> Result<()> {
     context.lock().assert().success();
 
     let lock1: SourceLock =
-        toml::from_str(&fs_err::read_to_string(context.temp_dir.child("uv.lock"))?)?;
+        toml::from_str(&uv_vfs::fs::read_to_string(context.temp_dir.child("uv.lock"))?)?;
 
     assert_json_snapshot!(lock1.sources(), @r#"
     {
@@ -2007,7 +2007,7 @@ fn transitive_dep_in_git_workspace_no_root() -> Result<()> {
     context.lock().assert().success();
 
     let lock2: SourceLock =
-        toml::from_str(&fs_err::read_to_string(context.temp_dir.child("uv.lock"))?)?;
+        toml::from_str(&uv_vfs::fs::read_to_string(context.temp_dir.child("uv.lock"))?)?;
 
     assert_eq!(lock1, lock2, "sources changed");
 
@@ -2041,7 +2041,7 @@ fn transitive_dep_in_git_workspace_with_root() -> Result<()> {
     context.lock().assert().success();
 
     let lock1: SourceLock =
-        toml::from_str(&fs_err::read_to_string(context.temp_dir.child("uv.lock"))?)?;
+        toml::from_str(&uv_vfs::fs::read_to_string(context.temp_dir.child("uv.lock"))?)?;
     assert_json_snapshot!(lock1.sources(), @r#"
     {
       "git-with-root": {
@@ -2076,7 +2076,7 @@ fn transitive_dep_in_git_workspace_with_root() -> Result<()> {
 
     context.lock().assert().success();
     let lock2: SourceLock =
-        toml::from_str(&fs_err::read_to_string(context.temp_dir.child("uv.lock"))?)?;
+        toml::from_str(&uv_vfs::fs::read_to_string(context.temp_dir.child("uv.lock"))?)?;
 
     assert_eq!(lock1, lock2, "sources changed");
 
@@ -2106,7 +2106,7 @@ fn transitive_dep_in_git_workspace_with_cache_inside_workspace() -> Result<()> {
         workspace-member-in-subdir = { git = "https://github.com/astral-sh/workspace-in-root-test", subdirectory = "workspace-member-in-subdir", rev = "d3ab48d2338296d47e28dbb2fb327c5e2ac4ac68" }
     "#})?;
     context.lock().assert().success();
-    fs_err::remove_file(context.temp_dir.child("uv.lock"))?;
+    uv_vfs::fs::remove_file(context.temp_dir.child("uv.lock"))?;
 
     context.root.child("pyproject.toml").write_str(indoc! {r#"
         [project]
@@ -2233,7 +2233,7 @@ fn workspace_members_with_leading_dot_slash() -> Result<()> {
     "
     );
 
-    let lock: SourceLock = toml::from_str(&fs_err::read_to_string(workspace.join("uv.lock"))?)?;
+    let lock: SourceLock = toml::from_str(&uv_vfs::fs::read_to_string(workspace.join("uv.lock"))?)?;
 
     assert_json_snapshot!(lock.sources(), @r#"
     {
@@ -2293,7 +2293,7 @@ fn workspace_members_with_parent_directory() -> Result<()> {
     "
     );
 
-    let lock: SourceLock = toml::from_str(&fs_err::read_to_string(workspace.join("uv.lock"))?)?;
+    let lock: SourceLock = toml::from_str(&uv_vfs::fs::read_to_string(workspace.join("uv.lock"))?)?;
 
     assert_json_snapshot!(lock.sources(), @r#"
     {
@@ -2336,7 +2336,7 @@ fn workspace_members_with_complex_relative_paths() -> Result<()> {
     "
     );
 
-    let lock: SourceLock = toml::from_str(&fs_err::read_to_string(workspace.join("uv.lock"))?)?;
+    let lock: SourceLock = toml::from_str(&uv_vfs::fs::read_to_string(workspace.join("uv.lock"))?)?;
 
     assert_json_snapshot!(lock.sources(), @r#"
     {
@@ -2373,13 +2373,13 @@ fn workspace_unmanaged_member_no_project() -> Result<()> {
         build-backend = "uv_build"
     "#})?;
 
-    fs_err::create_dir_all(workspace.join("src").join("root"))?;
-    fs_err::write(workspace.join("src").join("root").join("__init__.py"), "")?;
+    uv_vfs::fs::create_dir_all(workspace.join("src").join("root"))?;
+    uv_vfs::fs::write(workspace.join("src").join("root").join("__init__.py"), "")?;
 
     // Create a workspace member with `managed = false` but no `[project]` section.
     let member = workspace.join("member");
-    fs_err::create_dir_all(&member)?;
-    fs_err::write(
+    uv_vfs::fs::create_dir_all(&member)?;
+    uv_vfs::fs::write(
         member.join("pyproject.toml"),
         indoc! {"
             [tool.uv]

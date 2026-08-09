@@ -47,6 +47,8 @@ use crate::installation::PythonInstallationKey;
 use crate::managed::ManagedPythonInstallation;
 use crate::python_version::{BuildVersionError, python_build_version_from_env};
 use crate::{Interpreter, PythonRequest, PythonVersion, VersionRequest};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -1057,7 +1059,7 @@ impl ManagedPythonDownloadList {
                 "EMBEDDED IN THE BINARY".to_owned(),
             )?,
             Source::Path(ref path) => parse_downloads_json(
-                &fs_err::read(path.as_ref())?,
+                &uv_vfs::fs::read(path.as_ref())?,
                 path.to_string_lossy().to_string(),
             )?,
             Source::Http(ref url) => {
@@ -1258,13 +1260,13 @@ impl ManagedPythonDownload {
         let ext = SourceDistExtension::from_path(&filename)
             .map_err(|err| Error::MissingExtension(url.to_string(), err))?;
 
-        let temp_dir = tempfile::tempdir_in(scratch_dir).map_err(Error::DownloadDirError)?;
+        let temp_dir = uv_vfs::temp::tempdir_in(scratch_dir).map_err(Error::DownloadDirError)?;
 
         if let Some(python_builds_dir) =
             env::var_os(EnvVars::UV_PYTHON_CACHE_DIR).filter(|s| !s.is_empty())
         {
             let python_builds_dir = PathBuf::from(python_builds_dir);
-            fs_err::create_dir_all(&python_builds_dir)?;
+            uv_vfs::fs::create_dir_all(&python_builds_dir)?;
             let hash_prefix = match self.sha256.as_deref() {
                 Some(sha) => {
                     // Shorten the hash to avoid too-long-filename errors
@@ -1278,7 +1280,7 @@ impl ManagedPythonDownload {
             // TODO(konsti): We should "tee" the write so we can do the download-to-cache and unpacking
             // in one step.
             let (reader, size): (Box<dyn AsyncRead + Unpin>, Option<u64>) =
-                match fs_err::tokio::File::open(&target_cache_file).await {
+                match uv_vfs::fs::tokio::File::open(&target_cache_file).await {
                     Ok(file) => {
                         debug!(
                             "Extracting existing `{}`",
@@ -1308,7 +1310,7 @@ impl ManagedPythonDownload {
                         .await?;
 
                         debug!("Extracting `{}`", target_cache_file.simplified_display());
-                        let file = fs_err::tokio::File::open(&target_cache_file).await?;
+                        let file = uv_vfs::fs::tokio::File::open(&target_cache_file).await?;
                         let size = file.metadata().await?.len();
                         let reader = Box::new(tokio::io::BufReader::new(file));
                         (reader, Some(size))
@@ -1369,8 +1371,8 @@ impl ManagedPythonDownload {
             // executable, so they don't have a `bin` directory. We create it and link
             // `bin/pythonX.Y` to `dist/python`.
             if self.os().is_emscripten() {
-                fs_err::create_dir_all(extracted.join("bin"))?;
-                fs_err::os::unix::fs::symlink(
+                uv_vfs::fs::create_dir_all(extracted.join("bin"))?;
+                uv_vfs::fs::os::unix::fs::symlink(
                     "../python",
                     extracted
                         .join("bin")
@@ -1387,7 +1389,7 @@ impl ManagedPythonDownload {
             // PEP 394 permits it, and python-build-standalone releases after `20240726` include it,
             // but releases prior to that date do not.
             if !self.os().is_windows() {
-                match fs_err::os::unix::fs::symlink(
+                match uv_vfs::fs::os::unix::fs::symlink(
                     format!("python{}.{}", self.key.major, self.key.minor),
                     extracted.join("bin").join("python"),
                 ) {
@@ -1401,7 +1403,7 @@ impl ManagedPythonDownload {
         // Remove the target if it already exists.
         if path.is_dir() {
             debug!("Removing existing directory: {}", path.user_display());
-            fs_err::tokio::remove_dir_all(&path).await?;
+            uv_vfs::fs::tokio::remove_dir_all(&path).await?;
         }
 
         // Persist it to the target.
@@ -1432,12 +1434,12 @@ impl ManagedPythonDownload {
         );
 
         let (mut reader, size) = read_url(url, client).await?;
-        let temp_dir = tempfile::tempdir_in(python_builds_dir)?;
+        let temp_dir = uv_vfs::temp::tempdir_in(python_builds_dir)?;
         let temp_file = temp_dir.path().join("download");
 
         // Download to a temporary file. We verify the hash when unpacking the file.
         {
-            let mut archive_writer = BufWriter::new(fs_err::tokio::File::create(&temp_file).await?);
+            let mut archive_writer = BufWriter::new(uv_vfs::fs::tokio::File::create(&temp_file).await?);
 
             // Download with or without progress bar.
             if let Some(reporter) = reporter {
@@ -1821,8 +1823,8 @@ async fn read_url(
             .to_file_path()
             .map_err(|()| Error::InvalidFileUrl(url.to_string()))?;
 
-        let size = fs_err::tokio::metadata(&path).await?.len();
-        let reader = fs_err::tokio::File::open(&path).await?;
+        let size = uv_vfs::fs::tokio::metadata(&path).await?.len();
+        let reader = uv_vfs::fs::tokio::File::open(&path).await?;
 
         Ok((Either::Left(reader), Some(size)))
     } else {

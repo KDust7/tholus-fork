@@ -47,14 +47,14 @@ fn clean_all_hardlinked_file() -> Result<()> {
 
     // Keep the retained hardlink beside the cache so both entries share a filesystem.
     let retained = context.cache_dir.path().with_file_name("retained.bin");
-    fs_err::write(&retained, vec![42; 1024 * 1024])?;
-    fs_err::OpenOptions::new()
+    uv_vfs::fs::write(&retained, vec![42; 1024 * 1024])?;
+    uv_vfs::fs::OpenOptions::new()
         .write(true)
         .open(&retained)?
         .sync_all()?;
 
     let cached = context.cache_dir.child("hardlinked.bin");
-    fs_err::hard_link(&retained, &cached)?;
+    uv_vfs::fs::hard_link(&retained, &cached)?;
 
     let filters = size_filters(&context);
 
@@ -66,7 +66,7 @@ fn clean_all_hardlinked_file() -> Result<()> {
     ");
 
     context.cache_dir.create_dir_all()?;
-    fs_err::hard_link(&retained, &cached)?;
+    uv_vfs::fs::hard_link(&retained, &cached)?;
 
     uv_snapshot!(&filters, context.clean().arg("--preview-features").arg("cache-physical-space"), @"
     exit_code: 0 (success)
@@ -79,11 +79,11 @@ fn clean_all_hardlinked_file() -> Result<()> {
 
     context.cache_dir.create_dir_all()?;
     cached.write_binary(&vec![42; 1024 * 1024])?;
-    fs_err::OpenOptions::new()
+    uv_vfs::fs::OpenOptions::new()
         .write(true)
         .open(cached.path())?
         .sync_all()?;
-    fs_err::hard_link(&cached, context.cache_dir.child("second-hardlink.bin"))?;
+    uv_vfs::fs::hard_link(&cached, context.cache_dir.child("second-hardlink.bin"))?;
 
     uv_snapshot!(&filters, context.clean().arg("--preview-features").arg("cache-physical-space"), @"
     exit_code: 0 (success)
@@ -101,9 +101,9 @@ fn clean_all_hardlinked_file() -> Result<()> {
 fn clean_all_cloned_file() -> Result<()> {
     let context = copy_on_write_test_context()?;
     let retained = context.cache_dir.path().with_file_name("retained");
-    fs_err::create_dir_all(&retained)?;
+    uv_vfs::fs::create_dir_all(&retained)?;
     let original = retained.join("original.bin");
-    fs_err::write(&original, vec![42; 1024 * 1024])?;
+    uv_vfs::fs::write(&original, vec![42; 1024 * 1024])?;
 
     // Remove unrelated cache entries so the cloned file is the only allocated data being cleaned.
     context.clean().assert().success();
@@ -177,13 +177,13 @@ fn clean_all_compressed_file() -> Result<()> {
     let context = copy_on_write_test_context()?;
     let measured = context.cache_dir.child("measured.bin");
     measured.write_binary(&vec![42; 1024 * 1024])?;
-    fs_err::OpenOptions::new()
+    uv_vfs::fs::OpenOptions::new()
         .write(true)
         .open(measured.path())?
         .sync_all()?;
 
     let compressed = context.cache_dir.child("compressed.bin");
-    fs_err::File::create(compressed.path())?;
+    uv_vfs::fs::File::create(compressed.path())?;
     Command::new("btrfs")
         .args(["property", "set"])
         .arg(compressed.path())
@@ -191,7 +191,7 @@ fn clean_all_compressed_file() -> Result<()> {
         .assert()
         .success();
     compressed.write_binary(&vec![42; 1024 * 1024])?;
-    fs_err::OpenOptions::new()
+    uv_vfs::fs::OpenOptions::new()
         .write(true)
         .open(compressed.path())?
         .sync_all()?;
@@ -461,8 +461,8 @@ fn clean_package_does_not_follow_symlinks() -> Result<()> {
     package_entry.create_dir_all()?;
 
     // Preserve external targets while still removing unreferenced entries in the archive bucket.
-    fs_err::os::unix::fs::symlink(&victim_dir, package_entry.join("escape"))?;
-    fs_err::os::unix::fs::symlink(&archive_entry, package_entry.join("archive"))?;
+    uv_vfs::fs::os::unix::fs::symlink(&victim_dir, package_entry.join("escape"))?;
+    uv_vfs::fs::os::unix::fs::symlink(&archive_entry, package_entry.join("archive"))?;
 
     uv_snapshot!(context.filters(), context.clean().arg("demo"), @"
     exit_code: 0 (success)
@@ -472,8 +472,8 @@ fn clean_package_does_not_follow_symlinks() -> Result<()> {
 
     assert!(victim_dir.is_dir());
     assert!(victim_dir.child("payload.txt").is_file());
-    assert!(fs_err::symlink_metadata(package_entry).is_err());
-    assert!(fs_err::symlink_metadata(archive_entry).is_err());
+    assert!(uv_vfs::fs::symlink_metadata(package_entry).is_err());
+    assert!(uv_vfs::fs::symlink_metadata(archive_entry).is_err());
 
     Ok(())
 }
@@ -502,7 +502,7 @@ fn clean_handles_verbatim_paths() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     // Clean slate
-    fs_err::remove_dir_all(&context.cache_dir)?;
+    uv_vfs::fs::remove_dir_all(&context.cache_dir)?;
 
     // Cached sdist path resembling the uwsgi==2.0.31 build failure.
     let uwsgi_shard = context
@@ -519,10 +519,10 @@ fn clean_handles_verbatim_paths() -> Result<()> {
     uwsgi_shard.create_dir_all()?;
     let invalid_path = uwsgi_shard.child("logging.").to_path_buf();
     let invalid_file = uv_fs::verbatim_path(invalid_path.as_path());
-    fs_err::write(&invalid_file, b"")?;
+    uv_vfs::fs::write(&invalid_file, b"")?;
 
     // Confirm Win32 normalized path causes an os error when attempting to remove
-    let remove_err = fs_err::remove_file(&invalid_path).expect_err("expected to fail");
+    let remove_err = uv_vfs::fs::remove_file(&invalid_path).expect_err("expected to fail");
     assert_eq!(remove_err.kind(), std::io::ErrorKind::NotFound);
 
     // Tests cache clean leverages verbatim conversion

@@ -32,6 +32,8 @@ use crate::commands::pip::latest::LatestClient;
 use crate::commands::pip::operations::report_target_environment;
 use crate::commands::reporters::LatestVersionReporter;
 use crate::printer::Printer;
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// Enumerate the installed packages in the current environment.
 pub(crate) async fn pip_list(

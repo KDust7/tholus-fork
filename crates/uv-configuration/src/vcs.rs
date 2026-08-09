@@ -58,7 +58,7 @@ impl VersionControlSystem {
                 }
 
                 // Create the `.gitignore`, if it doesn't exist.
-                match fs_err::OpenOptions::new()
+                match uv_vfs::fs::OpenOptions::new()
                     .write(true)
                     .create_new(true)
                     .open(path.join(".gitignore"))

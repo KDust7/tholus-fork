@@ -48,15 +48,15 @@ fn prune_hardlinked_file() -> Result<()> {
 
     // Keep both hardlinks on the selected filesystem.
     let retained = context.cache_dir.path().with_file_name("retained.bin");
-    fs_err::write(&retained, vec![42; 1024 * 1024])?;
-    fs_err::OpenOptions::new()
+    uv_vfs::fs::write(&retained, vec![42; 1024 * 1024])?;
+    uv_vfs::fs::OpenOptions::new()
         .write(true)
         .open(&retained)?
         .sync_all()?;
 
     let stale = context.cache_dir.child("stale-v0");
     stale.create_dir_all()?;
-    fs_err::hard_link(&retained, stale.child("hardlinked.bin"))?;
+    uv_vfs::fs::hard_link(&retained, stale.child("hardlinked.bin"))?;
 
     let filters: Vec<_> = context
         .filters()
@@ -72,7 +72,7 @@ fn prune_hardlinked_file() -> Result<()> {
     ");
 
     stale.create_dir_all()?;
-    fs_err::hard_link(&retained, stale.child("hardlinked.bin"))?;
+    uv_vfs::fs::hard_link(&retained, stale.child("hardlinked.bin"))?;
 
     uv_snapshot!(&filters, context.prune().arg("--preview-features").arg("cache-physical-space"), @"
     exit_code: 0 (success)
@@ -219,7 +219,7 @@ fn prune_stale_symlink() -> Result<()> {
 
     // Remove the wheels directory, causing the symlink to become stale.
     let wheels = context.cache_dir.child("wheels-v6");
-    fs_err::remove_dir_all(wheels)?;
+    uv_vfs::fs::remove_dir_all(wheels)?;
 
     let filters: Vec<_> = context
         .filters()

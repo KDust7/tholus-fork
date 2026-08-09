@@ -251,7 +251,7 @@ pub(crate) async fn publish(
             }
         }
 
-        let size = fs_err::metadata(&group.file)?.len();
+        let size = uv_vfs::fs::metadata(&group.file)?.len();
         let (bytes, unit) = human_readable_bytes(size);
         if dry_run {
             writeln!(

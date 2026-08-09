@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::OnceLock;
 
-use fs_err as fs;
+use uv_vfs::fs as fs;
 use thiserror::Error;
 use tracing::warn;
 use url::Url;
@@ -19,6 +19,8 @@ use uv_pypi_types::{DirectUrl, MetadataError};
 use uv_redacted::DisplaySafeUrl;
 
 use crate::{
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
     BuildInfo, DistributionMetadata, InstalledMetadata, InstalledVersion, Name, VersionOrUrlRef,
 };
 
@@ -226,7 +228,7 @@ impl InstalledDist {
 
         // Ex) `zstandard-0.22.0-py3.12.egg-info` or `vtk-9.2.6.egg-info`
         if path.extension().is_some_and(|ext| ext == "egg-info") {
-            let metadata = match fs_err::metadata(path) {
+            let metadata = match uv_vfs::fs::metadata(path) {
                 Ok(metadata) => metadata,
                 Err(err) => {
                     warn!("Invalid `.egg-info` path: {err}");
@@ -382,39 +384,39 @@ impl InstalledDist {
     /// Read the `direct_url.json` file from a `.dist-info` directory.
     fn read_direct_url(path: &Path) -> Result<Option<DirectUrl>, InstalledDistError> {
         let path = path.join("direct_url.json");
-        let file = match fs_err::File::open(&path) {
+        let file = match uv_vfs::fs::File::open(&path) {
             Ok(file) => file,
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(err) => return Err(err.into()),
         };
         let direct_url =
-            serde_json::from_reader::<BufReader<fs_err::File>, DirectUrl>(BufReader::new(file))?;
+            serde_json::from_reader::<BufReader<uv_vfs::fs::File>, DirectUrl>(BufReader::new(file))?;
         Ok(Some(direct_url))
     }
 
     /// Read the `uv_cache.json` file from a `.dist-info` directory.
     fn read_cache_info(path: &Path) -> Result<Option<CacheInfo>, InstalledDistError> {
         let path = path.join("uv_cache.json");
-        let file = match fs_err::File::open(&path) {
+        let file = match uv_vfs::fs::File::open(&path) {
             Ok(file) => file,
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(err) => return Err(err.into()),
         };
         let cache_info =
-            serde_json::from_reader::<BufReader<fs_err::File>, CacheInfo>(BufReader::new(file))?;
+            serde_json::from_reader::<BufReader<uv_vfs::fs::File>, CacheInfo>(BufReader::new(file))?;
         Ok(Some(cache_info))
     }
 
     /// Read the `uv_build.json` file from a `.dist-info` directory.
     fn read_build_info(path: &Path) -> Result<Option<BuildInfo>, InstalledDistError> {
         let path = path.join("uv_build.json");
-        let file = match fs_err::File::open(&path) {
+        let file = match uv_vfs::fs::File::open(&path) {
             Ok(file) => file,
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(err) => return Err(err.into()),
         };
         let build_info =
-            serde_json::from_reader::<BufReader<fs_err::File>, BuildInfo>(BufReader::new(file))?;
+            serde_json::from_reader::<BufReader<uv_vfs::fs::File>, BuildInfo>(BufReader::new(file))?;
         Ok(Some(build_info))
     }
 
@@ -478,7 +480,7 @@ impl InstalledDist {
         };
 
         // Read the `WHEEL` file.
-        let contents = fs_err::read_to_string(path.join("WHEEL"))?;
+        let contents = uv_vfs::fs::read_to_string(path.join("WHEEL"))?;
         let wheel_file = WheelFile::parse(&contents)?;
 
         // Parse the tags.

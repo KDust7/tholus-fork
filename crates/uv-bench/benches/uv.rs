@@ -40,8 +40,8 @@ fn hash_sha256(c: &mut Criterion<WallTime>) {
     });
 }
 
-fn create_many_files_wheel() -> tempfile::NamedTempFile {
-    let archive = tempfile::NamedTempFile::new().expect("Failed to create temporary archive");
+fn create_many_files_wheel() -> uv_vfs::temp::NamedTempFile {
+    let archive = uv_vfs::temp::NamedTempFile::new().expect("Failed to create temporary archive");
     let mut writer = ZipFileWriter::new(Vec::new());
     let mut record = String::new();
     for index in 0..MANY_FILES_WHEEL_FILE_COUNT {
@@ -67,7 +67,7 @@ fn create_many_files_wheel() -> tempfile::NamedTempFile {
         "manyfiles-0.0.0.dist-info/RECORD",
         record.as_bytes(),
     );
-    fs_err::write(
+    uv_vfs::fs::write(
         archive.path(),
         block_on(writer.close()).expect("Failed to finish ZIP archive"),
     )
@@ -75,8 +75,8 @@ fn create_many_files_wheel() -> tempfile::NamedTempFile {
     archive
 }
 
-fn create_many_files_sdist() -> tempfile::NamedTempFile {
-    let archive = tempfile::NamedTempFile::new().expect("Failed to create temporary archive");
+fn create_many_files_sdist() -> uv_vfs::temp::NamedTempFile {
+    let archive = uv_vfs::temp::NamedTempFile::new().expect("Failed to create temporary archive");
     let encoder = GzEncoder::new(archive.as_file(), flate2::Compression::default());
     let mut writer =
         tokio_tar::Builder::new_non_terminated(AllowStdIo::new(encoder).compat_write());
@@ -106,13 +106,13 @@ fn create_many_files_sdist() -> tempfile::NamedTempFile {
     archive
 }
 
-fn create_sdist_extraction_directory() -> tempfile::TempDir {
+fn create_sdist_extraction_directory() -> uv_vfs::temp::TempDir {
     #[cfg(target_os = "linux")]
-    if let Ok(directory) = tempfile::tempdir_in("/dev/shm") {
+    if let Ok(directory) = uv_vfs::temp::tempdir_in("/dev/shm") {
         return directory;
     }
 
-    tempfile::tempdir().expect("Failed to create sdist extraction directory")
+    uv_vfs::temp::tempdir().expect("Failed to create sdist extraction directory")
 }
 
 fn unpack_sdist_many_files(c: &mut Criterion<WallTime>) {
@@ -127,7 +127,7 @@ fn unpack_sdist_many_files(c: &mut Criterion<WallTime>) {
             || {
                 (
                     runtime
-                        .block_on(fs_err::tokio::File::open(archive.path()))
+                        .block_on(uv_vfs::fs::tokio::File::open(archive.path()))
                         .expect("Failed to open temporary archive"),
                     create_sdist_extraction_directory(),
                 )
@@ -156,8 +156,8 @@ fn unzip_wheel_many_files(c: &mut Criterion<WallTime>) {
         b.iter_batched(
             || {
                 (
-                    fs_err::File::open(archive.path()).expect("Failed to open temporary archive"),
-                    tempfile::tempdir().expect("Failed to create wheel extraction directory"),
+                    uv_vfs::fs::File::open(archive.path()).expect("Failed to open temporary archive"),
+                    uv_vfs::temp::tempdir().expect("Failed to create wheel extraction directory"),
                 )
             },
             |(archive, extracted_wheel)| {
@@ -179,8 +179,8 @@ fn prepare_wheel_many_files(c: &mut Criterion<WallTime>) {
         b.iter_batched(
             || {
                 (
-                    fs_err::File::open(archive.path()).expect("Failed to open temporary archive"),
-                    tempfile::tempdir().expect("Failed to create wheel extraction directory"),
+                    uv_vfs::fs::File::open(archive.path()).expect("Failed to open temporary archive"),
+                    uv_vfs::temp::tempdir().expect("Failed to create wheel extraction directory"),
                 )
             },
             |(archive, extracted_wheel)| {
@@ -196,9 +196,9 @@ fn install_wheel_many_files(c: &mut Criterion<WallTime>) {
     let archive = create_many_files_wheel();
     let filename =
         WheelFilename::from_str(MANY_FILES_WHEEL_FILENAME).expect("Invalid wheel filename");
-    let extracted_wheel = tempfile::tempdir().expect("Failed to create wheel extraction directory");
+    let extracted_wheel = uv_vfs::temp::tempdir().expect("Failed to create wheel extraction directory");
     prepare_wheel(
-        fs_err::File::open(archive.path()).expect("Failed to open temporary archive"),
+        uv_vfs::fs::File::open(archive.path()).expect("Failed to open temporary archive"),
         extracted_wheel.path(),
         &filename,
     );
@@ -207,9 +207,9 @@ fn install_wheel_many_files(c: &mut Criterion<WallTime>) {
         b.iter_batched(
             || {
                 let environment =
-                    tempfile::tempdir().expect("Failed to create installation directory");
+                    uv_vfs::temp::tempdir().expect("Failed to create installation directory");
                 let layout = layout(environment.path());
-                fs_err::create_dir_all(&layout.scheme.purelib)
+                uv_vfs::fs::create_dir_all(&layout.scheme.purelib)
                     .expect("Failed to create site-packages directory");
                 (environment, layout)
             },
@@ -240,7 +240,7 @@ fn install_wheel_many_files(c: &mut Criterion<WallTime>) {
 }
 
 fn prepare_wheel(
-    archive: fs_err::File,
+    archive: uv_vfs::fs::File,
     extracted_wheel: &Path,
     filename: &WheelFilename,
 ) -> Vec<(PathBuf, u64)> {

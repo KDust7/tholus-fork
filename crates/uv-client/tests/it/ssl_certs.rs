@@ -6,7 +6,7 @@ use std::str::FromStr;
 use anyhow::Result;
 use rcgen::CustomExtension;
 use temp_env::async_with_vars;
-use tempfile::{NamedTempFile, TempDir};
+use uv_vfs::temp::{NamedTempFile, TempDir};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use url::Url;
@@ -69,14 +69,14 @@ impl TestCertificate {
 
     fn persist(ca: SelfSigned, server: SelfSigned, client: &SelfSigned) -> Result<Self> {
         let cert_dir = test_cert_dir();
-        fs_err::create_dir_all(&cert_dir)?;
+        uv_vfs::fs::create_dir_all(&cert_dir)?;
         let temp_dir = TempDir::new_in(cert_dir)?;
 
         let trust_path = temp_dir.path().join("ca.pem");
-        fs_err::write(&trust_path, ca.public.pem())?;
+        uv_vfs::fs::write(&trust_path, ca.public.pem())?;
 
         let client_cert_path = temp_dir.path().join("client.pem");
-        fs_err::write(
+        uv_vfs::fs::write(
             &client_cert_path,
             format!(
                 "{}\n{}",
@@ -116,7 +116,7 @@ impl TestCertificate {
     /// directory, returning it.
     fn ca_pem_dir_as(&self, filename: &str) -> TempDir {
         let dir = TempDir::new().unwrap();
-        fs_err::write(dir.path().join(filename), self.ca.public.pem()).unwrap();
+        uv_vfs::fs::write(dir.path().join(filename), self.ca.public.pem()).unwrap();
         dir
     }
 
@@ -124,7 +124,7 @@ impl TestCertificate {
     /// returning it.
     fn bundle_pem_dir(&self) -> TempDir {
         let dir = TempDir::new().unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             dir.path().join("bundle.pem"),
             format!("{}\n{}", self.ca.public.pem(), self.server.public.pem()),
         )
@@ -761,8 +761,8 @@ async fn test_ssl_cert_dir_ignores_invalid_trust_anchor() -> Result<()> {
     let invalid_cert = TestCertificate::new_with_duplicate_basic_constraints_ca_extension()?;
 
     let dir = TempDir::new()?;
-    fs_err::write(dir.path().join("valid.pem"), valid_cert.ca.public.pem())?;
-    fs_err::write(dir.path().join("invalid.pem"), invalid_cert.ca.public.pem())?;
+    uv_vfs::fs::write(dir.path().join("valid.pem"), valid_cert.ca.public.pem())?;
+    uv_vfs::fs::write(dir.path().join("invalid.pem"), invalid_cert.ca.public.pem())?;
 
     client()
         .ssl_cert_dir(dir.path())

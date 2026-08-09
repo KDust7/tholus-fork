@@ -5,6 +5,8 @@ use assert_fs::prelude::*;
 use url::Url;
 
 use uv_test::uv_snapshot;
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 #[test]
 fn freeze_many() -> Result<()> {
@@ -182,7 +184,7 @@ fn freeze_direct_archive_hash_roundtrip() -> Result<()> {
 
     let requirements_txt = context.temp_dir.child("requirements.txt");
     requirements_txt.write_binary(&frozen.stdout)?;
-    fs_err::remove_dir_all(ok.path())?;
+    uv_vfs::fs::remove_dir_all(ok.path())?;
 
     context
         .pip_install()

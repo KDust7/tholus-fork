@@ -13,6 +13,8 @@ use uv_pep508::{
 use uv_redacted::{DisplaySafeUrl, DisplaySafeUrlError};
 
 use crate::{ArchiveInfo, DirInfo, DirectUrl, VcsInfo, VcsKind};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 #[derive(Debug, Error)]
 pub enum ParsedUrlError {

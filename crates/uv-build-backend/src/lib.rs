@@ -208,7 +208,7 @@ fn check_metadata_directory(
     let current = pyproject_toml
         .to_metadata(source_tree)?
         .core_metadata_format();
-    let previous = fs_err::read_to_string(metadata_directory.join("METADATA"))?;
+    let previous = uv_vfs::fs::read_to_string(metadata_directory.join("METADATA"))?;
     if previous != current {
         return Err(Error::InconsistentSteps("METADATA"));
     }
@@ -222,7 +222,7 @@ fn check_metadata_directory(
             }
         }
         Some(entrypoints) => {
-            if fs_err::read_to_string(&entrypoints_path)? != entrypoints {
+            if uv_vfs::fs::read_to_string(&entrypoints_path)? != entrypoints {
                 return Err(Error::InconsistentSteps("entry_points.txt"));
             }
         }
@@ -474,7 +474,7 @@ mod tests {
     use super::*;
     use async_zip::base::read::mem::ZipFileReader;
     use flate2::bufread::GzDecoder;
-    use fs_err::File;
+    use uv_vfs::fs::File;
     use futures_lite::{StreamExt, future::block_on};
     use indoc::indoc;
     use insta::assert_snapshot;
@@ -484,7 +484,7 @@ mod tests {
     use std::io::BufReader;
     use std::iter;
     use std::pin::Pin;
-    use tempfile::TempDir;
+    use uv_vfs::temp::TempDir;
     use uv_distribution_filename::{SourceDistFilename, WheelFilename};
     use uv_errors::{ErrorWithHints, Hint};
     use uv_fs::{copy_dir_all, relative_to};
@@ -543,8 +543,8 @@ mod tests {
         let direct_wheel_filename = build_wheel(source_root, dist, None, MOCK_UV_VERSION, false)?;
         let direct_wheel_path = dist.join(direct_wheel_filename.to_string());
         let direct_wheel_contents = wheel_contents(&direct_wheel_path);
-        let direct_wheel_hash = sha2::Sha256::digest(fs_err::read(&direct_wheel_path)?);
-        fs_err::remove_file(&direct_wheel_path)?;
+        let direct_wheel_hash = sha2::Sha256::digest(uv_vfs::fs::read(&direct_wheel_path)?);
+        uv_vfs::fs::remove_file(&direct_wheel_path)?;
 
         // Build a source distribution.
         let (_name, source_dist_list_files) =
@@ -579,7 +579,7 @@ mod tests {
         assert_eq!(direct_wheel_list_files, wheel_list_files);
         assert_eq!(
             direct_wheel_hash,
-            sha2::Sha256::digest(fs_err::read(dist.join(wheel_filename.to_string()))?)
+            sha2::Sha256::digest(uv_vfs::fs::read(dist.join(wheel_filename.to_string()))?)
         );
 
         Ok(BuildResults {
@@ -684,7 +684,7 @@ mod tests {
     }
 
     async fn read_wheel(wheel_path: &Path) -> ZipFileReader {
-        ZipFileReader::new(fs_err::read(wheel_path).expect("wheel should be readable"))
+        ZipFileReader::new(uv_vfs::fs::read(wheel_path).expect("wheel should be readable"))
             .await
             .expect("wheel should be valid")
     }
@@ -737,7 +737,7 @@ mod tests {
             "LICENSE-APACHE",
             "LICENSE-MIT",
         ] {
-            fs_err::copy(built_by_uv.join(filename), src.path().join(filename)).unwrap();
+            uv_vfs::fs::copy(built_by_uv.join(filename), src.path().join(filename)).unwrap();
         }
 
         // Clear executable bit on Unix to build the same archive between Unix and Windows.
@@ -748,26 +748,26 @@ mod tests {
         {
             use std::os::unix::fs::PermissionsExt;
             let path = src.path().join("scripts").join("whoami.sh");
-            let metadata = fs_err::metadata(&path).unwrap();
+            let metadata = uv_vfs::fs::metadata(&path).unwrap();
             let mut perms = metadata.permissions();
             perms.set_mode(perms.mode() & !0o111);
-            fs_err::set_permissions(&path, perms).unwrap();
+            uv_vfs::fs::set_permissions(&path, perms).unwrap();
         }
 
         // Redact the uv_build version to keep the hash stable across releases
-        let pyproject_toml = fs_err::read_to_string(src.path().join("pyproject.toml")).unwrap();
+        let pyproject_toml = uv_vfs::fs::read_to_string(src.path().join("pyproject.toml")).unwrap();
         let current_requires = regex!(r#"requires = \["uv_build>=[0-9.]+,<[0-9.]+"\]"#);
         let mocked_requires = r#"requires = ["uv_build>=1,<2"]"#;
         let pyproject_toml = current_requires.replace(pyproject_toml.as_str(), mocked_requires);
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml.as_bytes()).unwrap();
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml.as_bytes()).unwrap();
 
         // Add some files to be excluded
         let module_root = src.path().join("src").join("built_by_uv");
-        fs_err::create_dir_all(module_root.join("__pycache__")).unwrap();
+        uv_vfs::fs::create_dir_all(module_root.join("__pycache__")).unwrap();
         File::create(module_root.join("__pycache__").join("compiled.pyc")).unwrap();
         File::create(module_root.join("arithmetic").join("circle.pyc")).unwrap();
-        fs_err::create_dir_all(module_root.join("empty")).unwrap();
-        fs_err::create_dir_all(module_root.join("stale").join("__pycache__")).unwrap();
+        uv_vfs::fs::create_dir_all(module_root.join("empty")).unwrap();
+        uv_vfs::fs::create_dir_all(module_root.join("stale").join("__pycache__")).unwrap();
         File::create(
             module_root
                 .join("stale")
@@ -787,7 +787,7 @@ mod tests {
         );
         // Check that the source dist is reproducible across platforms.
         assert_snapshot!(
-            hex::encode(sha2::Sha256::digest(fs_err::read(&source_dist_path).unwrap())),
+            hex::encode(sha2::Sha256::digest(uv_vfs::fs::read(&source_dist_path).unwrap())),
             @"1d9ce1ce63195fbee07314c0b595ba9e063670da8d10c252c351b21e94e3f508"
         );
         // Check both the files we report and the actual files
@@ -843,7 +843,7 @@ mod tests {
         );
         // Check that the wheel is reproducible across platforms.
         assert_snapshot!(
-            hex::encode(sha2::Sha256::digest(fs_err::read(&wheel_path).unwrap())),
+            hex::encode(sha2::Sha256::digest(uv_vfs::fs::read(&wheel_path).unwrap())),
             @"9e8d80fef76be79a7fe73a2ccac3bdd0132b10fdcff7271ca8b868c99061b8ce"
         );
         assert_snapshot!(build.wheel_contents.join("\n"), @"
@@ -913,7 +913,7 @@ mod tests {
     fn license_file_pre_pep639() {
         let _preview = uv_preview::test::with_features(&[]);
         let src = TempDir::new().unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             src.path().join("pyproject.toml"),
             indoc! {r#"
             [project]
@@ -928,7 +928,7 @@ mod tests {
             },
         )
         .unwrap();
-        fs_err::create_dir_all(src.path().join("src").join("pep_pep639_license")).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("src").join("pep_pep639_license")).unwrap();
         File::create(
             src.path()
                 .join("src")
@@ -936,7 +936,7 @@ mod tests {
                 .join("__init__.py"),
         )
         .unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             src.path().join("license.txt"),
             "Copy carefully.\nSincerely, the authors",
         )
@@ -975,7 +975,7 @@ mod tests {
     fn prepare_metadata_then_build_wheel() {
         let _preview = uv_preview::test::with_features(&[]);
         let src = TempDir::new().unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             src.path().join("pyproject.toml"),
             indoc! {r#"
             [project]
@@ -989,7 +989,7 @@ mod tests {
             },
         )
         .unwrap();
-        fs_err::create_dir_all(src.path().join("src").join("two_step_build")).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("src").join("two_step_build")).unwrap();
         File::create(
             src.path()
                 .join("src")
@@ -1002,7 +1002,7 @@ mod tests {
         let metadata_dir = TempDir::new().unwrap();
         let dist_info_dir = metadata(src.path(), metadata_dir.path(), "0.5.15").unwrap();
         let metadata_prepared =
-            fs_err::read_to_string(metadata_dir.path().join(&dist_info_dir).join("METADATA"))
+            uv_vfs::fs::read_to_string(metadata_dir.path().join(&dist_info_dir).join("METADATA"))
                 .unwrap();
 
         // Build the wheel, using the prepared metadata directory.
@@ -1034,7 +1034,7 @@ mod tests {
     fn test_glob_path_normalization() {
         let _preview = uv_preview::test::with_features(&[]);
         let src = TempDir::new().unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             src.path().join("pyproject.toml"),
             indoc! {r#"
             [project]
@@ -1052,7 +1052,7 @@ mod tests {
         )
         .unwrap();
 
-        fs_err::create_dir_all(src.path().join("two_step_build")).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("two_step_build")).unwrap();
         File::create(src.path().join("two_step_build").join("__init__.py")).unwrap();
 
         let dist = TempDir::new().unwrap();
@@ -1077,7 +1077,7 @@ mod tests {
         ");
 
         // A path with a parent reference.
-        fs_err::write(
+        uv_vfs::fs::write(
             src.path().join("pyproject.toml"),
             indoc! {r#"
             [project]
@@ -1118,9 +1118,9 @@ mod tests {
             module-name = "camelCase"
             "#
         };
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
 
-        fs_err::create_dir_all(src.path().join("src").join("camelCase")).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("src").join("camelCase")).unwrap();
         File::create(src.path().join("src").join("camelCase").join("__init__.py")).unwrap();
 
         let dist = TempDir::new().unwrap();
@@ -1136,7 +1136,7 @@ mod tests {
         ");
 
         // Check that an explicit wrong casing fails to build.
-        fs_err::write(
+        uv_vfs::fs::write(
             src.path().join("pyproject.toml"),
             pyproject_toml.replace("camelCase", "camel_case"),
         )
@@ -1158,7 +1158,7 @@ mod tests {
         let src = TempDir::new().unwrap();
 
         // Create a minimal pyproject.toml without __init__.py (will fail)
-        fs_err::write(
+        uv_vfs::fs::write(
             src.path().join("pyproject.toml"),
             indoc! {r#"
                 [project]
@@ -1183,7 +1183,7 @@ mod tests {
         assert!(wheel_result.is_err());
 
         // dist directory should be empty (no partial files)
-        let dist_contents: Vec<_> = fs_err::read_dir(dist.path()).unwrap().collect();
+        let dist_contents: Vec<_> = uv_vfs::fs::read_dir(dist.path()).unwrap().collect();
         assert!(
             dist_contents.is_empty(),
             "Expected empty dist directory, but found: {dist_contents:?}"
@@ -1197,7 +1197,7 @@ mod tests {
         let src = TempDir::new().unwrap();
 
         // Create a minimal pyproject.toml without __init__.py (will fail)
-        fs_err::write(
+        uv_vfs::fs::write(
             src.path().join("pyproject.toml"),
             indoc! {r#"
                 [project]
@@ -1217,8 +1217,8 @@ mod tests {
         let sdist_path = dist.path().join("failing_build-1.0.0.tar.gz");
         let wheel_path = dist.path().join("failing_build-1.0.0-py3-none-any.whl");
         let old_content = b"old content";
-        fs_err::write(&sdist_path, old_content).unwrap();
-        fs_err::write(&wheel_path, old_content).unwrap();
+        uv_vfs::fs::write(&sdist_path, old_content).unwrap();
+        uv_vfs::fs::write(&wheel_path, old_content).unwrap();
 
         // Build should fail and delete existing files
         let sdist_result = build_source_dist(src.path(), dist.path(), MOCK_UV_VERSION, false);
@@ -1245,7 +1245,7 @@ mod tests {
         let src = TempDir::new().unwrap();
 
         // Create a valid project
-        fs_err::write(
+        uv_vfs::fs::write(
             src.path().join("pyproject.toml"),
             indoc! {r#"
                 [project]
@@ -1258,7 +1258,7 @@ mod tests {
             "#},
         )
         .unwrap();
-        fs_err::create_dir_all(src.path().join("src").join("overwrite_test")).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("src").join("overwrite_test")).unwrap();
         File::create(
             src.path()
                 .join("src")
@@ -1273,8 +1273,8 @@ mod tests {
         let sdist_path = dist.path().join("overwrite_test-1.0.0.tar.gz");
         let wheel_path = dist.path().join("overwrite_test-1.0.0-py3-none-any.whl");
         let old_content = b"old content";
-        fs_err::write(&sdist_path, old_content).unwrap();
-        fs_err::write(&wheel_path, old_content).unwrap();
+        uv_vfs::fs::write(&sdist_path, old_content).unwrap();
+        uv_vfs::fs::write(&wheel_path, old_content).unwrap();
 
         // Build should succeed and overwrite existing files
         build_source_dist(src.path(), dist.path(), MOCK_UV_VERSION, false).unwrap();
@@ -1282,12 +1282,12 @@ mod tests {
 
         // Verify files were overwritten (content should be different)
         assert_ne!(
-            &fs_err::read(&sdist_path).unwrap()[..],
+            &uv_vfs::fs::read(&sdist_path).unwrap()[..],
             &old_content[..],
             "Source dist should have been overwritten"
         );
         assert_ne!(
-            &fs_err::read(&wheel_path).unwrap()[..],
+            &uv_vfs::fs::read(&wheel_path).unwrap()[..],
             &old_content[..],
             "Wheel should have been overwritten"
         );
@@ -1320,7 +1320,7 @@ mod tests {
             module-name = "django@home-stubs"
             "#
         };
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
 
         let dist = TempDir::new().unwrap();
         let build_err = build(src.path(), dist.path()).unwrap_err();
@@ -1349,8 +1349,8 @@ mod tests {
             build-backend = "uv_build"
             "#
         };
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
-        fs_err::create_dir_all(src.path().join("src").join("stuffed_bird-stubs")).unwrap();
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("src").join("stuffed_bird-stubs")).unwrap();
         // That's the wrong file, we're expecting a `__init__.pyi`.
         let regular_init_py = src
             .path()
@@ -1370,7 +1370,7 @@ mod tests {
         );
 
         // Create the correct file
-        fs_err::remove_file(regular_init_py).unwrap();
+        uv_vfs::fs::remove_file(regular_init_py).unwrap();
         File::create(
             src.path()
                 .join("src")
@@ -1403,7 +1403,7 @@ mod tests {
             module-name = "stuffed_bird-stubs"
             "#
         };
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
 
         let build2 = build(src.path(), dist.path()).unwrap();
         assert_eq!(build1.wheel_contents, build2.wheel_contents);
@@ -1427,8 +1427,8 @@ mod tests {
             build-backend = "uv_build"
             "#
         };
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
-        fs_err::create_dir_all(src.path().join("src").join("simple_namespace").join("part"))
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("src").join("simple_namespace").join("part"))
             .unwrap();
 
         assert_snapshot!(
@@ -1457,7 +1457,7 @@ mod tests {
             build_err(src.path()),
             @"For namespace packages, `__init__.py[i]` is not allowed in parent directory: [TEMP_PATH]/src/simple_namespace"
         );
-        fs_err::remove_file(bogus_init_py).unwrap();
+        uv_vfs::fs::remove_file(bogus_init_py).unwrap();
 
         let dist = TempDir::new().unwrap();
         let build1 = build(src.path(), dist.path()).unwrap();
@@ -1496,7 +1496,7 @@ mod tests {
             build-backend = "uv_build"
             "#
         };
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
 
         let build2 = build(src.path(), dist.path()).unwrap();
         assert_eq!(build1, build2);
@@ -1520,8 +1520,8 @@ mod tests {
             build-backend = "uv_build"
             "#
         };
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
-        fs_err::create_dir_all(
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::create_dir_all(
             src.path()
                 .join("src")
                 .join("complex_namespace")
@@ -1536,7 +1536,7 @@ mod tests {
                 .join("__init__.py"),
         )
         .unwrap();
-        fs_err::create_dir_all(
+        uv_vfs::fs::create_dir_all(
             src.path()
                 .join("src")
                 .join("complex_namespace")
@@ -1581,7 +1581,7 @@ mod tests {
             build-backend = "uv_build"
             "#
         };
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
 
         let build2 = build(src.path(), dist.path()).unwrap();
         assert_eq!(build1, build2);
@@ -1605,8 +1605,8 @@ mod tests {
             build-backend = "uv_build"
             "#
         };
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
-        fs_err::create_dir_all(
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::create_dir_all(
             src.path()
                 .join("src")
                 .join("cloud-stubs")
@@ -1656,16 +1656,16 @@ mod tests {
             build-backend = "uv_build"
             "#
         };
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
-        fs_err::create_dir_all(src.path().join("src").join("foo")).unwrap();
-        fs_err::create_dir_all(
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("src").join("foo")).unwrap();
+        uv_vfs::fs::create_dir_all(
             src.path()
                 .join("src")
                 .join("simple_namespace")
                 .join("part_a"),
         )
         .unwrap();
-        fs_err::create_dir_all(
+        uv_vfs::fs::create_dir_all(
             src.path()
                 .join("src")
                 .join("simple_namespace")
@@ -1720,7 +1720,7 @@ mod tests {
             build_err(src.path()),
             @"For namespace packages, `__init__.py[i]` is not allowed in parent directory: [TEMP_PATH]/src/simple_namespace"
         );
-        fs_err::remove_file(bogus_init_py).unwrap();
+        uv_vfs::fs::remove_file(bogus_init_py).unwrap();
 
         let dist = TempDir::new().unwrap();
         let build = build(src.path(), dist.path()).unwrap();
@@ -1825,10 +1825,10 @@ mod tests {
             build-backend = "uv_build"
             "#
         };
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
-        fs_err::create_dir_all(src.path().join("src").join("foo")).unwrap();
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("src").join("foo")).unwrap();
         File::create(src.path().join("src").join("foo").join("__init__.py")).unwrap();
-        fs_err::create_dir_all(src.path().join("src").join("bar").join("baz")).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("src").join("bar").join("baz")).unwrap();
         File::create(
             src.path()
                 .join("src")
@@ -1870,7 +1870,7 @@ mod tests {
     fn metadata_json_preview() {
         let _preview = uv_preview::test::with_features(&[PreviewFeature::MetadataJson]);
         let src = TempDir::new().unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             src.path().join("pyproject.toml"),
             indoc! {r#"
             [project]
@@ -1884,7 +1884,7 @@ mod tests {
             },
         )
         .unwrap();
-        fs_err::create_dir_all(src.path().join("src").join("metadata_json_preview")).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("src").join("metadata_json_preview")).unwrap();
         File::create(
             src.path()
                 .join("src")
@@ -1915,7 +1915,7 @@ mod tests {
         let _preview = uv_preview::test::with_features(&[]);
         let tmp_dir = TempDir::new().unwrap();
 
-        fs_err::write(
+        uv_vfs::fs::write(
             tmp_dir.path().join("pyproject.toml"),
             indoc! {r#"
                 [project]
@@ -1933,11 +1933,11 @@ mod tests {
         .unwrap();
 
         let nested_pyproject = tmp_dir.path().join("src").join("nested_pyproject");
-        fs_err::create_dir_all(&nested_pyproject).unwrap();
+        uv_vfs::fs::create_dir_all(&nested_pyproject).unwrap();
         File::create(nested_pyproject.join("__init__.py")).unwrap();
 
         // Create a nested pyproject.toml in a subdirectory
-        fs_err::write(
+        uv_vfs::fs::write(
             nested_pyproject.join("pyproject.toml"),
             indoc! {r#"
                 [project]
@@ -1995,8 +1995,8 @@ mod tests {
             build-backend = "uv_build"
         "#};
 
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
-        fs_err::create_dir_all(src.path().join("src").join("toml11_project")).unwrap();
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("src").join("toml11_project")).unwrap();
         File::create(
             src.path()
                 .join("src")
@@ -2029,9 +2029,9 @@ mod tests {
             build.source_dist_filename.version
         ));
         let pyproject_toml_content =
-            fs_err::read_to_string(sdist_top_level_directory.join("pyproject.toml")).unwrap();
+            uv_vfs::fs::read_to_string(sdist_top_level_directory.join("pyproject.toml")).unwrap();
         let pyproject_toml_orig_content =
-            fs_err::read_to_string(sdist_top_level_directory.join("pyproject.toml.orig")).unwrap();
+            uv_vfs::fs::read_to_string(sdist_top_level_directory.join("pyproject.toml.orig")).unwrap();
 
         assert_eq!(pyproject_toml_orig_content, pyproject_toml);
         assert_snapshot!(pyproject_toml_content, @r#"
@@ -2085,8 +2085,8 @@ mod tests {
             build-backend = "uv_build"
         "#};
 
-        fs_err::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
-        fs_err::create_dir_all(src.path().join("src").join("toml11_project")).unwrap();
+        uv_vfs::fs::write(src.path().join("pyproject.toml"), pyproject_toml).unwrap();
+        uv_vfs::fs::create_dir_all(src.path().join("src").join("toml11_project")).unwrap();
         File::create(
             src.path()
                 .join("src")
@@ -2119,9 +2119,9 @@ mod tests {
             build.source_dist_filename.version
         ));
         let pyproject_toml_content =
-            fs_err::read_to_string(sdist_top_level_directory.join("pyproject.toml")).unwrap();
+            uv_vfs::fs::read_to_string(sdist_top_level_directory.join("pyproject.toml")).unwrap();
         let pyproject_toml_orig_content =
-            fs_err::read_to_string(sdist_top_level_directory.join("pyproject.toml.orig")).unwrap();
+            uv_vfs::fs::read_to_string(sdist_top_level_directory.join("pyproject.toml.orig")).unwrap();
 
         assert_eq!(pyproject_toml_orig_content, pyproject_toml);
         assert_snapshot!(pyproject_toml_content, @r#"

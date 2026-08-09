@@ -156,12 +156,12 @@ pub struct TestContext {
     extra_env: Vec<(OsString, OsString)>,
 
     #[allow(dead_code)]
-    _root: tempfile::TempDir,
+    _root: uv_vfs::temp::TempDir,
 
     /// Extra temporary directories whose lifetimes are tied to this context (e.g., directories
     /// on alternate filesystems created by [`TestContext::with_cache_on_cow_fs`]).
     #[allow(dead_code)]
-    _extra_tempdirs: Vec<tempfile::TempDir>,
+    _extra_tempdirs: Vec<uv_vfs::temp::TempDir>,
 }
 
 impl TestContext {
@@ -436,7 +436,7 @@ impl TestContext {
     #[must_use]
     pub fn with_filtered_python_symlinks(mut self) -> Self {
         for (version, executable) in &self.python_versions {
-            if fs_err::symlink_metadata(executable).unwrap().is_symlink() {
+            if uv_vfs::fs::symlink_metadata(executable).unwrap().is_symlink() {
                 self.filters.extend(
                     Self::path_patterns(executable.read_link().unwrap())
                         .into_iter()
@@ -768,10 +768,10 @@ impl TestContext {
     }
 
     fn with_cache_on_fs(mut self, dir: &str, name: &str) -> anyhow::Result<Self> {
-        fs_err::create_dir_all(dir)?;
-        let tmp = tempfile::TempDir::new_in(dir)?;
+        uv_vfs::fs::create_dir_all(dir)?;
+        let tmp = uv_vfs::temp::TempDir::new_in(dir)?;
         self.cache_dir = ChildPath::new(tmp.path()).child("cache");
-        fs_err::create_dir_all(&self.cache_dir)?;
+        uv_vfs::fs::create_dir_all(&self.cache_dir)?;
         let replacement = format!("[{name}]/[CACHE_DIR]/");
         self.filters.extend(
             Self::path_patterns(&self.cache_dir)
@@ -783,10 +783,10 @@ impl TestContext {
     }
 
     fn with_working_dir_on_fs(mut self, dir: &str, name: &str) -> anyhow::Result<Self> {
-        fs_err::create_dir_all(dir)?;
-        let tmp = tempfile::TempDir::new_in(dir)?;
+        uv_vfs::fs::create_dir_all(dir)?;
+        let tmp = uv_vfs::temp::TempDir::new_in(dir)?;
         self.temp_dir = ChildPath::new(tmp.path()).child("temp");
-        fs_err::create_dir_all(&self.temp_dir)?;
+        uv_vfs::fs::create_dir_all(&self.temp_dir)?;
         // Place the venv inside temp_dir (matching the default TestContext layout)
         // so that `context.venv()` creates it at the same path that `VIRTUAL_ENV` points to.
         let canonical_temp_dir = self.temp_dir.canonicalize()?;
@@ -831,26 +831,26 @@ impl TestContext {
     /// This is called by the `test_context_with_versions!` macro.
     pub fn new_with_versions_and_bin(python_versions: &[&str], uv_bin: PathBuf) -> Self {
         let bucket = Self::test_bucket_dir();
-        fs_err::create_dir_all(&bucket).expect("Failed to create test bucket");
+        uv_vfs::fs::create_dir_all(&bucket).expect("Failed to create test bucket");
 
-        let root = tempfile::TempDir::new_in(bucket).expect("Failed to create test root directory");
+        let root = uv_vfs::temp::TempDir::new_in(bucket).expect("Failed to create test root directory");
 
         // Create a `.git` directory to isolate tests that search for git boundaries from the state
         // of the file system
-        fs_err::create_dir_all(root.path().join(".git"))
+        uv_vfs::fs::create_dir_all(root.path().join(".git"))
             .expect("Failed to create `.git` placeholder in test root directory");
 
         let temp_dir = ChildPath::new(root.path()).child("temp");
-        fs_err::create_dir_all(&temp_dir).expect("Failed to create test working directory");
+        uv_vfs::fs::create_dir_all(&temp_dir).expect("Failed to create test working directory");
 
         let cache_dir = ChildPath::new(root.path()).child("cache");
-        fs_err::create_dir_all(&cache_dir).expect("Failed to create test cache directory");
+        uv_vfs::fs::create_dir_all(&cache_dir).expect("Failed to create test cache directory");
 
         let python_dir = ChildPath::new(root.path()).child("python");
-        fs_err::create_dir_all(&python_dir).expect("Failed to create test Python directory");
+        uv_vfs::fs::create_dir_all(&python_dir).expect("Failed to create test Python directory");
 
         let bin_dir = ChildPath::new(root.path()).child("bin");
-        fs_err::create_dir_all(&bin_dir).expect("Failed to create test bin directory");
+        uv_vfs::fs::create_dir_all(&bin_dir).expect("Failed to create test bin directory");
 
         // When the `git` feature is disabled, enforce that the test suite does not use `git`
         if cfg!(not(feature = "git")) {
@@ -858,7 +858,7 @@ impl TestContext {
         }
 
         let home_dir = ChildPath::new(root.path()).child("home");
-        fs_err::create_dir_all(&home_dir).expect("Failed to create test home directory");
+        uv_vfs::fs::create_dir_all(&home_dir).expect("Failed to create test home directory");
 
         let user_config_dir = if cfg!(windows) {
             ChildPath::new(home_dir.path())
@@ -1109,14 +1109,14 @@ impl TestContext {
     echo 'error: `git` operations are not allowed — are you missing a cfg for the `git` feature?' >&2
     exit 127";
         let git = bin_dir.join(format!("git{}", env::consts::EXE_SUFFIX));
-        fs_err::write(&git, contents)?;
+        uv_vfs::fs::write(&git, contents)?;
 
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            let mut perms = fs_err::metadata(&git)?.permissions();
+            let mut perms = uv_vfs::fs::metadata(&git)?.permissions();
             perms.set_mode(0o755);
-            fs_err::set_permissions(&git, perms)?;
+            uv_vfs::fs::set_permissions(&git, perms)?;
         }
 
         Ok(())
@@ -1904,7 +1904,7 @@ impl TestContext {
         let project_dir = PathBuf::from(format!("../../test/ecosystem/{name}"));
         self.temp_dir.copy_from(project_dir, &["*"]).unwrap();
         // If there is a (gitignore) lockfile, remove it.
-        if let Err(err) = fs_err::remove_file(self.temp_dir.join("uv.lock")) {
+        if let Err(err) = uv_vfs::fs::remove_file(self.temp_dir.join("uv.lock")) {
             assert_eq!(
                 err.kind(),
                 io::ErrorKind::NotFound,
@@ -1923,7 +1923,7 @@ impl TestContext {
     /// This assumes that a lock has already been performed.
     pub fn diff_lock(&self, change: impl Fn(&Self) -> Command) -> String {
         let lock_path = ChildPath::new(self.temp_dir.join("uv.lock"));
-        let old_lock = fs_err::read_to_string(&lock_path).unwrap();
+        let old_lock = uv_vfs::fs::read_to_string(&lock_path).unwrap();
         let (snapshot, output) = run_and_format(
             change(self),
             self.filters(),
@@ -1932,13 +1932,13 @@ impl TestContext {
             None,
         );
         assert!(output.status.success(), "{snapshot}");
-        let new_lock = fs_err::read_to_string(&lock_path).unwrap();
+        let new_lock = uv_vfs::fs::read_to_string(&lock_path).unwrap();
         diff_snapshot(&old_lock, &new_lock, 10)
     }
 
     /// Read a file in the temporary directory
     pub fn read(&self, file: impl AsRef<Path>) -> String {
-        fs_err::read_to_string(self.temp_dir.join(&file))
+        uv_vfs::fs::read_to_string(self.temp_dir.join(&file))
             .unwrap_or_else(|_| panic!("Missing file: `{}`", file.user_display()))
     }
 
@@ -2342,9 +2342,9 @@ pub fn copy_dir_ignore(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> anyhow::
         let relative = entry.path().strip_prefix(&src)?;
         let ty = entry.file_type().unwrap();
         if ty.is_dir() {
-            fs_err::create_dir(dst.as_ref().join(relative))?;
+            uv_vfs::fs::create_dir(dst.as_ref().join(relative))?;
         } else {
-            fs_err::copy(entry.path(), dst.as_ref().join(relative))?;
+            uv_vfs::fs::copy(entry.path(), dst.as_ref().join(relative))?;
         }
     }
     Ok(())
@@ -2364,10 +2364,10 @@ pub fn make_project(dir: &Path, name: &str, body: &str) -> anyhow::Result<()> {
         build-backend = "uv_build"
         "#
     };
-    fs_err::create_dir_all(dir)?;
-    fs_err::write(dir.join("pyproject.toml"), pyproject_toml)?;
-    fs_err::create_dir_all(dir.join("src").join(name))?;
-    fs_err::write(dir.join("src").join(name).join("__init__.py"), "")?;
+    uv_vfs::fs::create_dir_all(dir)?;
+    uv_vfs::fs::write(dir.join("pyproject.toml"), pyproject_toml)?;
+    uv_vfs::fs::create_dir_all(dir.join("src").join(name))?;
+    uv_vfs::fs::write(dir.join("src").join(name).join("__init__.py"), "")?;
     Ok(())
 }
 
@@ -2425,7 +2425,7 @@ pub async fn download_to_disk(url: &str, path: &Path) {
         .await
         .unwrap();
 
-    let mut file = fs_err::tokio::File::create(path).await.unwrap();
+    let mut file = uv_vfs::fs::tokio::File::create(path).await.unwrap();
     let mut stream = response.bytes_stream();
     while let Some(chunk) = stream.next().await {
         file.write_all(&chunk.unwrap()).await.unwrap();
@@ -2450,11 +2450,11 @@ impl ReadOnlyDirectoryGuard {
     pub fn new(path: impl Into<PathBuf>) -> std::io::Result<Self> {
         use std::os::unix::fs::PermissionsExt;
         let path = path.into();
-        let metadata = fs_err::metadata(&path)?;
+        let metadata = uv_vfs::fs::metadata(&path)?;
         let original_mode = metadata.permissions().mode();
         // Remove write permissions (keep read and execute)
         let readonly_mode = original_mode & !0o222;
-        fs_err::set_permissions(&path, std::fs::Permissions::from_mode(readonly_mode))?;
+        uv_vfs::fs::set_permissions(&path, std::fs::Permissions::from_mode(readonly_mode))?;
         Ok(Self {
             path,
             original_mode,
@@ -2466,7 +2466,7 @@ impl ReadOnlyDirectoryGuard {
 impl Drop for ReadOnlyDirectoryGuard {
     fn drop(&mut self) {
         use std::os::unix::fs::PermissionsExt;
-        let _ = fs_err::set_permissions(
+        let _ = uv_vfs::fs::set_permissions(
             &self.path,
             std::fs::Permissions::from_mode(self.original_mode),
         );

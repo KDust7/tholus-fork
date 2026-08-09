@@ -11,6 +11,7 @@ authors = { workspace = true }
 license = { workspace = true }
 
 [dependencies]
+uv-vfs = { workspace = true }
 uv-errors = { workspace = true }
 globset = { workspace = true }
 regex = { workspace = true }

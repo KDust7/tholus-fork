@@ -182,7 +182,7 @@ impl HasLength for std::fs::File {
     }
 }
 
-impl HasLength for fs_err::File {
+impl HasLength for uv_vfs::fs::File {
     fn len(&self) -> u64 {
         self.metadata().unwrap().len()
     }

@@ -27,6 +27,8 @@ use uv_fs::Simplified;
 use uv_static::EnvVars;
 
 use uv_test::{uv_snapshot, venv_bin_path};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// Add a PyPI requirement.
 #[test]
@@ -773,8 +775,8 @@ fn add_git_lfs() -> Result<()> {
     ");
 
     // Now let's delete some of the LFS entries from our db...
-    fs_err::remove_file(&ok_checkout_file)?;
-    fs_err::remove_dir_all(&lfs_db_bucket_objects)?;
+    uv_vfs::fs::remove_file(&ok_checkout_file)?;
+    uv_vfs::fs::remove_dir_all(&lfs_db_bucket_objects)?;
 
     // Test LFS recovery from an incomplete db and non-fresh checkout
     uv_snapshot!(context.filters(), context.add()
@@ -1731,7 +1733,7 @@ fn add_remove_workspace() -> Result<()> {
      + child2==0.1.0 (from file://[TEMP_DIR]/child2)
     ");
 
-    let pyproject_toml = fs_err::read_to_string(child1.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(child1.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -1815,7 +1817,7 @@ fn add_remove_workspace() -> Result<()> {
      - child2==0.1.0 (from file://[TEMP_DIR]/child2)
     ");
 
-    let pyproject_toml = fs_err::read_to_string(child1.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(child1.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -2317,7 +2319,7 @@ fn add_workspace_editable() -> Result<()> {
      + child2==0.1.0 (from file://[TEMP_DIR]/child2)
     ");
 
-    let pyproject_toml = fs_err::read_to_string(child1.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(child1.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -2357,7 +2359,7 @@ fn add_workspace_editable() -> Result<()> {
      ~ child2==0.1.0 (from file://[TEMP_DIR]/child2)
     ");
 
-    let pyproject_toml = fs_err::read_to_string(child1.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(child1.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -2604,7 +2606,7 @@ fn add_path_implicit_workspace() -> Result<()> {
      + child==0.1.0 (from file://[TEMP_DIR]/workspace/packages/child)
     ");
 
-    let pyproject_toml = fs_err::read_to_string(workspace.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(workspace.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -2631,7 +2633,7 @@ fn add_path_implicit_workspace() -> Result<()> {
     });
 
     // `uv add` implies a full lock and sync, including development dependencies.
-    let lock = fs_err::read_to_string(workspace.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(workspace.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -2725,7 +2727,7 @@ fn add_path_no_workspace() -> Result<()> {
      + child==0.1.0 (from file://[TEMP_DIR]/workspace/packages/child)
     ");
 
-    let pyproject_toml = fs_err::read_to_string(workspace.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(workspace.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -2747,7 +2749,7 @@ fn add_path_no_workspace() -> Result<()> {
     });
 
     // `uv add` implies a full lock and sync, including development dependencies.
-    let lock = fs_err::read_to_string(workspace.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(workspace.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -2833,7 +2835,7 @@ fn add_path_adjacent_directory() -> Result<()> {
      + dependency==0.1.0 (from file://[TEMP_DIR]/dependency)
     ");
 
-    let pyproject_toml = fs_err::read_to_string(project.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(project.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -2855,7 +2857,7 @@ fn add_path_adjacent_directory() -> Result<()> {
     });
 
     // `uv add` implies a full lock and sync, including development dependencies.
-    let lock = fs_err::read_to_string(project.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(project.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -3031,7 +3033,7 @@ fn add_relative_and_absolute_paths() -> Result<()> {
 
     // Check pyproject.toml - relative paths stay relative, absolute paths and file:// URLs
     // stay absolute.
-    let pyproject_toml = fs_err::read_to_string(project.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(project.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -3059,7 +3061,7 @@ fn add_relative_and_absolute_paths() -> Result<()> {
     });
 
     // Check uv.lock - relative paths stay relative, absolute paths stay absolute.
-    let lock = fs_err::read_to_string(project.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(project.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -3135,7 +3137,7 @@ fn add_relative_and_absolute_archives() -> Result<()> {
     let relative_archives = context.temp_dir.child("relative_archives");
     relative_archives.create_dir_all()?;
     let relative_archive = relative_archives.child("ok-1.0.0-py3-none-any.whl");
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context
             .workspace_root
             .join("test/links/ok-1.0.0-py3-none-any.whl"),
@@ -3145,7 +3147,7 @@ fn add_relative_and_absolute_archives() -> Result<()> {
     let absolute_archives = context.temp_dir.child("absolute_archives");
     absolute_archives.create_dir_all()?;
     let absolute_archive = absolute_archives.child("tqdm-1000.0.0-py3-none-any.whl");
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context
             .workspace_root
             .join("test/links/tqdm-1000.0.0-py3-none-any.whl"),
@@ -3166,7 +3168,7 @@ fn add_relative_and_absolute_archives() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let pyproject_toml = fs_err::read_to_string(project.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(project.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -4270,7 +4272,7 @@ fn add_frozen() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     // Remove the virtual environment.
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     let pyproject_toml = context.temp_dir.child("pyproject.toml");
     pyproject_toml.write_str(indoc! {r#"
@@ -4317,7 +4319,7 @@ fn add_no_sync() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     // Remove the virtual environment.
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     let pyproject_toml = context.temp_dir.child("pyproject.toml");
     pyproject_toml.write_str(indoc! {r#"
@@ -5809,7 +5811,7 @@ fn add_requirements_file_with_marker_flag() -> Result<()> {
 
     // Reset the project.
     pyproject_toml.write_str(base_pyproject_toml)?;
-    fs_err::remove_file(context.temp_dir.join("uv.lock"))?;
+    uv_vfs::fs::remove_file(context.temp_dir.join("uv.lock"))?;
 
     // Add dependencies with a marker that applies for the current target.
     uv_snapshot!(context.filters(), context.add().arg("-r").arg("requirements.win.txt").arg("-m").arg("python_version == '3.12'"), @"
@@ -8263,7 +8265,7 @@ fn add_include_default_groups() -> Result<()> {
      + typing-extensions==4.10.0
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -8324,7 +8326,7 @@ fn remove_include_default_groups() -> Result<()> {
      + sniffio==1.3.1
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -8411,7 +8413,7 @@ fn fail_to_add_revert_project() -> Result<()> {
     hint: If you want to add the package regardless of the failed resolution, provide the `--frozen` flag to skip locking and syncing
     "#);
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -8460,7 +8462,7 @@ fn fail_to_edit_revert_project() -> Result<()> {
      + iniconfig==2.0.0
     ");
 
-    let before = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let before = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     // Add a dependency on a package that declares static metadata (so can always resolve), but
     // can't be installed.
@@ -8509,7 +8511,7 @@ fn fail_to_edit_revert_project() -> Result<()> {
     hint: If you want to add the package regardless of the failed resolution, provide the `--frozen` flag to skip locking and syncing
     "#);
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -8528,7 +8530,7 @@ fn fail_to_edit_revert_project() -> Result<()> {
     });
 
     // The lockfile should exist, but be unchanged.
-    let after = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let after = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
     assert_eq!(before, after);
 
     Ok(())
@@ -8621,7 +8623,7 @@ fn fail_to_add_revert_workspace_root() -> Result<()> {
     hint: If you want to add the package regardless of the failed resolution, provide the `--frozen` flag to skip locking and syncing
     "#);
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -8735,7 +8737,7 @@ fn fail_to_add_revert_workspace_member() -> Result<()> {
     hint: If you want to add the package regardless of the failed resolution, provide the `--frozen` flag to skip locking and syncing
     "#);
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -8757,7 +8759,7 @@ fn fail_to_add_revert_workspace_member() -> Result<()> {
     });
 
     let pyproject_toml =
-        fs_err::read_to_string(context.temp_dir.join("child").join("pyproject.toml"))?;
+        uv_vfs::fs::read_to_string(context.temp_dir.join("child").join("pyproject.toml"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -9451,7 +9453,7 @@ fn add_warn_index_url() -> Result<()> {
      + idna==3.6
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -9469,7 +9471,7 @@ fn add_warn_index_url() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -9545,7 +9547,7 @@ fn add_no_warn_index_url() -> Result<()> {
      + iniconfig==2.0.0
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -9565,7 +9567,7 @@ fn add_no_warn_index_url() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -9631,7 +9633,7 @@ fn add_index() -> Result<()> {
      + iniconfig==2.0.0
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -9655,7 +9657,7 @@ fn add_index() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -9706,7 +9708,7 @@ fn add_index() -> Result<()> {
      + markupsafe==2.1.5
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -9738,7 +9740,7 @@ fn add_index() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -9815,7 +9817,7 @@ fn add_index() -> Result<()> {
     Checked 3 packages in [TIME]
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -9847,7 +9849,7 @@ fn add_index() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -9931,7 +9933,7 @@ fn add_index() -> Result<()> {
      + typing-extensions==4.12.2
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -9964,7 +9966,7 @@ fn add_index() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10057,7 +10059,7 @@ fn add_index() -> Result<()> {
     Checked 4 packages in [TIME]
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10090,7 +10092,7 @@ fn add_index() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10201,7 +10203,7 @@ fn add_default_index_url() -> Result<()> {
      + iniconfig==2.0.0
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10223,7 +10225,7 @@ fn add_default_index_url() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10270,7 +10272,7 @@ fn add_default_index_url() -> Result<()> {
      + typing-extensions==4.10.0
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10293,7 +10295,7 @@ fn add_default_index_url() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10370,7 +10372,7 @@ async fn add_index_credentials() -> Result<()> {
      + iniconfig==2.0.0
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10392,7 +10394,7 @@ async fn add_index_credentials() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10465,7 +10467,7 @@ async fn existing_index_credentials() -> Result<()> {
      + iniconfig==2.0.0
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10489,7 +10491,7 @@ async fn existing_index_credentials() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10555,7 +10557,7 @@ fn add_index_with_trailing_slash() -> Result<()> {
      + iniconfig==2.0.0
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10579,7 +10581,7 @@ fn add_index_with_trailing_slash() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10648,7 +10650,7 @@ fn add_index_without_trailing_slash() -> Result<()> {
      + iniconfig==2.0.0
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10672,7 +10674,7 @@ fn add_index_without_trailing_slash() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10749,7 +10751,7 @@ fn add_index_with_existing_relative_path_index() -> Result<()> {
     Using CPython 3.12.[X] interpreter at: [PYTHON-3.12]
     ");
 
-    let pyproject_toml = fs_err::read_to_string(project.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(project.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10801,7 +10803,7 @@ fn add_index_with_relative_path_for_project() -> Result<()> {
     Using CPython 3.12.[X] interpreter at: [PYTHON-3.12]
     ");
 
-    let pyproject_toml = fs_err::read_to_string(project.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(project.join("pyproject.toml"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -10851,7 +10853,7 @@ fn add_index_with_existing_relative_path_in_script() -> Result<()> {
     let wheel_src = context
         .workspace_root
         .join("test/links/ok-1.0.0-py3-none-any.whl");
-    fs_err::copy(&wheel_src, packages.child("ok-1.0.0-py3-none-any.whl"))?;
+    uv_vfs::fs::copy(&wheel_src, packages.child("ok-1.0.0-py3-none-any.whl"))?;
 
     uv_snapshot!(context.filters(), context.add().arg("iniconfig").arg("--frozen").arg("--script").arg(script.path()).arg("--index").arg("local=./links"), @"
     exit_code: 0 (success)
@@ -10859,7 +10861,7 @@ fn add_index_with_existing_relative_path_in_script() -> Result<()> {
     warning: `--frozen` is a no-op for Python scripts with inline metadata, which always run in isolation
     ");
 
-    let script = fs_err::read_to_string(script.path())?;
+    let script = uv_vfs::fs::read_to_string(script.path())?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -11172,7 +11174,7 @@ fn add_index_comments() -> Result<()> {
      + iniconfig==2.0.0
     ");
 
-    let pyproject_toml = fs_err::read_to_string(context.temp_dir.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -11195,7 +11197,7 @@ fn add_index_comments() -> Result<()> {
         );
     });
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -14045,7 +14047,7 @@ fn add_bounds() -> Result<()> {
     "#
     );
 
-    fs_err::remove_file(uv_toml)?;
+    uv_vfs::fs::remove_file(uv_toml)?;
 
     // Set bounds in `pyproject.toml`
     let pyproject_toml = context.temp_dir.child("pyproject.toml");
@@ -14547,7 +14549,7 @@ fn add_path_outside_workspace_no_default() -> Result<()> {
      + dep==0.1.0 (from file://[TEMP_DIR]/external_dep)
     ");
 
-    let pyproject_toml = fs_err::read_to_string(workspace_toml)?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(workspace_toml)?;
     assert_snapshot!(
         pyproject_toml, @r#"
     [project]

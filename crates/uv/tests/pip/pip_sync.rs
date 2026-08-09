@@ -4,7 +4,7 @@ use anyhow::Result;
 use assert_cmd::prelude::*;
 use assert_fs::fixture::ChildPath;
 use assert_fs::prelude::*;
-use fs_err as fs;
+use uv_vfs::fs as fs;
 use indoc::{formatdoc, indoc};
 use predicates::Predicate;
 use url::Url;
@@ -16,6 +16,8 @@ use uv_static::EnvVars;
 use uv_test::find_links::FindLinksServer;
 use uv_test::packse::PackseServer;
 use uv_test::{download_to_disk, site_packages_path, uv_snapshot};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 #[test]
 fn missing_requirements_txt() {
@@ -254,7 +256,7 @@ fn install_hardlink_after_emlink() -> anyhow::Result<()> {
 
     // Create a temp directory to hold hardlinks on the same filesystem but outside the
     // cache tree (so the installer doesn't try to install the link files).
-    let hardlink_dir = tempfile::tempdir_in(
+    let hardlink_dir = uv_vfs::temp::tempdir_in(
         context
             .cache_dir
             .parent()
@@ -284,7 +286,7 @@ fn install_hardlink_after_emlink() -> anyhow::Result<()> {
 
     // Now try to install into a new venv on the same filesystem so the
     // hardlink stays same-device and actually hits EMLINK (then recovers).
-    let venv2_dir = tempfile::tempdir_in(
+    let venv2_dir = uv_vfs::temp::tempdir_in(
         context
             .cache_dir
             .parent()
@@ -2237,7 +2239,7 @@ fn sync_editable() -> Result<()> {
     let python_version_1 = indoc::indoc! {r"
         version = 1
    "};
-    fs_err::write(&python_source_file, python_version_1)?;
+    uv_vfs::fs::write(&python_source_file, python_version_1)?;
 
     let check_installed = indoc::indoc! {r"
         from poetry_editable import version
@@ -2249,7 +2251,7 @@ fn sync_editable() -> Result<()> {
     let python_version_2 = indoc::indoc! {r"
         version = 2
    "};
-    fs_err::write(&python_source_file, python_version_2)?;
+    uv_vfs::fs::write(&python_source_file, python_version_2)?;
 
     let check_installed = indoc::indoc! {r"
         from poetry_editable import version
@@ -2271,8 +2273,8 @@ fn sync_editable() -> Result<()> {
 
     // Modify the `pyproject.toml` file.
     let pyproject_toml = poetry_editable.path().join("pyproject.toml");
-    let pyproject_toml_contents = fs_err::read_to_string(&pyproject_toml)?;
-    fs_err::write(
+    let pyproject_toml_contents = uv_vfs::fs::read_to_string(&pyproject_toml)?;
+    uv_vfs::fs::write(
         &pyproject_toml,
         pyproject_toml_contents.replace("0.1.0", "0.1.1"),
     )?;
@@ -2293,8 +2295,8 @@ fn sync_editable() -> Result<()> {
 
     // Modify the `pyproject.toml` file.
     let pyproject_toml = poetry_editable.path().join("pyproject.toml");
-    let pyproject_toml_contents = fs_err::read_to_string(&pyproject_toml)?;
-    fs_err::write(
+    let pyproject_toml_contents = uv_vfs::fs::read_to_string(&pyproject_toml)?;
+    uv_vfs::fs::write(
         &pyproject_toml,
         pyproject_toml_contents.replace("0.1.0", "0.1.1"),
     )?;

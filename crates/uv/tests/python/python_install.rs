@@ -268,11 +268,11 @@ fn python_install_automatic() {
         let python = context
             .bin_dir
             .join(format!("python3{}", std::env::consts::EXE_SUFFIX));
-        fs_err::write(&python, contents).unwrap();
+        uv_vfs::fs::write(&python, contents).unwrap();
 
-        let mut perms = fs_err::metadata(&python).unwrap().permissions();
+        let mut perms = uv_vfs::fs::metadata(&python).unwrap().permissions();
         perms.set_mode(0o755);
-        fs_err::set_permissions(&python, perms).unwrap();
+        uv_vfs::fs::set_permissions(&python, perms).unwrap();
 
         // We should ignore the broken executable and download a version still
         uv_snapshot!(context.filters(), context.run()
@@ -351,7 +351,7 @@ fn python_install_force() {
     bin_python.assert(predicate::path::exists());
 
     // If an unmanaged executable is present, `--force` is required
-    fs_err::remove_file(bin_python.path()).unwrap();
+    uv_vfs::fs::remove_file(bin_python.path()).unwrap();
     bin_python.touch().unwrap();
 
     uv_snapshot!(context.filters(), context.python_install().arg("3.14"), @"
@@ -584,7 +584,7 @@ fn python_install_preview() {
     bin_python.assert(predicate::path::exists());
 
     // If an unmanaged executable is present, `--force` is required
-    fs_err::remove_file(bin_python.path()).unwrap();
+    uv_vfs::fs::remove_file(bin_python.path()).unwrap();
     bin_python.touch().unwrap();
 
     uv_snapshot!(context.filters(), context.python_install().arg("--preview").arg("3.14"), @"
@@ -754,7 +754,7 @@ fn python_install_multiple_unmanaged_executables() {
         let executable = context
             .bin_dir
             .child(format!("{name}{}", std::env::consts::EXE_SUFFIX));
-        fs_err::remove_file(executable.path()).unwrap();
+        uv_vfs::fs::remove_file(executable.path()).unwrap();
         executable.touch().unwrap();
     }
 
@@ -771,7 +771,7 @@ fn python_install_multiple_unmanaged_executables() {
         let executable = context
             .bin_dir
             .child(format!("{name}{}", std::env::consts::EXE_SUFFIX));
-        assert_eq!(fs_err::read_to_string(executable.path()).unwrap(), "");
+        assert_eq!(uv_vfs::fs::read_to_string(executable.path()).unwrap(), "");
     }
 }
 
@@ -1067,7 +1067,7 @@ fn python_install_freethreaded() {
     );
 
     // Remove the virtual environment
-    fs_err::remove_dir_all(&context.venv).unwrap();
+    uv_vfs::fs::remove_dir_all(&context.venv).unwrap();
 
     // Should be distinct from 3.13
     uv_snapshot!(context.filters(), context.python_install().arg("3.13"), @"
@@ -2054,7 +2054,7 @@ fn launcher_path(path: &Path) -> PathBuf {
 
 fn canonicalize_link_path(path: &Path) -> String {
     #[cfg(unix)]
-    let canonical_path = fs_err::canonicalize(path);
+    let canonical_path = uv_vfs::fs::canonicalize(path);
 
     #[cfg(windows)]
     let canonical_path = dunce::canonicalize(launcher_path(path));
@@ -2068,7 +2068,7 @@ fn canonicalize_link_path(path: &Path) -> String {
 fn read_link(path: &Path) -> String {
     #[cfg(unix)]
     let linked_path =
-        fs_err::read_link(path).unwrap_or_else(|_| panic!("{} should be readable", path.display()));
+        uv_vfs::fs::read_link(path).unwrap_or_else(|_| panic!("{} should be readable", path.display()));
 
     #[cfg(windows)]
     let linked_path = launcher_path(path);
@@ -2103,7 +2103,7 @@ fn python_install_unknown() {
 #[test]
 fn python_install_broken_link() {
     use assert_fs::prelude::PathCreateDir;
-    use fs_err::os::unix::fs::symlink;
+    use uv_vfs::fs::os::unix::fs::symlink;
 
     let context = uv_test::test_context_with_versions!(&[])
         .with_filtered_python_keys()
@@ -2828,7 +2828,7 @@ fn install_multiple_patches() {
     );
 
     // Remove the original virtual environment
-    fs_err::remove_dir_all(&context.venv).unwrap();
+    uv_vfs::fs::remove_dir_all(&context.venv).unwrap();
 
     // Install 3.10 patches in descending order list
     uv_snapshot!(context.filters(), context.python_install().arg("--preview").arg("3.10.17").arg("3.10.16"), @"
@@ -3381,7 +3381,7 @@ fn python_install_pyodide() {
     ");
 
     context.python_uninstall().arg("--all").assert().success();
-    fs_err::remove_dir_all(&context.venv).unwrap();
+    uv_vfs::fs::remove_dir_all(&context.venv).unwrap();
 
     // Install via `pyodide`
     uv_snapshot!(context.filters(), context.python_install().arg("pyodide"), @"
@@ -3473,7 +3473,7 @@ fn python_install_build_version() {
         platform_key_from_env().unwrap()
     ));
     let build_file_path = cpython_dir.join("BUILD");
-    let build_content = fs_err::read_to_string(&build_file_path).unwrap();
+    let build_content = uv_vfs::fs::read_to_string(&build_file_path).unwrap();
     assert_eq!(build_content, "20240814");
 
     // We should find the build
@@ -3541,7 +3541,7 @@ fn python_install_build_version_pypy() {
         .child("managed")
         .child(format!("pypy-3.10.16-{}", platform_key_from_env().unwrap()));
     let build_file_path = pypy_dir.join("BUILD");
-    let build_content = fs_err::read_to_string(&build_file_path).unwrap();
+    let build_content = uv_vfs::fs::read_to_string(&build_file_path).unwrap();
     assert_eq!(build_content, "7.3.19");
 
     // We should find the build
@@ -3780,7 +3780,7 @@ fn python_install_compile_bytecode() -> anyhow::Result<()> {
         .child(format!("python3.14{}", std::env::consts::EXE_SUFFIX));
 
     #[cfg(unix)]
-    let stdlib = fs_err::read_link(bin_path)?
+    let stdlib = uv_vfs::fs::read_link(bin_path)?
         .parent()
         .context("Python binary should be a child of `bin`")?
         .parent()
@@ -3905,7 +3905,7 @@ fn python_install_upgrade_build_version() {
         platform_key_from_env().unwrap()
     ));
     let build_file = installation_dir.join("BUILD");
-    fs_err::write(&build_file, "19000101").unwrap();
+    uv_vfs::fs::write(&build_file, "19000101").unwrap();
 
     // Now upgrade should detect the outdated build version and reinstall
     uv_snapshot!(context.filters(), context.python_install().arg("--upgrade").arg("3.12"), @"

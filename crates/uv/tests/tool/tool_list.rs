@@ -1,7 +1,7 @@
 use anyhow::Result;
 use assert_cmd::assert::OutputAssertExt;
 use assert_fs::fixture::PathChild;
-use fs_err as fs;
+use uv_vfs::fs as fs;
 use insta::assert_snapshot;
 use uv_static::EnvVars;
 use uv_test::uv_snapshot;
@@ -312,7 +312,7 @@ fn tool_list_missing_receipt() {
         .assert()
         .success();
 
-    fs_err::remove_file(tool_dir.join("black").join("uv-receipt.toml")).unwrap();
+    uv_vfs::fs::remove_file(tool_dir.join("black").join("uv-receipt.toml")).unwrap();
 
     uv_snapshot!(context.filters(), context.tool_list()
     .env(EnvVars::UV_TOOL_DIR, tool_dir.as_os_str())
@@ -393,7 +393,7 @@ fn tool_list_deprecated() -> Result<()> {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black", specifier = "==24.2.0" }]
         entrypoints = [

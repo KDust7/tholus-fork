@@ -3,7 +3,7 @@ use std::{
     process::Command,
 };
 
-use fs_err as fs;
+use uv_vfs::fs as fs;
 
 use uv_static::EnvVars;
 

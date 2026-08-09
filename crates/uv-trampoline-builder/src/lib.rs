@@ -2,7 +2,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::str::Utf8Error;
 
-use fs_err::File;
+use uv_vfs::fs::File;
 use thiserror::Error;
 
 use uv_fs::Simplified;
@@ -141,13 +141,13 @@ impl Launcher {
         let python_path = self.python_path.simplified_display().to_string();
 
         // Create temporary file for the base launcher
-        let temp_dir = tempfile::TempDir::new()?;
+        let temp_dir = uv_vfs::temp::TempDir::new()?;
         let temp_file = temp_dir
             .path()
             .join(format!("uv-trampoline-{}.exe", std::process::id()));
 
         // Write the launcher binary
-        fs_err::write(&temp_file, get_launcher_bin(is_gui)?)?;
+        uv_vfs::fs::write(&temp_file, get_launcher_bin(is_gui)?)?;
 
         // Write resources
         let resources = &[
@@ -166,8 +166,8 @@ impl Launcher {
         }
 
         // Read back the complete file
-        let launcher = fs_err::read(&temp_file)?;
-        fs_err::remove_file(&temp_file)?;
+        let launcher = uv_vfs::fs::read(&temp_file)?;
+        uv_vfs::fs::remove_file(&temp_file)?;
 
         // Then write it to the handle
         file.write_all(&launcher)?;
@@ -405,11 +405,11 @@ pub fn windows_script_launcher(
 
     // Start with base launcher binary
     // Create temporary file for the launcher
-    let temp_dir = tempfile::TempDir::new()?;
+    let temp_dir = uv_vfs::temp::TempDir::new()?;
     let temp_file = temp_dir
         .path()
         .join(format!("uv-trampoline-{}.exe", std::process::id()));
-    fs_err::write(&temp_file, launcher_bin)?;
+    uv_vfs::fs::write(&temp_file, launcher_bin)?;
 
     // Write resources
     let resources = &[
@@ -426,8 +426,8 @@ pub fn windows_script_launcher(
     // TODO(zanieb): It's weird that we write/read from a temporary file here because in the main
     // usage at `write_script_entrypoints` we do the same thing again. We should refactor these
     // to avoid repeated work.
-    let launcher = fs_err::read(&temp_file)?;
-    fs_err::remove_file(temp_file)?;
+    let launcher = uv_vfs::fs::read(&temp_file)?;
+    uv_vfs::fs::remove_file(temp_file)?;
 
     Ok(launcher)
 }
@@ -462,11 +462,11 @@ pub fn windows_python_launcher(
     let python_path = python.simplified_display().to_string();
 
     // Create temporary file for the launcher
-    let temp_dir = tempfile::TempDir::new()?;
+    let temp_dir = uv_vfs::temp::TempDir::new()?;
     let temp_file = temp_dir
         .path()
         .join(format!("uv-trampoline-{}.exe", std::process::id()));
-    fs_err::write(&temp_file, launcher_bin)?;
+    uv_vfs::fs::write(&temp_file, launcher_bin)?;
 
     // Write resources
     let resources = &[
@@ -479,8 +479,8 @@ pub fn windows_python_launcher(
     write_resources(&temp_file, resources)?;
 
     // Read back the complete file
-    let launcher = fs_err::read(&temp_file)?;
-    fs_err::remove_file(temp_file)?;
+    let launcher = uv_vfs::fs::read(&temp_file)?;
+    uv_vfs::fs::remove_file(temp_file)?;
 
     Ok(launcher)
 }
@@ -496,7 +496,7 @@ mod test {
     use anyhow::Result;
     use assert_cmd::prelude::OutputAssertExt;
     use assert_fs::prelude::PathChild;
-    use fs_err::File;
+    use uv_vfs::fs::File;
 
     use which::which;
 
@@ -602,7 +602,7 @@ if __name__ == "__main__":
     }
 
     /// Creates a self-signed certificate and returns its path.
-    fn create_temp_certificate(temp_dir: &tempfile::TempDir) -> Result<(PathBuf, PathBuf)> {
+    fn create_temp_certificate(temp_dir: &uv_vfs::temp::TempDir) -> Result<(PathBuf, PathBuf)> {
         use rcgen::{
             CertificateParams, DnType, ExtendedKeyUsagePurpose, KeyPair, KeyUsagePurpose, SanType,
         };
@@ -627,15 +627,15 @@ if __name__ == "__main__":
 
         let public_cert_path = temp_dir.path().join("uv-trampoline-test.crt");
         let private_key_path = temp_dir.path().join("uv-trampoline-test.key");
-        fs_err::write(public_cert_path.as_path(), public_cert.pem())?;
-        fs_err::write(private_key_path.as_path(), private_key.serialize_pem())?;
+        uv_vfs::fs::write(public_cert_path.as_path(), public_cert.pem())?;
+        uv_vfs::fs::write(private_key_path.as_path(), private_key.serialize_pem())?;
 
         Ok((public_cert_path, private_key_path))
     }
 
     /// Signs the given binary using `PowerShell`'s `Set-AuthenticodeSignature` with a temporary certificate.
     fn sign_authenticode(bin_path: impl AsRef<Path>) {
-        let temp_dir = tempfile::TempDir::new().expect("Failed to create temporary directory");
+        let temp_dir = uv_vfs::temp::TempDir::new().expect("Failed to create temporary directory");
         let (public_cert, private_key) =
             create_temp_certificate(&temp_dir).expect("Failed to create self-signed certificate");
 

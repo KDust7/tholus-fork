@@ -13,6 +13,7 @@ license = { workspace = true }
 workspace = true
 
 [dependencies]
+uv-vfs = { workspace = true }
 ref-cast = { workspace = true }
 schemars = { workspace = true, optional = true }
 serde = { workspace = true }

@@ -36,7 +36,7 @@ impl FindLinksServer {
         let mut files: HashMap<String, FileData> = HashMap::new();
         let mut filenames: Vec<String> = Vec::new();
 
-        for entry in fs_err::read_dir(directory).expect("failed to read find-links directory") {
+        for entry in uv_vfs::fs::read_dir(directory).expect("failed to read find-links directory") {
             let entry = entry.expect("failed to read directory entry");
             let path = entry.path();
             if !path.is_file() {
@@ -45,7 +45,7 @@ impl FindLinksServer {
             let Some(filename) = path.file_name().map(|n| n.to_string_lossy().to_string()) else {
                 continue;
             };
-            let bytes = fs_err::read(&path).expect("failed to read file");
+            let bytes = uv_vfs::fs::read(&path).expect("failed to read file");
             files.insert(filename.clone(), FileData::Bytes(bytes.into()));
             filenames.push(filename);
         }

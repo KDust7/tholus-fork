@@ -418,8 +418,8 @@ mod tests {
                 .replace("{FREE_THREADED}", &free_threaded.to_string())
                 .replace("{IMPLEMENTATION}", implementation.long_name());
 
-            fs_err::create_dir_all(path.parent().unwrap())?;
-            fs_err::write(
+            uv_vfs::fs::create_dir_all(path.parent().unwrap())?;
+            uv_vfs::fs::write(
                 path,
                 formatdoc! {r"
                 #!/bin/sh
@@ -427,7 +427,7 @@ mod tests {
                 "},
             )?;
 
-            fs_err::set_permissions(path, std::os::unix::fs::PermissionsExt::from_mode(0o770))?;
+            uv_vfs::fs::set_permissions(path, std::os::unix::fs::PermissionsExt::from_mode(0o770))?;
 
             Ok(())
         }
@@ -506,8 +506,8 @@ mod tests {
                     &format!("{}.{}", version.major(), version.minor()),
                 );
 
-            fs_err::create_dir_all(path.parent().unwrap())?;
-            fs_err::write(
+            uv_vfs::fs::create_dir_all(path.parent().unwrap())?;
+            uv_vfs::fs::write(
                 path,
                 formatdoc! {r"
                 #!/bin/sh
@@ -515,7 +515,7 @@ mod tests {
                 "},
             )?;
 
-            fs_err::set_permissions(path, std::os::unix::fs::PermissionsExt::from_mode(0o770))?;
+            uv_vfs::fs::set_permissions(path, std::os::unix::fs::PermissionsExt::from_mode(0o770))?;
 
             Ok(())
         }
@@ -529,7 +529,7 @@ mod tests {
                 Try `python -h` for more information.
             "};
 
-            fs_err::write(
+            uv_vfs::fs::write(
                 path,
                 formatdoc! {r"
                 #!/bin/sh
@@ -537,7 +537,7 @@ mod tests {
                 "},
             )?;
 
-            fs_err::set_permissions(path, std::os::unix::fs::PermissionsExt::from_mode(0o770))?;
+            uv_vfs::fs::set_permissions(path, std::os::unix::fs::PermissionsExt::from_mode(0o770))?;
 
             Ok(())
         }
@@ -622,7 +622,7 @@ mod tests {
         /// Create a mock virtual environment at the given directory
         fn mock_venv(path: impl AsRef<Path>, version: &'static str) -> Result<()> {
             let executable = virtualenv_python_executable(path.as_ref());
-            fs_err::create_dir_all(
+            uv_vfs::fs::create_dir_all(
                 executable
                     .parent()
                     .expect("A Python executable path should always have a parent"),
@@ -644,7 +644,7 @@ mod tests {
         /// These are like virtual environments but they look like system interpreters because `prefix` and `base_prefix` are equal.
         fn mock_conda_prefix(path: impl AsRef<Path>, version: &'static str) -> Result<()> {
             let executable = virtualenv_python_executable(&path);
-            fs_err::create_dir_all(
+            uv_vfs::fs::create_dir_all(
                 executable
                     .parent()
                     .expect("A Python executable path should always have a parent"),
@@ -807,14 +807,14 @@ mod tests {
 
         // An executable file with a bad response
         #[cfg(unix)]
-        fs_err::write(
+        uv_vfs::fs::write(
             children[0].join(format!("python{}", env::consts::EXE_SUFFIX)),
             formatdoc! {r"
         #!/bin/sh
         echo 'foo'
         "},
         )?;
-        fs_err::set_permissions(
+        uv_vfs::fs::set_permissions(
             children[0].join(format!("python{}", env::consts::EXE_SUFFIX)),
             std::os::unix::fs::PermissionsExt::from_mode(0o770),
         )?;
@@ -938,10 +938,10 @@ mod tests {
         )?;
         let second_target =
             second_directory.join(format!("python-real{}", env::consts::EXE_SUFFIX));
-        fs_err::rename(&second, &second_target)?;
+        uv_vfs::fs::rename(&second, &second_target)?;
 
         let marker = context.tempdir.child("second-was-queried");
-        fs_err::write(
+        uv_vfs::fs::write(
             &second,
             formatdoc! {r#"
                 #!/bin/sh
@@ -951,7 +951,7 @@ mod tests {
             marker = marker.path().display(),
             target = second_target.display()},
         )?;
-        fs_err::set_permissions(&second, std::os::unix::fs::PermissionsExt::from_mode(0o770))?;
+        uv_vfs::fs::set_permissions(&second, std::os::unix::fs::PermissionsExt::from_mode(0o770))?;
 
         let installation = context.run(|| {
             find_python_installation(
@@ -979,14 +979,14 @@ mod tests {
 
         let broken_directory = context.new_search_path_directory("broken")?;
         let broken = broken_directory.join(format!("python{}", env::consts::EXE_SUFFIX));
-        fs_err::write(
+        uv_vfs::fs::write(
             &broken,
             formatdoc! {r"
                 #!/bin/sh
                 echo 'not interpreter metadata'
             "},
         )?;
-        fs_err::set_permissions(&broken, std::os::unix::fs::PermissionsExt::from_mode(0o770))?;
+        uv_vfs::fs::set_permissions(&broken, std::os::unix::fs::PermissionsExt::from_mode(0o770))?;
 
         let cpython_311_directory = context.new_search_path_directory("cpython-3.11")?;
         let cpython_311 = cpython_311_directory.join(format!("python{}", env::consts::EXE_SUFFIX));
@@ -999,8 +999,8 @@ mod tests {
         )?;
         let cpython_311_target =
             cpython_311_directory.join(format!("python-real{}", env::consts::EXE_SUFFIX));
-        fs_err::rename(&cpython_311, &cpython_311_target)?;
-        fs_err::write(
+        uv_vfs::fs::rename(&cpython_311, &cpython_311_target)?;
+        uv_vfs::fs::write(
             &cpython_311,
             formatdoc! {r#"
                 #!/bin/sh
@@ -1009,7 +1009,7 @@ mod tests {
             "#,
             target = cpython_311_target.display()},
         )?;
-        fs_err::set_permissions(
+        uv_vfs::fs::set_permissions(
             &cpython_311,
             std::os::unix::fs::PermissionsExt::from_mode(0o770),
         )?;
@@ -1970,7 +1970,7 @@ mod tests {
         TestContext::mock_venv(&venv, "3.12.0")?;
 
         // Delete the pyvenv cfg to break the virtualenv
-        fs_err::remove_file(venv.join("pyvenv.cfg"))?;
+        uv_vfs::fs::remove_file(venv.join("pyvenv.cfg"))?;
 
         let python =
             context.run_with_vars(&[(EnvVars::VIRTUAL_ENV, Some(venv.as_os_str()))], || {
@@ -2266,7 +2266,7 @@ mod tests {
         let parent_venv = context.tempdir.child(".venv");
         TestContext::mock_venv(&parent_venv, "3.12.0")?;
         let child_venv = context.workdir.child(".venv");
-        fs_err::os::unix::fs::symlink(context.workdir.child("missing"), &child_venv)?;
+        uv_vfs::fs::os::unix::fs::symlink(context.workdir.child("missing"), &child_venv)?;
 
         let result = context.run(|| {
             find_python_installation(
@@ -2293,8 +2293,8 @@ mod tests {
     fn find_python_propagates_virtualenv_metadata_errors() -> Result<()> {
         let context = TestContext::new()?;
 
-        let permissions = fs_err::metadata(&context.workdir)?.permissions();
-        fs_err::set_permissions(&context.workdir, Permissions::from_mode(0o000))?;
+        let permissions = uv_vfs::fs::metadata(&context.workdir)?.permissions();
+        uv_vfs::fs::set_permissions(&context.workdir, Permissions::from_mode(0o000))?;
         let result = context.run(|| {
             find_python_installation(
                 &PythonRequest::Default,
@@ -2303,7 +2303,7 @@ mod tests {
                 &context.cache,
             )
         });
-        fs_err::set_permissions(&context.workdir, permissions)?;
+        uv_vfs::fs::set_permissions(&context.workdir, permissions)?;
 
         assert!(
             matches!(

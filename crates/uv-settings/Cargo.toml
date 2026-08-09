@@ -17,6 +17,7 @@ test = false
 workspace = true
 
 [dependencies]
+uv-vfs = { workspace = true }
 uv-cache-info = { workspace = true }
 uv-client = { workspace = true }
 uv-configuration = { workspace = true, features = ["clap"] }

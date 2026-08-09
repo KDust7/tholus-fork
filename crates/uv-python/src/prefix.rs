@@ -27,7 +27,7 @@ impl Prefix {
     /// Initialize the `--prefix` directory.
     pub(crate) fn init(&self, virtualenv: &Scheme) -> std::io::Result<()> {
         for site_packages in self.site_packages(virtualenv) {
-            fs_err::create_dir_all(site_packages)?;
+            uv_vfs::fs::create_dir_all(site_packages)?;
         }
         Ok(())
     }

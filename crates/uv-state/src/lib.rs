@@ -1,6 +1,6 @@
 use std::{io, path::PathBuf, sync::Arc};
 
-use tempfile::{TempDir, tempdir};
+use uv_vfs::temp::{TempDir, tempdir};
 
 /// The main state storage abstraction.
 ///

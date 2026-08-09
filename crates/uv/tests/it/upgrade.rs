@@ -6,10 +6,12 @@ use url::Url;
 use uv_static::EnvVars;
 use uv_test::packse::PackseServer;
 use uv_test::{TestContext, uv_snapshot};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 fn assert_project_unchanged(context: &TestContext, expected: &str) -> Result<()> {
     assert_eq!(
-        fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?,
         expected
     );
     assert!(!context.temp_dir.child("uv.lock").exists());
@@ -48,7 +50,7 @@ fn write_fork_upgrade_project(
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
     Ok(pyproject_toml)
 }
 
@@ -131,7 +133,7 @@ fn upgrade_selects_normalized_production_dependency() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         context.filters(),
@@ -147,7 +149,7 @@ fn upgrade_selects_normalized_production_dependency() -> Result<()> {
     );
 
     insta::assert_snapshot!(
-        fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?,
         @r#"
 [project]
 name = "example"
@@ -327,7 +329,7 @@ fn upgrade_rejects_conflicting_extra_declarations() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -369,7 +371,7 @@ fn upgrade_expands_constraint_for_multiple_fork_versions() -> Result<()> {
     );
 
     assert_eq!(
-        fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?,
         pyproject_toml.replace("bar<2", "bar<3")
     );
     assert!(!context.temp_dir.child("uv.lock").exists());
@@ -405,7 +407,7 @@ fn upgrade_expands_compatible_constraint_for_multiple_fork_versions() -> Result<
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -424,7 +426,7 @@ fn upgrade_expands_compatible_constraint_for_multiple_fork_versions() -> Result<
     );
 
     assert_eq!(
-        fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?,
         pyproject_toml.replace("a~=3.0", "a~=4.3")
     );
     assert!(!context.temp_dir.child("uv.lock").exists());
@@ -469,7 +471,7 @@ fn upgrade_updates_requirement_without_updating_lockfile_or_environment() -> Res
     let environment_sentinel = context.venv.child("sentinel");
     environment_sentinel.write_str("present")?;
 
-    let lock = fs_err::read(context.temp_dir.child("uv.lock"))?;
+    let lock = uv_vfs::fs::read(context.temp_dir.child("uv.lock"))?;
 
     uv_snapshot!(
         context.filters(),
@@ -487,10 +489,10 @@ fn upgrade_updates_requirement_without_updating_lockfile_or_environment() -> Res
     ");
 
     assert_eq!(
-        fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?,
         pyproject_toml.replace("anyio<=2", "anyio<=4.3.0")
     );
-    assert_eq!(fs_err::read(context.temp_dir.child("uv.lock"))?, lock);
+    assert_eq!(uv_vfs::fs::read(context.temp_dir.child("uv.lock"))?, lock);
     let lock_contents = context.read("uv.lock");
     assert!(
         lock_contents.contains("name = \"idna\"\nversion = \"2.10\""),
@@ -518,7 +520,7 @@ fn upgrade_reports_no_solution_without_mutation() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(context.filters(), context.upgrade().arg("anyio"), @"
     exit_code: 1 (failure)
@@ -555,10 +557,10 @@ fn upgrade_reports_no_version_change_without_mutation() -> Result<()> {
     ----- stderr -----
     Resolved 4 packages in [TIME]
     ");
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
-    let pyproject = fs_err::read(context.temp_dir.child("pyproject.toml"))?;
-    let lock = fs_err::read(context.temp_dir.child("uv.lock"))?;
+    let pyproject = uv_vfs::fs::read(context.temp_dir.child("pyproject.toml"))?;
+    let lock = uv_vfs::fs::read(context.temp_dir.child("uv.lock"))?;
 
     uv_snapshot!(context.filters(), context.upgrade().arg("anyio"), @"
     exit_code: 0 (success)
@@ -569,10 +571,10 @@ fn upgrade_reports_no_version_change_without_mutation() -> Result<()> {
     ");
 
     assert_eq!(
-        fs_err::read(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read(context.temp_dir.child("pyproject.toml"))?,
         pyproject
     );
-    assert_eq!(fs_err::read(context.temp_dir.child("uv.lock"))?, lock);
+    assert_eq!(uv_vfs::fs::read(context.temp_dir.child("uv.lock"))?, lock);
     assert!(!context.temp_dir.child(".venv").exists());
     Ok(())
 }
@@ -591,7 +593,7 @@ fn upgrade_rejects_dynamic_project_version() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(context.filters(), context.upgrade().arg("anyio"), @"
     exit_code: 2 (failure)
@@ -677,7 +679,7 @@ fn upgrade_updates_multiple_marked_production_dependencies() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -696,7 +698,7 @@ fn upgrade_updates_multiple_marked_production_dependencies() -> Result<()> {
     "
     );
 
-    let updated_pyproject_toml = fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?;
+    let updated_pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?;
     insta::with_settings!({ filters => packse_filters(&context) }, {
         insta::assert_snapshot!(
             updated_pyproject_toml,
@@ -754,7 +756,7 @@ fn upgrade_updates_multiple_named_packages_together() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -775,7 +777,7 @@ fn upgrade_updates_multiple_named_packages_together() -> Result<()> {
     "
     );
 
-    let updated_pyproject_toml = fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?;
+    let updated_pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?;
     insta::with_settings!({ filters => packse_filters(&context) }, {
         insta::assert_snapshot!(
             updated_pyproject_toml,
@@ -825,7 +827,7 @@ fn upgrade_without_package_selects_all_production_dependencies() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -842,7 +844,7 @@ fn upgrade_without_package_selects_all_production_dependencies() -> Result<()> {
     "
     );
 
-    let updated_pyproject_toml = fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?;
+    let updated_pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?;
     insta::with_settings!({ filters => packse_filters(&context) }, {
         insta::assert_snapshot!(
             updated_pyproject_toml,
@@ -1027,7 +1029,7 @@ fn upgrade_exclude_leaves_dependency_as_hard_constraint() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -1045,7 +1047,7 @@ fn upgrade_exclude_leaves_dependency_as_hard_constraint() -> Result<()> {
     "
     );
 
-    let updated_pyproject_toml = fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?;
+    let updated_pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?;
     insta::with_settings!({ filters => packse_filters(&context) }, {
         insta::assert_snapshot!(
             updated_pyproject_toml,
@@ -1111,7 +1113,7 @@ fn upgrade_updates_safe_declarations_and_warns_for_blocked_declarations() -> Res
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -1131,7 +1133,7 @@ fn upgrade_updates_safe_declarations_and_warns_for_blocked_declarations() -> Res
     "
     );
 
-    let updated_pyproject_toml = fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?;
+    let updated_pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?;
     insta::with_settings!({ filters => packse_filters(&context) }, {
         insta::assert_snapshot!(
             updated_pyproject_toml,
@@ -1203,7 +1205,7 @@ fn upgrade_updates_requirement_constrained_by_conflicting_groups() -> Result<()>
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -1222,7 +1224,7 @@ fn upgrade_updates_requirement_constrained_by_conflicting_groups() -> Result<()>
     );
 
     assert_eq!(
-        fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?,
         pyproject_toml.replace("baz<2", "baz<3")
     );
     assert!(!context.temp_dir.child("uv.lock").exists());
@@ -1255,7 +1257,7 @@ fn upgrade_succeeds_when_all_selected_declarations_are_blocked() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -1304,7 +1306,7 @@ fn upgrade_rejects_mixed_updates_after_unrepresentable_blocker() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -1354,7 +1356,7 @@ fn upgrade_preserves_hard_constraint_no_solution_failure() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     let filters: Vec<_> = packse_filters(&context)
         .into_iter()
@@ -1427,7 +1429,7 @@ fn upgrade_ignores_unrelated_path_package_when_attributing_versions() -> Result<
         requires-python = ">=3.12"
     "#,
         )?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -1445,7 +1447,7 @@ fn upgrade_ignores_unrelated_path_package_when_attributing_versions() -> Result<
     "
     );
 
-    let updated_pyproject_toml = fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?;
+    let updated_pyproject_toml = uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?;
     insta::with_settings!({ filters => packse_filters(&context) }, {
         insta::assert_snapshot!(
             updated_pyproject_toml,
@@ -1668,7 +1670,7 @@ fn upgrade_allows_registry_source() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         context.filters(),
@@ -1684,7 +1686,7 @@ fn upgrade_allows_registry_source() -> Result<()> {
     );
 
     assert_eq!(
-        fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?,
         pyproject_toml.replace("idna>=2,<3", "idna>=2,<4")
     );
     assert!(!context.temp_dir.child("uv.lock").exists());
@@ -1713,7 +1715,7 @@ fn upgrade_ignores_inapplicable_non_registry_source() -> Result<()> {
         .temp_dir
         .child("pyproject.toml")
         .write_str(pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         context.filters(),
@@ -1729,7 +1731,7 @@ fn upgrade_ignores_inapplicable_non_registry_source() -> Result<()> {
     );
 
     assert_eq!(
-        fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?,
         pyproject_toml.replace(
             "anyio>=2,<3 ; python_version >= '3.12'",
             "anyio>=2,<5 ; python_full_version >= '3.12'"
@@ -1774,7 +1776,7 @@ fn upgrade_ignores_inapplicable_non_registry_source_without_requires_python() ->
         version = "0.1.0"
         "#,
         )?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -1794,7 +1796,7 @@ fn upgrade_ignores_inapplicable_non_registry_source_without_requires_python() ->
     );
 
     assert_eq!(
-        fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?,
         pyproject_toml.replace("baz<2", "baz<3")
     );
     assert!(!context.temp_dir.child("uv.lock").exists());
@@ -1833,7 +1835,7 @@ fn upgrade_skips_excluded_declarations_and_updates_applicable_requirement() -> R
         .temp_dir
         .child("pyproject.toml")
         .write_str(&pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         packse_filters(&context),
@@ -1854,7 +1856,7 @@ fn upgrade_skips_excluded_declarations_and_updates_applicable_requirement() -> R
     );
 
     assert_eq!(
-        fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?,
         pyproject_toml.replacen("bar<2\",", "bar<3\",", 1)
     );
     assert!(!context.temp_dir.child("uv.lock").exists());
@@ -1903,11 +1905,11 @@ fn upgrade_rejects_workspace_root_non_registry_source() -> Result<()> {
     );
 
     assert_eq!(
-        fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?,
         workspace_pyproject_toml
     );
     assert_eq!(
-        fs_err::read_to_string(project.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(project.child("pyproject.toml"))?,
         project_pyproject_toml
     );
     assert!(!context.temp_dir.child("uv.lock").exists());
@@ -1943,7 +1945,7 @@ fn upgrade_updates_nested_workspace_member_only() -> Result<()> {
     project
         .child("pyproject.toml")
         .write_str(project_pyproject_toml)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(
         context.filters(),
@@ -1959,11 +1961,11 @@ fn upgrade_updates_nested_workspace_member_only() -> Result<()> {
     );
 
     assert_eq!(
-        fs_err::read_to_string(context.temp_dir.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(context.temp_dir.child("pyproject.toml"))?,
         workspace_pyproject_toml
     );
     assert_eq!(
-        fs_err::read_to_string(project.child("pyproject.toml"))?,
+        uv_vfs::fs::read_to_string(project.child("pyproject.toml"))?,
         project_pyproject_toml.replace("anyio<=2", "anyio<=4.3.0")
     );
     assert!(!context.temp_dir.child("uv.lock").exists());

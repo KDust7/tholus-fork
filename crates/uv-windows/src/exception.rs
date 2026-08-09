@@ -9,7 +9,7 @@
 //! implementation and also displays some minimal information from the exception itself.
 
 #![allow(unsafe_code)]
-// Usually we want fs_err over std::fs, but there's no advantage here, we don't
+// Usually we want uv_vfs::fs over std::fs, but there's no advantage here, we don't
 // report errors encountered while reporting an exception.
 #![expect(clippy::disallowed_types)]
 

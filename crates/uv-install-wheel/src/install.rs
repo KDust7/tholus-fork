@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use fs_err::File;
+use uv_vfs::fs::File;
 use tracing::{instrument, trace};
 
 use uv_distribution_filename::WheelFilename;
@@ -34,7 +34,7 @@ fn wheel_destination<'layout>(
 ) -> Result<(String, &'layout Path), Error> {
     let dist_info_prefix = find_dist_info(wheel)?;
     let wheel_file_path = wheel.join(format!("{dist_info_prefix}.dist-info/WHEEL"));
-    let wheel_text = fs_err::read_to_string(wheel_file_path)?;
+    let wheel_text = uv_vfs::fs::read_to_string(wheel_file_path)?;
     let site_packages = match WheelFile::parse(&wheel_text)?.lib_kind() {
         LibKind::Pure => &layout.scheme.purelib,
         LibKind::Plat => &layout.scheme.platlib,
@@ -105,7 +105,7 @@ pub fn install_wheel<Cache: serde::Serialize, Build: serde::Serialize>(
     } else {
         trace!(?name, "Writing entrypoints");
 
-        fs_err::create_dir_all(&layout.scheme.scripts)?;
+        uv_vfs::fs::create_dir_all(&layout.scheme.scripts)?;
         write_script_entrypoints(
             layout,
             relocatable,
@@ -141,7 +141,7 @@ pub fn install_wheel<Cache: serde::Serialize, Build: serde::Serialize>(
         // 2.c If applicable, update scripts starting with #!python to point to the correct interpreter.
         // Script are unsupported through data
         // 2.e Remove empty distribution-1.0.data directory.
-        fs_err::remove_dir_all(data_dir)?;
+        uv_vfs::fs::remove_dir_all(data_dir)?;
     } else {
         trace!(?name, "No data");
     }

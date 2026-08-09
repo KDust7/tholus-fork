@@ -27,6 +27,8 @@ use uv_workspace::pyproject::{PyProjectToml, Source, Sources, WorkspaceReference
 use uv_workspace::{DiscoveryOptions, Workspace, WorkspaceCache, WorkspaceError};
 
 use crate::metadata::GitWorkspaceMember;
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 #[derive(Debug, Clone)]
 pub struct LoweredRequirement(Requirement);
@@ -955,7 +957,7 @@ fn path_source(
             // on the path source (otherwise, default to `true`).
             let is_package = package.unwrap_or_else(|| {
                 let pyproject_path = install_path.join("pyproject.toml");
-                fs_err::read_to_string(&pyproject_path)
+                uv_vfs::fs::read_to_string(&pyproject_path)
                     .ok()
                     .and_then(|contents| PyProjectToml::from_string(contents, pyproject_path).ok())
                     // We don't require a build system for path dependencies

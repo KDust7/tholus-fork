@@ -123,7 +123,7 @@ fn missing_record() -> Result<()> {
 
     // Delete the RECORD file.
     let dist_info = context.site_packages().join("MarkupSafe-2.1.3.dist-info");
-    fs_err::remove_file(dist_info.join("RECORD"))?;
+    uv_vfs::fs::remove_file(dist_info.join("RECORD"))?;
 
     uv_snapshot!(context.filters(), context.pip_uninstall()
         .arg("MarkupSafe"), @"
@@ -422,7 +422,7 @@ Version: 0.22.0
 
     // The entry in `easy-install.pth` should be removed.
     assert_eq!(
-        fs_err::read_to_string(site_packages.child("easy-install.pth"))?,
+        uv_vfs::fs::read_to_string(site_packages.child("easy-install.pth"))?,
         "something\nanother thing\n",
         "easy-install.pth should not contain the path to the uninstalled package"
     );
@@ -537,9 +537,9 @@ fn uninstall_record_path_traversal() -> Result<()> {
     let record_file = context
         .site_packages()
         .join("evilpkg-0.1.0.dist-info/RECORD");
-    let record = fs_err::read_to_string(&record_file)?;
+    let record = uv_vfs::fs::read_to_string(&record_file)?;
     let record = format!("{}\n{},,0\n", record.trim(), traversal_record);
-    fs_err::write(record_file, &record)?;
+    uv_vfs::fs::write(record_file, &record)?;
 
     let init_py = context.site_packages().join("evilpkg/__init__.py");
     assert!(context.site_packages().join(&traversal_record).exists());

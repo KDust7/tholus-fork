@@ -125,7 +125,7 @@ mod tests {
     use crate::PortableGlobParser;
     use crate::glob_dir_filter::GlobDirFilter;
     use std::path::{MAIN_SEPARATOR, Path};
-    use tempfile::tempdir;
+    use uv_vfs::temp::tempdir;
     use walkdir::WalkDir;
 
     const FILES: [&str; 5] = [
@@ -166,8 +166,8 @@ mod tests {
         let dir = tempdir().unwrap();
         for file in FILES {
             let file = dir.path().join(file);
-            fs_err::create_dir_all(file.parent().unwrap()).unwrap();
-            fs_err::File::create(file).unwrap();
+            uv_vfs::fs::create_dir_all(file.parent().unwrap()).unwrap();
+            uv_vfs::fs::File::create(file).unwrap();
         }
         let patterns = PATTERNS.map(|pattern| PortableGlobParser::Pep639.parse(pattern).unwrap());
         let matcher = GlobDirFilter::from_globs(patterns.into_iter().collect()).unwrap();
@@ -224,8 +224,8 @@ mod tests {
 
         for file in FILES {
             let file = dir.path().join(file);
-            fs_err::create_dir_all(file.parent().unwrap()).unwrap();
-            fs_err::File::create(file).unwrap();
+            uv_vfs::fs::create_dir_all(file.parent().unwrap()).unwrap();
+            uv_vfs::fs::File::create(file).unwrap();
         }
         let patterns = PATTERNS.map(|pattern| PortableGlobParser::Pep639.parse(pattern).unwrap());
 

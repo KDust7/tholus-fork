@@ -44,7 +44,7 @@ pub(crate) async fn read_pylock_toml(
             .parent()
             .map(Path::to_path_buf)
             .unwrap_or_else(PathBuf::new);
-        let content = fs_err::tokio::read_to_string(pylock).await?;
+        let content = uv_vfs::fs::tokio::read_to_string(pylock).await?;
         (install_path, content)
     };
 

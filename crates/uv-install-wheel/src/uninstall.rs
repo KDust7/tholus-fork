@@ -28,7 +28,7 @@ pub fn uninstall_wheel(
     // Read the RECORD file.
     let record = {
         let record_path = dist_info.join("RECORD");
-        let mut record_file = match fs_err::File::open(&record_path) {
+        let mut record_file = match uv_vfs::fs::File::open(&record_path) {
             Ok(record_file) => record_file,
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
                 return Err(Error::MissingRecord(record_path));
@@ -78,7 +78,7 @@ pub fn uninstall_wheel(
             }
         }
 
-        match fs_err::remove_file(&path) {
+        match uv_vfs::fs::remove_file(&path) {
             Ok(()) => {
                 trace!("Removed file: {}", path.display());
                 file_count += 1;
@@ -87,7 +87,7 @@ pub fn uninstall_wheel(
                 }
             }
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
-            Err(err) => match fs_err::remove_dir_all(&path) {
+            Err(err) => match uv_vfs::fs::remove_dir_all(&path) {
                 Ok(()) => {
                     trace!("Removed directory: {}", path.display());
                     dir_count += 1;
@@ -120,7 +120,7 @@ pub fn uninstall_wheel(
             // may or may not be listed in the RECORD, but installers are expected to be smart
             // enough to remove it either way.
             let pycache = path.join("__pycache__");
-            match fs_err::remove_dir_all(&pycache) {
+            match uv_vfs::fs::remove_dir_all(&pycache) {
                 Ok(()) => {
                     trace!("Removed directory: {}", pycache.display());
                     dir_count += 1;
@@ -131,7 +131,7 @@ pub fn uninstall_wheel(
 
             // Try to read from the directory. If it doesn't exist, assume we deleted it in a
             // previous iteration.
-            let mut read_dir = match fs_err::read_dir(path) {
+            let mut read_dir = match uv_vfs::fs::read_dir(path) {
                 Ok(read_dir) => read_dir,
                 Err(err) if err.kind() == std::io::ErrorKind::NotFound => break,
                 Err(err) => return Err(err.into()),
@@ -142,7 +142,7 @@ pub fn uninstall_wheel(
                 break;
             }
 
-            fs_err::remove_dir(path)?;
+            uv_vfs::fs::remove_dir(path)?;
 
             trace!("Removed directory: {}", path.display());
             dir_count += 1;
@@ -252,7 +252,7 @@ pub fn uninstall_egg(egg_info: &Path, distribution: impl Display) -> Result<Unin
     // Read the `namespace_packages.txt` file, skipping empty or whitespace-only entries.
     let namespace_packages = {
         let namespace_packages_path = egg_info.join("namespace_packages.txt");
-        match fs_err::read_to_string(namespace_packages_path) {
+        match uv_vfs::fs::read_to_string(namespace_packages_path) {
             Ok(namespace_packages) => namespace_packages
                 .lines()
                 .map(str::trim)
@@ -275,7 +275,7 @@ pub fn uninstall_egg(egg_info: &Path, distribution: impl Display) -> Result<Unin
     // `remove_dir_all` would wipe out every installed package.
     let top_level = {
         let top_level_path = egg_info.join("top_level.txt");
-        match fs_err::read_to_string(&top_level_path) {
+        match uv_vfs::fs::read_to_string(&top_level_path) {
             Ok(top_level) => top_level
                 .lines()
                 .map(str::trim)
@@ -299,7 +299,7 @@ pub fn uninstall_egg(egg_info: &Path, distribution: impl Display) -> Result<Unin
         let path = dist_location.join(&entry);
 
         // Remove as a directory.
-        match fs_err::remove_dir_all(&path) {
+        match uv_vfs::fs::remove_dir_all(&path) {
             Ok(()) => {
                 trace!("Removed directory: {}", path.display());
                 dir_count += 1;
@@ -312,7 +312,7 @@ pub fn uninstall_egg(egg_info: &Path, distribution: impl Display) -> Result<Unin
         // Remove as a `.py`, `.pyc`, or `.pyo` file.
         for extension in &["py", "pyc", "pyo"] {
             let path = path.with_extension(extension);
-            match fs_err::remove_file(&path) {
+            match uv_vfs::fs::remove_file(&path) {
                 Ok(()) => {
                     trace!("Removed file: {}", path.display());
                     file_count += 1;
@@ -325,7 +325,7 @@ pub fn uninstall_egg(egg_info: &Path, distribution: impl Display) -> Result<Unin
     }
 
     // Remove the `.egg-info` directory.
-    match fs_err::remove_dir_all(egg_info) {
+    match uv_vfs::fs::remove_dir_all(egg_info) {
         Ok(()) => {
             trace!("Removed directory: {}", egg_info.display());
             dir_count += 1;
@@ -359,7 +359,7 @@ pub fn uninstall_legacy_editable(egg_link: &Path) -> Result<Uninstall, Error> {
     let mut file_count = 0usize;
 
     // Find the target line in the `.egg-link` file.
-    let contents = fs_err::read_to_string(egg_link)?;
+    let contents = uv_vfs::fs::read_to_string(egg_link)?;
     let target_line = contents
         .lines()
         .find_map(|line| {
@@ -371,7 +371,7 @@ pub fn uninstall_legacy_editable(egg_link: &Path) -> Result<Uninstall, Error> {
     // This comes from `pkg_resources.normalize_path`
     let target_line = normcase(target_line);
 
-    match fs_err::remove_file(egg_link) {
+    match uv_vfs::fs::remove_file(egg_link) {
         Ok(()) => {
             trace!("Removed file: {}", egg_link.display());
             file_count += 1;
@@ -390,7 +390,7 @@ pub fn uninstall_legacy_editable(egg_link: &Path) -> Result<Uninstall, Error> {
     // is modified).
     let _guard = EASY_INSTALL_PTH.lock().unwrap();
 
-    let content = fs_err::read_to_string(&easy_install)?;
+    let content = uv_vfs::fs::read_to_string(&easy_install)?;
     let mut new_content = String::with_capacity(content.len());
     let mut removed = false;
 

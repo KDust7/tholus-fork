@@ -146,7 +146,7 @@ impl<'a, Context: BuildContext> NamedRequirementsResolver<'a, Context> {
             ParsedUrl::Directory(parsed_directory_url) => {
                 // Attempt to read a `PKG-INFO` from the directory.
                 if let Some(metadata) =
-                    fs_err::read(parsed_directory_url.install_path.join("PKG-INFO"))
+                    uv_vfs::fs::read(parsed_directory_url.install_path.join("PKG-INFO"))
                         .ok()
                         .and_then(|contents| Metadata10::parse_pkg_info(&contents).ok())
                 {
@@ -167,7 +167,7 @@ impl<'a, Context: BuildContext> NamedRequirementsResolver<'a, Context> {
                 // Attempt to read a `pyproject.toml` file.
                 let project_path = parsed_directory_url.install_path.join("pyproject.toml");
                 if let Some(pyproject) =
-                    fs_err::read_to_string(&project_path)
+                    uv_vfs::fs::read_to_string(&project_path)
                         .ok()
                         .and_then(|contents| {
                             PyProjectToml::from_toml(&contents, project_path.user_display()).ok()
@@ -211,7 +211,7 @@ impl<'a, Context: BuildContext> NamedRequirementsResolver<'a, Context> {
 
                 // Attempt to read a `setup.cfg` from the directory.
                 if let Some(setup_cfg) =
-                    fs_err::read_to_string(parsed_directory_url.install_path.join("setup.cfg"))
+                    uv_vfs::fs::read_to_string(parsed_directory_url.install_path.join("setup.cfg"))
                         .ok()
                         .and_then(|contents| {
                             let mut ini = Ini::new_cs();

@@ -523,7 +523,7 @@ async fn do_lock(
     printer: Printer,
     preview: Preview,
 ) -> Result<LockResult, ProjectError> {
-    let start = std::time::Instant::now();
+    let start = web_time::Instant::now();
 
     // Extract the project settings.
     let ResolverSettings {

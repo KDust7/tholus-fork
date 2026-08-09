@@ -1,7 +1,7 @@
 use std::ops::Add;
 use std::path::{Path, PathBuf};
 
-use fs_err as fs;
+use uv_vfs::fs as fs;
 use itertools::Itertools;
 use tracing::debug;
 use uv_dirs::user_uv_config_dir;
@@ -287,7 +287,7 @@ impl PythonVersionFile {
     pub async fn write(&self) -> Result<(), std::io::Error> {
         debug!("Writing Python versions to `{}`", self.path.display());
         if let Some(parent) = self.path.parent() {
-            fs_err::tokio::create_dir_all(parent).await?;
+            uv_vfs::fs::tokio::create_dir_all(parent).await?;
         }
         fs::tokio::write(
             &self.path,

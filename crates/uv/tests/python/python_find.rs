@@ -546,7 +546,7 @@ fn python_find_venv() {
     ");
 
     // But if we delete the parent virtual environment
-    fs_err::remove_dir_all(context.temp_dir.child(".venv")).unwrap();
+    uv_vfs::fs::remove_dir_all(context.temp_dir.child(".venv")).unwrap();
 
     // And query from there... we should not find the child virtual environment
     uv_snapshot!(context.filters(), context.python_find(), @"
@@ -683,7 +683,7 @@ fn python_find_venv_invalid() {
     ");
 
     // If the binaries are missing from a virtual environment, we fail
-    fs_err::remove_dir_all(venv_bin_path(&context.venv)).unwrap();
+    uv_vfs::fs::remove_dir_all(venv_bin_path(&context.venv)).unwrap();
 
     uv_snapshot!(context.filters(), context.python_find().env(EnvVars::VIRTUAL_ENV, context.venv.as_os_str()), @"
     exit_code: 2 (failure)
@@ -700,7 +700,7 @@ fn python_find_venv_invalid() {
     ");
 
     // If there's not a `pyvenv.cfg` file, it's also non-fatal, we ignore the environment
-    fs_err::remove_file(context.venv.join("pyvenv.cfg")).unwrap();
+    uv_vfs::fs::remove_file(context.venv.join("pyvenv.cfg")).unwrap();
 
     uv_snapshot!(context.filters(), context.python_find().env(EnvVars::VIRTUAL_ENV, context.venv.as_os_str()), @"
     exit_code: 0 (success)
@@ -778,8 +778,8 @@ fn python_required_python_major_minor() {
     let path = &context.python_versions.first().unwrap().1;
 
     // Symlink it to `python3.11`.
-    fs_err::create_dir_all(context.temp_dir.child("child")).unwrap();
-    fs_err::os::unix::fs::symlink(path, context.temp_dir.child("child").join("python3.11"))
+    uv_vfs::fs::create_dir_all(context.temp_dir.child("child")).unwrap();
+    uv_vfs::fs::os::unix::fs::symlink(path, context.temp_dir.child("child").join("python3.11"))
         .unwrap();
 
     // Find `python3.11`, which is `>=3.11.4`.
@@ -1282,7 +1282,7 @@ fn python_find_project_requires_python_minor_range() {
     child.create_dir_all().unwrap();
 
     let python_3_12 = &context.python_versions.last().unwrap().1;
-    fs_err::os::unix::fs::symlink(python_3_12, child.join("python3.12")).unwrap();
+    uv_vfs::fs::os::unix::fs::symlink(python_3_12, child.join("python3.12")).unwrap();
 
     let pyproject_toml = context.temp_dir.child("pyproject.toml");
     pyproject_toml

@@ -126,7 +126,7 @@ fn init_application() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -150,7 +150,7 @@ fn init_application() -> Result<()> {
         );
     });
 
-    let init = fs_err::read_to_string(init_py)?;
+    let init = uv_vfs::fs::read_to_string(init_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -198,7 +198,7 @@ fn init_application_no_package_main_exists() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -215,7 +215,7 @@ fn init_application_no_package_main_exists() -> Result<()> {
         );
     });
 
-    let hello = fs_err::read_to_string(main_py)?;
+    let hello = uv_vfs::fs::read_to_string(main_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -246,7 +246,7 @@ fn init_application_no_package_other_python_exists() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -263,7 +263,7 @@ fn init_application_no_package_other_python_exists() -> Result<()> {
         );
     });
 
-    let hello = fs_err::read_to_string(main_py)?;
+    let hello = uv_vfs::fs::read_to_string(main_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -299,7 +299,7 @@ fn init_application_package() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -323,7 +323,7 @@ fn init_application_package() -> Result<()> {
         );
     });
 
-    let init = fs_err::read_to_string(init_py)?;
+    let init = uv_vfs::fs::read_to_string(init_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -371,7 +371,7 @@ fn init_library() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -392,7 +392,7 @@ fn init_library() -> Result<()> {
         );
     });
 
-    let init = fs_err::read_to_string(init_py)?;
+    let init = uv_vfs::fs::read_to_string(init_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -404,7 +404,7 @@ fn init_library() -> Result<()> {
         );
     });
 
-    let py_typed = fs_err::read_to_string(py_typed)?;
+    let py_typed = uv_vfs::fs::read_to_string(py_typed)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -445,7 +445,7 @@ fn init_package() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(child.join("pyproject.toml"))?;
+    let pyproject = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -678,7 +678,7 @@ fn init_script() -> Result<()> {
     Initialized script at `main.py`
     ");
 
-    let script = fs_err::read_to_string(&script)?;
+    let script = uv_vfs::fs::read_to_string(&script)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -725,7 +725,7 @@ fn init_script_bare() -> Result<()> {
     Initialized script at `main.py`
     ");
 
-    let script = fs_err::read_to_string(&script)?;
+    let script = uv_vfs::fs::read_to_string(&script)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -758,7 +758,7 @@ fn init_script_python_version() -> Result<()> {
     Initialized script at `version.py`
     ");
 
-    let script = fs_err::read_to_string(&script)?;
+    let script = uv_vfs::fs::read_to_string(&script)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -801,7 +801,7 @@ fn init_script_python_version_file() -> Result<()> {
         .arg(scripts.join("pinned.py"))
         .assert()
         .success();
-    let pinned = fs_err::read_to_string(scripts.join("pinned.py"))?;
+    let pinned = uv_vfs::fs::read_to_string(scripts.join("pinned.py"))?;
     assert_snapshot!(pinned, @r#"
     # /// script
     # requires-python = ">=3.11"
@@ -825,7 +825,7 @@ fn init_script_python_version_file() -> Result<()> {
         .arg(scripts.join("unpinned.py"))
         .assert()
         .success();
-    let unpinned = fs_err::read_to_string(scripts.join("unpinned.py"))?;
+    let unpinned = uv_vfs::fs::read_to_string(scripts.join("unpinned.py"))?;
     assert_snapshot!(unpinned, @r#"
     # /// script
     # requires-python = ">=3.12"
@@ -860,7 +860,7 @@ fn init_script_create_directory() -> Result<()> {
     Initialized script at `test/dir.py`
     ");
 
-    let script = fs_err::read_to_string(&script)?;
+    let script = uv_vfs::fs::read_to_string(&script)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -906,7 +906,7 @@ fn init_script_file_conflicts() -> Result<()> {
     ");
 
     let contents = "print(\"Hello, world!\")";
-    fs_err::write(child.join("existing_script.py"), contents)?;
+    uv_vfs::fs::write(child.join("existing_script.py"), contents)?;
 
     uv_snapshot!(context.filters(), context.init().current_dir(&child).arg("--script").arg("existing_script.py"), @"
     exit_code: 0 (success)
@@ -914,7 +914,7 @@ fn init_script_file_conflicts() -> Result<()> {
     Initialized script at `existing_script.py`
     ");
 
-    let existing_script = fs_err::read_to_string(child.join("existing_script.py"))?;
+    let existing_script = uv_vfs::fs::read_to_string(child.join("existing_script.py"))?;
 
     assert_snapshot!(
         existing_script, @r#"
@@ -938,7 +938,7 @@ fn init_script_shebang() -> Result<()> {
     let script_path = context.temp_dir.child("script.py");
 
     let contents = "#! /usr/bin/env python3\nprint(\"Hello, world!\")";
-    fs_err::write(&script_path, contents)?;
+    uv_vfs::fs::write(&script_path, contents)?;
     uv_snapshot!(context.filters(), context.init().arg("--script").arg("script.py"), @"
     exit_code: 0 (success)
     ----- stderr -----
@@ -946,7 +946,7 @@ fn init_script_shebang() -> Result<()> {
     Consider replacing its shebang with: #!/usr/bin/env -S uv run --script
     Initialized script at `script.py`
     ");
-    let resulting_script = fs_err::read_to_string(&script_path)?;
+    let resulting_script = uv_vfs::fs::read_to_string(&script_path)?;
     assert_snapshot!(resulting_script, @r#"
     #! /usr/bin/env python3
     #
@@ -961,13 +961,13 @@ fn init_script_shebang() -> Result<()> {
 
     // If the shebang already contains `uv`, the result is the same, but we suppress the warning.
     let contents = "#!/usr/bin/env -S uv run --script\nprint(\"Hello, world!\")";
-    fs_err::write(&script_path, contents)?;
+    uv_vfs::fs::write(&script_path, contents)?;
     uv_snapshot!(context.filters(), context.init().arg("--script").arg("script.py"), @"
     exit_code: 0 (success)
     ----- stderr -----
     Initialized script at `script.py`
     ");
-    let resulting_script = fs_err::read_to_string(&script_path)?;
+    let resulting_script = uv_vfs::fs::read_to_string(&script_path)?;
     assert_snapshot!(resulting_script, @r#"
     #!/usr/bin/env -S uv run --script
     #
@@ -1002,7 +1002,7 @@ fn init_script_picks_latest_stable_version() -> Result<()> {
     Initialized script at `main.py`
     "#);
 
-    let resulting_script = fs_err::read_to_string(&script_path)?;
+    let resulting_script = uv_vfs::fs::read_to_string(&script_path)?;
     assert_snapshot!(
         resulting_script, @r#"
         # /// script
@@ -1035,7 +1035,7 @@ fn init_py_typed_exists() -> Result<()> {
     foo.create_dir_all()?;
 
     let py_typed = foo.join("py.typed");
-    fs_err::write(&py_typed, "partial")?;
+    uv_vfs::fs::write(&py_typed, "partial")?;
 
     uv_snapshot!(context.filters(), context.init().current_dir(&child).arg("--lib"), @"
     exit_code: 0 (success)
@@ -1043,7 +1043,7 @@ fn init_py_typed_exists() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let py_typed = fs_err::read_to_string(py_typed)?;
+    let py_typed = uv_vfs::fs::read_to_string(py_typed)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -1080,7 +1080,7 @@ fn init_library_no_package() -> Result<()> {
 fn init_cache() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
-    fs_err::remove_dir_all(&context.cache_dir)?;
+    uv_vfs::fs::remove_dir_all(&context.cache_dir)?;
 
     uv_snapshot!(context.filters(), context.init().arg("foo"), @"
     exit_code: 0 (success)
@@ -1102,7 +1102,7 @@ fn init_no_readme() {
     ");
 
     let pyproject = context.read("foo/pyproject.toml");
-    let _ = fs_err::read_to_string(context.temp_dir.join("foo/README.md")).unwrap_err();
+    let _ = uv_vfs::fs::read_to_string(context.temp_dir.join("foo/README.md")).unwrap_err();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -1138,7 +1138,7 @@ fn init_no_pin_python() {
     ");
 
     let pyproject = context.read("foo/pyproject.toml");
-    let _ = fs_err::read_to_string(context.temp_dir.join("foo/.python-version")).unwrap_err();
+    let _ = uv_vfs::fs::read_to_string(context.temp_dir.join("foo/.python-version")).unwrap_err();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -1169,7 +1169,7 @@ fn init_library_current_dir() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let dir = context.temp_dir.join("foo");
-    fs_err::create_dir(&dir)?;
+    uv_vfs::fs::create_dir(&dir)?;
 
     uv_snapshot!(context.filters(), context.init().arg("--lib").current_dir(&dir), @"
     exit_code: 0 (success)
@@ -1177,9 +1177,9 @@ fn init_library_current_dir() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(dir.join("pyproject.toml"))?;
-    let init_py = fs_err::read_to_string(dir.join("src/foo/__init__.py"))?;
-    let _ = fs_err::read_to_string(dir.join("README.md")).unwrap();
+    let pyproject = uv_vfs::fs::read_to_string(dir.join("pyproject.toml"))?;
+    let init_py = uv_vfs::fs::read_to_string(dir.join("src/foo/__init__.py"))?;
+    let _ = uv_vfs::fs::read_to_string(dir.join("README.md")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -1228,7 +1228,7 @@ fn init_application_current_dir() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let dir = context.temp_dir.join("foo");
-    fs_err::create_dir(&dir)?;
+    uv_vfs::fs::create_dir(&dir)?;
 
     uv_snapshot!(context.filters(), context.init().arg("--app").current_dir(&dir), @"
     exit_code: 0 (success)
@@ -1236,8 +1236,8 @@ fn init_application_current_dir() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(dir.join("pyproject.toml"))?;
-    let init_py = fs_err::read_to_string(dir.join("src/foo/__init__.py"))?;
+    let pyproject = uv_vfs::fs::read_to_string(dir.join("pyproject.toml"))?;
+    let init_py = uv_vfs::fs::read_to_string(dir.join("src/foo/__init__.py"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -1289,7 +1289,7 @@ fn init_dot_args() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let dir = context.temp_dir.join("foo");
-    fs_err::create_dir(&dir)?;
+    uv_vfs::fs::create_dir(&dir)?;
 
     uv_snapshot!(context.filters(), context.init().current_dir(&dir).arg(".").arg("--lib"), @"
     exit_code: 0 (success)
@@ -1297,9 +1297,9 @@ fn init_dot_args() -> Result<()> {
     Initialized project `foo` at `[TEMP_DIR]/foo`
     ");
 
-    let pyproject = fs_err::read_to_string(dir.join("pyproject.toml"))?;
-    let init_py = fs_err::read_to_string(dir.join("src/foo/__init__.py"))?;
-    let _ = fs_err::read_to_string(dir.join("README.md")).unwrap();
+    let pyproject = uv_vfs::fs::read_to_string(dir.join("pyproject.toml"))?;
+    let init_py = uv_vfs::fs::read_to_string(dir.join("src/foo/__init__.py"))?;
+    let _ = uv_vfs::fs::read_to_string(dir.join("README.md")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -1359,7 +1359,7 @@ fn init_workspace() -> Result<()> {
     })?;
 
     let child = context.temp_dir.join("foo");
-    fs_err::create_dir(&child)?;
+    uv_vfs::fs::create_dir(&child)?;
 
     uv_snapshot!(context.filters(), context.init().arg("--lib").current_dir(&child), @"
     exit_code: 0 (success)
@@ -1368,10 +1368,10 @@ fn init_workspace() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(child.join("pyproject.toml"))?;
-    let init_py = fs_err::read_to_string(child.join("src/foo/__init__.py"))?;
+    let pyproject = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
+    let init_py = uv_vfs::fs::read_to_string(child.join("src/foo/__init__.py"))?;
 
-    let _ = fs_err::read_to_string(child.join("README.md")).unwrap();
+    let _ = uv_vfs::fs::read_to_string(child.join("README.md")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -1433,7 +1433,7 @@ fn init_workspace() -> Result<()> {
 
     // Add another member (`bar`).
     let child = context.temp_dir.join("bar");
-    fs_err::create_dir(&child)?;
+    uv_vfs::fs::create_dir(&child)?;
 
     uv_snapshot!(context.filters(), context.init().arg("--lib").current_dir(&child), @"
     exit_code: 0 (success)
@@ -1483,7 +1483,7 @@ fn init_workspace() -> Result<()> {
 
     // Add another member (`baz`).
     let child = context.temp_dir.join("baz");
-    fs_err::create_dir(&child)?;
+    uv_vfs::fs::create_dir(&child)?;
 
     uv_snapshot!(context.filters(), context.init().arg("--lib").current_dir(&child), @"
     exit_code: 0 (success)
@@ -1541,10 +1541,10 @@ fn init_workspace_relative_sub_package() -> Result<()> {
     Initialized project `foo` at `[TEMP_DIR]/foo`
     ");
 
-    let pyproject = fs_err::read_to_string(child.join("pyproject.toml"))?;
-    let init_py = fs_err::read_to_string(child.join("src/foo/__init__.py"))?;
+    let pyproject = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
+    let init_py = uv_vfs::fs::read_to_string(child.join("src/foo/__init__.py"))?;
 
-    let _ = fs_err::read_to_string(child.join("README.md")).unwrap();
+    let _ = uv_vfs::fs::read_to_string(child.join("README.md")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -1632,10 +1632,10 @@ fn init_workspace_outside() -> Result<()> {
     Initialized project `foo` at `[TEMP_DIR]/foo`
     ");
 
-    let pyproject = fs_err::read_to_string(child.join("pyproject.toml"))?;
-    let init_py = fs_err::read_to_string(child.join("src/foo/__init__.py"))?;
+    let pyproject = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
+    let init_py = uv_vfs::fs::read_to_string(child.join("src/foo/__init__.py"))?;
 
-    let _ = fs_err::read_to_string(child.join("README.md")).unwrap();
+    let _ = uv_vfs::fs::read_to_string(child.join("README.md")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -1710,8 +1710,8 @@ fn init_normalized_names() -> Result<()> {
     ");
 
     let child = context.temp_dir.child("foo-bar");
-    let pyproject = fs_err::read_to_string(child.join("pyproject.toml"))?;
-    let _ = fs_err::read_to_string(child.join("src/foo_bar/__init__.py"))?;
+    let pyproject = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
+    let _ = uv_vfs::fs::read_to_string(child.join("src/foo_bar/__init__.py"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -1741,8 +1741,8 @@ fn init_normalized_names() -> Result<()> {
     ");
 
     let child = context.temp_dir.child("bar_baz");
-    let pyproject = fs_err::read_to_string(child.join("pyproject.toml"))?;
-    let _ = fs_err::read_to_string(child.join("src/bar_baz/__init__.py"))?;
+    let pyproject = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
+    let _ = uv_vfs::fs::read_to_string(child.join("src/bar_baz/__init__.py"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -1775,7 +1775,7 @@ fn init_normalized_names() -> Result<()> {
     ");
 
     let child = context.temp_dir.child("baz bop");
-    let pyproject = fs_err::read_to_string(child.join("pyproject.toml"))?;
+    let pyproject = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -1818,7 +1818,7 @@ fn init_isolated() -> Result<()> {
     })?;
 
     let child = context.temp_dir.join("foo");
-    fs_err::create_dir(&child)?;
+    uv_vfs::fs::create_dir(&child)?;
 
     uv_snapshot!(context.filters(), context.init().current_dir(&child).arg("--isolated"), @"
     exit_code: 0 (success)
@@ -1867,7 +1867,7 @@ fn init_no_workspace() -> Result<()> {
 
     // Initialize with `--no-workspace`.
     let child = context.temp_dir.join("foo");
-    fs_err::create_dir(&child)?;
+    uv_vfs::fs::create_dir(&child)?;
 
     uv_snapshot!(context.filters(), context.init().current_dir(&child).arg("--no-workspace"), @"
     exit_code: 0 (success)
@@ -1898,7 +1898,7 @@ fn init_no_workspace() -> Result<()> {
     })?;
 
     let child = context.temp_dir.join("bar");
-    fs_err::create_dir(&child)?;
+    uv_vfs::fs::create_dir(&child)?;
 
     uv_snapshot!(context.filters(), context.init().current_dir(&child).arg("--no-workspace"), @"
     exit_code: 0 (success)
@@ -1987,7 +1987,7 @@ fn init_project_inside_project() -> Result<()> {
     Initialized project `bar` at `[TEMP_DIR]/foo/bar`
     ");
 
-    let workspace = fs_err::read_to_string(pyproject_toml)?;
+    let workspace = uv_vfs::fs::read_to_string(pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2007,7 +2007,7 @@ fn init_project_inside_project() -> Result<()> {
         );
     });
 
-    let pyproject = fs_err::read_to_string(child.join("pyproject.toml"))?;
+    let pyproject = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2098,7 +2098,7 @@ fn init_virtual_project() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2122,7 +2122,7 @@ fn init_virtual_project() -> Result<()> {
     Initialized project `bar` at `[TEMP_DIR]/foo/bar`
     ");
 
-    let pyproject = fs_err::read_to_string(pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2171,7 +2171,7 @@ fn init_virtual_workspace() -> Result<()> {
     Initialized project `bar` at `[TEMP_DIR]/foo/bar`
     ");
 
-    let pyproject = fs_err::read_to_string(pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2259,7 +2259,7 @@ fn init_matches_members() -> Result<()> {
     // the empty child directory does _not_ trigger a workspace discovery error despite being a
     // valid member.
     let packages = context.temp_dir.join("packages");
-    fs_err::create_dir_all(packages.join("foo"))?;
+    uv_vfs::fs::create_dir_all(packages.join("foo"))?;
 
     uv_snapshot!(context.filters(), context.init().current_dir(context.temp_dir.join("packages")).arg("foo"), @"
     exit_code: 0 (success)
@@ -2298,7 +2298,7 @@ fn init_matches_exclude() -> Result<()> {
     })?;
 
     let packages = context.temp_dir.join("packages");
-    fs_err::create_dir_all(packages)?;
+    uv_vfs::fs::create_dir_all(packages)?;
 
     uv_snapshot!(context.filters(), context.init().current_dir(context.temp_dir.join("packages")).arg("foo"), @"
     exit_code: 0 (success)
@@ -2349,7 +2349,7 @@ fn init_requires_python_workspace() -> Result<()> {
     Initialized project `foo` at `[TEMP_DIR]/foo`
     ");
 
-    let pyproject_toml = fs_err::read_to_string(child.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2373,7 +2373,7 @@ fn init_requires_python_workspace() -> Result<()> {
         );
     });
 
-    let python_version = fs_err::read_to_string(child.join(".python-version"))?;
+    let python_version = uv_vfs::fs::read_to_string(child.join(".python-version"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2411,7 +2411,7 @@ fn init_requires_python_version() -> Result<()> {
     Initialized project `foo` at `[TEMP_DIR]/foo`
     ");
 
-    let pyproject_toml = fs_err::read_to_string(child.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2435,7 +2435,7 @@ fn init_requires_python_version() -> Result<()> {
         );
     });
 
-    let python_version = fs_err::read_to_string(child.join(".python-version"))?;
+    let python_version = uv_vfs::fs::read_to_string(child.join(".python-version"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2474,7 +2474,7 @@ fn init_requires_python_specifiers() -> Result<()> {
     Initialized project `foo` at `[TEMP_DIR]/foo`
     ");
 
-    let pyproject_toml = fs_err::read_to_string(child.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2498,7 +2498,7 @@ fn init_requires_python_specifiers() -> Result<()> {
         );
     });
 
-    let python_version = fs_err::read_to_string(child.join(".python-version"))?;
+    let python_version = uv_vfs::fs::read_to_string(child.join(".python-version"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2524,7 +2524,7 @@ fn init_requires_python_version_file() -> Result<()> {
     Initialized project `foo` at `[TEMP_DIR]/foo`
     ");
 
-    let pyproject_toml = fs_err::read_to_string(child.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2574,7 +2574,7 @@ fn init_existing_environment() -> Result<()> {
     Initialized project `foo` at `[TEMP_DIR]/foo`
     ");
 
-    let pyproject_toml = fs_err::read_to_string(child.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2623,7 +2623,7 @@ fn init_existing_environment_parent() -> Result<()> {
     Initialized project `foo` at `[TEMP_DIR]/foo`
     ");
 
-    let pyproject_toml = fs_err::read_to_string(child.join("pyproject.toml"))?;
+    let pyproject_toml = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2802,7 +2802,7 @@ fn init_git() -> Result<()> {
     Initialized project `foo` at `[TEMP_DIR]/foo`
     ");
 
-    let gitignore = fs_err::read_to_string(child.join(".gitignore"))?;
+    let gitignore = uv_vfs::fs::read_to_string(child.join(".gitignore"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3063,7 +3063,7 @@ fn init_application_package_flit() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3087,7 +3087,7 @@ fn init_application_package_flit() -> Result<()> {
         );
     });
 
-    let init = fs_err::read_to_string(init_py)?;
+    let init = uv_vfs::fs::read_to_string(init_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3134,7 +3134,7 @@ fn init_library_flit() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3155,7 +3155,7 @@ fn init_library_flit() -> Result<()> {
         );
     });
 
-    let init = fs_err::read_to_string(init_py)?;
+    let init = uv_vfs::fs::read_to_string(init_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3167,7 +3167,7 @@ fn init_library_flit() -> Result<()> {
         );
     });
 
-    let py_typed = fs_err::read_to_string(py_typed)?;
+    let py_typed = uv_vfs::fs::read_to_string(py_typed)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3247,7 +3247,7 @@ fn init_library_poetry() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3268,7 +3268,7 @@ fn init_library_poetry() -> Result<()> {
         );
     });
 
-    let init = fs_err::read_to_string(init_py)?;
+    let init = uv_vfs::fs::read_to_string(init_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3280,7 +3280,7 @@ fn init_library_poetry() -> Result<()> {
         );
     });
 
-    let py_typed = fs_err::read_to_string(py_typed)?;
+    let py_typed = uv_vfs::fs::read_to_string(py_typed)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3327,7 +3327,7 @@ fn init_app_build_backend_maturin() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3359,7 +3359,7 @@ fn init_app_build_backend_maturin() -> Result<()> {
         );
     });
 
-    let init = fs_err::read_to_string(init_py)?;
+    let init = uv_vfs::fs::read_to_string(init_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3374,7 +3374,7 @@ fn init_app_build_backend_maturin() -> Result<()> {
         );
     });
 
-    let pyi_contents = fs_err::read_to_string(pyi_file)?;
+    let pyi_contents = uv_vfs::fs::read_to_string(pyi_file)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3383,7 +3383,7 @@ fn init_app_build_backend_maturin() -> Result<()> {
         );
     });
 
-    let lib_core_contents = fs_err::read_to_string(lib_core)?;
+    let lib_core_contents = uv_vfs::fs::read_to_string(lib_core)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3407,7 +3407,7 @@ fn init_app_build_backend_maturin() -> Result<()> {
         );
     });
 
-    let build_file_contents = fs_err::read_to_string(build_file)?;
+    let build_file_contents = uv_vfs::fs::read_to_string(build_file)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3454,7 +3454,7 @@ fn init_app_build_backend_scikit() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3485,7 +3485,7 @@ fn init_app_build_backend_scikit() -> Result<()> {
         );
     });
 
-    let init = fs_err::read_to_string(init_py)?;
+    let init = uv_vfs::fs::read_to_string(init_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3500,7 +3500,7 @@ fn init_app_build_backend_scikit() -> Result<()> {
         );
     });
 
-    let pyi_contents = fs_err::read_to_string(pyi_file)?;
+    let pyi_contents = uv_vfs::fs::read_to_string(pyi_file)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3509,7 +3509,7 @@ fn init_app_build_backend_scikit() -> Result<()> {
         );
     });
 
-    let lib_core_contents = fs_err::read_to_string(lib_core)?;
+    let lib_core_contents = uv_vfs::fs::read_to_string(lib_core)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3532,7 +3532,7 @@ fn init_app_build_backend_scikit() -> Result<()> {
         );
     });
 
-    let build_file_contents = fs_err::read_to_string(build_file)?;
+    let build_file_contents = uv_vfs::fs::read_to_string(build_file)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3575,7 +3575,7 @@ fn init_lib_build_backend_maturin() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3604,7 +3604,7 @@ fn init_lib_build_backend_maturin() -> Result<()> {
         );
     });
 
-    let init = fs_err::read_to_string(init_py)?;
+    let init = uv_vfs::fs::read_to_string(init_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3619,7 +3619,7 @@ fn init_lib_build_backend_maturin() -> Result<()> {
         );
     });
 
-    let pyi_contents = fs_err::read_to_string(pyi_file)?;
+    let pyi_contents = uv_vfs::fs::read_to_string(pyi_file)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3628,7 +3628,7 @@ fn init_lib_build_backend_maturin() -> Result<()> {
         );
     });
 
-    let lib_core_contents = fs_err::read_to_string(lib_core)?;
+    let lib_core_contents = uv_vfs::fs::read_to_string(lib_core)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3652,7 +3652,7 @@ fn init_lib_build_backend_maturin() -> Result<()> {
         );
     });
 
-    let build_file_contents = fs_err::read_to_string(build_file)?;
+    let build_file_contents = uv_vfs::fs::read_to_string(build_file)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3699,7 +3699,7 @@ fn init_lib_build_backend_scikit() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3727,7 +3727,7 @@ fn init_lib_build_backend_scikit() -> Result<()> {
         );
     });
 
-    let init = fs_err::read_to_string(init_py)?;
+    let init = uv_vfs::fs::read_to_string(init_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3742,7 +3742,7 @@ fn init_lib_build_backend_scikit() -> Result<()> {
         );
     });
 
-    let pyi_contents = fs_err::read_to_string(pyi_file)?;
+    let pyi_contents = uv_vfs::fs::read_to_string(pyi_file)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3751,7 +3751,7 @@ fn init_lib_build_backend_scikit() -> Result<()> {
         );
     });
 
-    let lib_core_contents = fs_err::read_to_string(lib_core)?;
+    let lib_core_contents = uv_vfs::fs::read_to_string(lib_core)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3774,7 +3774,7 @@ fn init_lib_build_backend_scikit() -> Result<()> {
         );
     });
 
-    let build_file_contents = fs_err::read_to_string(build_file)?;
+    let build_file_contents = uv_vfs::fs::read_to_string(build_file)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3813,7 +3813,7 @@ fn init_application_package_hatchling() -> Result<()> {
     Initialized project `foo`
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject, @r#"
     [project]
@@ -3833,7 +3833,7 @@ fn init_application_package_hatchling() -> Result<()> {
     "#
     );
 
-    let init = fs_err::read_to_string(init_py)?;
+    let init = uv_vfs::fs::read_to_string(init_py)?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -3867,7 +3867,7 @@ fn init_with_description() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let child = context.temp_dir.join("foo");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
 
     // Initialize the project with a description
     context
@@ -3880,7 +3880,7 @@ fn init_with_description() -> Result<()> {
         .success();
 
     // Read the generated pyproject.toml
-    let pyproject = fs_err::read_to_string(child.join("pyproject.toml"))?;
+    let pyproject = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
 
     // Verify the description in pyproject.toml
     insta::with_settings!({
@@ -3911,7 +3911,7 @@ fn init_without_description() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let child = context.temp_dir.join("bar");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
 
     // Initialize the project without a description
     context
@@ -3922,7 +3922,7 @@ fn init_without_description() -> Result<()> {
         .success();
 
     // Read the generated pyproject.toml
-    let pyproject = fs_err::read_to_string(child.join("pyproject.toml"))?;
+    let pyproject = uv_vfs::fs::read_to_string(child.join("pyproject.toml"))?;
 
     // Verify the default description in pyproject.toml
     insta::with_settings!({

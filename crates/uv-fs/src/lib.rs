@@ -6,7 +6,7 @@ use std::io::Read;
 
 #[cfg(feature = "tokio")]
 use encoding_rs_io::DecodeReaderBytes;
-use tempfile::NamedTempFile;
+use uv_vfs::temp::NamedTempFile;
 use tracing::{debug, warn};
 
 pub use crate::locked_file::*;
@@ -71,7 +71,7 @@ pub async fn read_to_string_transcode(path: impl AsRef<Path>) -> std::io::Result
         std::io::stdin().read_to_end(&mut buf)?;
         buf
     } else {
-        fs_err::tokio::read(path).await?
+        uv_vfs::fs::tokio::read(path).await?
     };
     let mut buf = String::with_capacity(1024);
     DecodeReaderBytes::new(&*raw)
@@ -112,7 +112,7 @@ fn create_junction(target: &Path, path: &Path) -> std::io::Result<()> {
                 ) {
                     // Not a junction (metadata succeeded normally), just
                     // an empty directory left behind by junction::create.
-                    let _ = fs_err::remove_dir(path);
+                    let _ = uv_vfs::fs::remove_dir(path);
                 }
             }
             create_result
@@ -130,7 +130,7 @@ fn create_junction(target: &Path, path: &Path) -> std::io::Result<()> {
             ) =>
         {
             // Broken reparse point.
-            let _ = fs_err::remove_dir(path);
+            let _ = uv_vfs::fs::remove_dir(path);
             Err(create_result.err().unwrap_or(err))
         }
         Err(err) => Err(create_result.err().unwrap_or(err)),
@@ -176,7 +176,7 @@ pub fn replace_symlink(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io:
 #[cfg(windows)]
 fn replace_with_junction(src: &Path, dst: &Path) -> std::io::Result<()> {
     // Remove the existing junction, if any.
-    match fs_err::remove_dir(dst) {
+    match uv_vfs::fs::remove_dir(dst) {
         Ok(()) => {}
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
         Err(err) => return Err(err),
@@ -191,17 +191,17 @@ fn replace_with_symlink_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
     // Best-effort removal of any existing entry. The destination may be a
     // directory, file, or symlink, so try the directory removal first and
     // fall back to file removal if that fails.
-    match fs_err::remove_dir_all(dst) {
+    match uv_vfs::fs::remove_dir_all(dst) {
         Ok(()) => {}
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
-        Err(_) => match fs_err::remove_file(dst) {
+        Err(_) => match uv_vfs::fs::remove_file(dst) {
             Ok(()) => {}
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
             Err(err) => return Err(err),
         },
     }
 
-    fs_err::os::windows::fs::symlink_dir(dunce::simplified(src), dunce::simplified(dst))
+    uv_vfs::fs::os::windows::fs::symlink_dir(dunce::simplified(src), dunce::simplified(dst))
 }
 
 /// Create a symlink at `dst` pointing to `src`, replacing any existing symlink if necessary.
@@ -210,16 +210,16 @@ fn replace_with_symlink_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
 #[cfg(unix)]
 pub fn replace_symlink(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
     // Attempt to create the symlink directly.
-    match fs_err::os::unix::fs::symlink(src.as_ref(), dst.as_ref()) {
+    match uv_vfs::fs::os::unix::fs::symlink(src.as_ref(), dst.as_ref()) {
         Ok(()) => Ok(()),
         Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {
             // Create a symlink, using a temporary file to ensure atomicity.
-            let temp_dir = tempfile::tempdir_in(dst.as_ref().parent().unwrap())?;
+            let temp_dir = uv_vfs::temp::tempdir_in(dst.as_ref().parent().unwrap())?;
             let temp_file = temp_dir.path().join("link");
-            fs_err::os::unix::fs::symlink(src, &temp_file)?;
+            uv_vfs::fs::os::unix::fs::symlink(src, &temp_file)?;
 
             // Move the symlink into the target location.
-            fs_err::rename(&temp_file, dst.as_ref())?;
+            uv_vfs::fs::rename(&temp_file, dst.as_ref())?;
 
             Ok(())
         }
@@ -252,7 +252,7 @@ pub fn create_symlink(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::
     }
 
     if uv_windows::is_wine() {
-        fs_err::os::windows::fs::symlink_dir(dunce::simplified(src), dunce::simplified(dst))
+        uv_vfs::fs::os::windows::fs::symlink_dir(dunce::simplified(src), dunce::simplified(dst))
     } else {
         create_junction(src, dst)
     }
@@ -261,7 +261,7 @@ pub fn create_symlink(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::
 /// Create a symlink at `dst` pointing to `src`.
 #[cfg(unix)]
 pub fn create_symlink(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
-    fs_err::os::unix::fs::symlink(src.as_ref(), dst.as_ref())
+    uv_vfs::fs::os::unix::fs::symlink(src.as_ref(), dst.as_ref())
 }
 
 /// Remove a symbolic link at `path` without following its target.
@@ -272,12 +272,12 @@ pub fn remove_symlink(path: impl AsRef<Path>) -> io::Result<()> {
     {
         use std::os::windows::fs::FileTypeExt;
 
-        if fs_err::symlink_metadata(path)?.file_type().is_symlink_dir() {
-            return fs_err::remove_dir(path);
+        if uv_vfs::fs::symlink_metadata(path)?.file_type().is_symlink_dir() {
+            return uv_vfs::fs::remove_dir(path);
         }
     }
 
-    fs_err::remove_file(path)
+    uv_vfs::fs::remove_file(path)
 }
 
 #[cfg(all(test, windows))]
@@ -288,15 +288,15 @@ mod windows_tests {
 
     #[test]
     fn fs_err_read_link_reads_created_directory_link() -> std::io::Result<()> {
-        let tempdir = tempfile::tempdir()?;
+        let tempdir = uv_vfs::temp::tempdir()?;
         let target = tempdir.path().join("target");
-        fs_err::create_dir(&target)?;
+        uv_vfs::fs::create_dir(&target)?;
         let link = tempdir.path().join("link");
 
         create_symlink(&target, &link)?;
 
         assert_eq!(
-            verbatim_path(&fs_err::read_link(&link)?),
+            verbatim_path(&uv_vfs::fs::read_link(&link)?),
             verbatim_path(&target)
         );
         Ok(())
@@ -304,17 +304,17 @@ mod windows_tests {
 
     #[test]
     fn fs_err_read_link_reads_long_junction_target() -> std::io::Result<()> {
-        let tempdir = tempfile::tempdir()?;
+        let tempdir = uv_vfs::temp::tempdir()?;
         let mut target = tempdir.path().join("target");
         while target.as_os_str().encode_wide().count() < 257 {
             target.push("long-path-component");
         }
-        fs_err::create_dir_all(&target)?;
+        uv_vfs::fs::create_dir_all(&target)?;
         let link = tempdir.path().join("link");
 
         create_symlink(&target, &link)?;
 
-        let link_target = fs_err::read_link(&link)?;
+        let link_target = uv_vfs::fs::read_link(&link)?;
         assert_eq!(verbatim_path(&link_target), verbatim_path(&target));
         Ok(())
     }
@@ -326,17 +326,17 @@ mod windows_tests {
             eprintln!("Skipping: UV_INTERNAL__TEST_SMB_FS not set");
             return Ok(());
         };
-        fs_err::create_dir_all(&smb_fs)?;
-        let alt_tempdir = tempfile::tempdir_in(smb_fs)?;
-        let tempdir = tempfile::tempdir()?;
+        uv_vfs::fs::create_dir_all(&smb_fs)?;
+        let alt_tempdir = uv_vfs::temp::tempdir_in(smb_fs)?;
+        let tempdir = uv_vfs::temp::tempdir()?;
         let link = tempdir.path().join("link");
         let target = alt_tempdir.path().join("target");
-        fs_err::create_dir(&target)?;
+        uv_vfs::fs::create_dir(&target)?;
 
         let err = create_junction(&target, &link).unwrap_err();
         assert_eq!(err.kind(), std::io::ErrorKind::InvalidFilename);
         assert!(matches!(
-            fs_err::symlink_metadata(&link),
+            uv_vfs::fs::symlink_metadata(&link),
             Err(err) if err.kind() == std::io::ErrorKind::NotFound
         ));
         Ok(())
@@ -354,10 +354,10 @@ mod windows_tests {
 pub fn symlink_or_copy_file(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
     cfg_select! {
         windows => {
-            fs_err::copy(src.as_ref(), dst.as_ref())?;
+            uv_vfs::fs::copy(src.as_ref(), dst.as_ref())?;
         },
         unix => {
-            fs_err::os::unix::fs::symlink(src.as_ref(), dst.as_ref())?;
+            uv_vfs::fs::os::unix::fs::symlink(src.as_ref(), dst.as_ref())?;
         },
     }
 
@@ -371,7 +371,7 @@ pub fn symlink_or_copy_file(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std
 #[cfg(unix)]
 pub fn tempfile_in(path: &Path) -> std::io::Result<NamedTempFile> {
     use std::os::unix::fs::PermissionsExt;
-    tempfile::Builder::new()
+    uv_vfs::temp::Builder::new()
         .permissions(std::fs::Permissions::from_mode(0o666))
         .tempfile_in(path)
 }
@@ -379,7 +379,7 @@ pub fn tempfile_in(path: &Path) -> std::io::Result<NamedTempFile> {
 /// Return a [`NamedTempFile`] in the specified directory.
 #[cfg(not(unix))]
 pub fn tempfile_in(path: &Path) -> std::io::Result<NamedTempFile> {
-    tempfile::Builder::new().tempfile_in(path)
+    uv_vfs::temp::Builder::new().tempfile_in(path)
 }
 
 /// Write `data` to `path` atomically using a temporary file and atomic rename.
@@ -390,7 +390,7 @@ pub async fn write_atomic(path: impl AsRef<Path>, data: impl AsRef<[u8]>) -> std
             .parent()
             .expect("Write path must have a parent"),
     )?;
-    fs_err::tokio::write(&temp_file, &data).await?;
+    uv_vfs::fs::tokio::write(&temp_file, &data).await?;
     persist_with_retry(temp_file, path.as_ref()).await
 }
 
@@ -401,14 +401,14 @@ pub fn write_atomic_sync(path: impl AsRef<Path>, data: impl AsRef<[u8]>) -> std:
             .parent()
             .expect("Write path must have a parent"),
     )?;
-    fs_err::write(&temp_file, &data)?;
+    uv_vfs::fs::write(&temp_file, &data)?;
     persist_with_retry_sync(temp_file, path.as_ref())
 }
 
 /// Copy `from` to `to` atomically using a temporary file and atomic rename.
 pub fn copy_atomic_sync(from: impl AsRef<Path>, to: impl AsRef<Path>) -> std::io::Result<()> {
     let temp_file = tempfile_in(to.as_ref().parent().expect("Write path must have a parent"))?;
-    fs_err::copy(from.as_ref(), &temp_file)?;
+    uv_vfs::fs::copy(from.as_ref(), &temp_file)?;
     persist_with_retry_sync(temp_file, to.as_ref())
 }
 
@@ -443,7 +443,7 @@ pub async fn rename_with_retry(
         let from = from.as_ref();
         let to = to.as_ref();
 
-        let rename = async || fs_err::rename(from, to);
+        let rename = async || uv_vfs::fs::rename(from, to);
 
         rename
             .retry(backoff_file_move())
@@ -461,7 +461,7 @@ pub async fn rename_with_retry(
     }
     #[cfg(not(windows))]
     {
-        fs_err::tokio::rename(from, to).await
+        uv_vfs::fs::tokio::rename(from, to).await
     }
 }
 
@@ -618,7 +618,7 @@ async fn persist_with_retry(
     }
     #[cfg(not(windows))]
     {
-        async { fs_err::rename(from, to) }.await
+        async { uv_vfs::fs::rename(from, to) }.await
     }
 }
 
@@ -689,7 +689,7 @@ pub fn persist_with_retry_sync(
     }
     #[cfg(not(windows))]
     {
-        fs_err::rename(from, to)
+        uv_vfs::fs::rename(from, to)
     }
 }
 
@@ -845,14 +845,14 @@ impl<Reader: tokio::io::AsyncRead + Unpin, Callback: Fn(usize) + Unpin> tokio::i
 
 /// Recursively copy a directory and its contents.
 pub fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
-    fs_err::create_dir_all(&dst)?;
-    for entry in fs_err::read_dir(src.as_ref())? {
+    uv_vfs::fs::create_dir_all(&dst)?;
+    for entry in uv_vfs::fs::read_dir(src.as_ref())? {
         let entry = entry?;
         let ty = entry.file_type()?;
         if ty.is_dir() {
             copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
         } else {
-            fs_err::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
+            uv_vfs::fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
         }
     }
     Ok(())
@@ -862,7 +862,7 @@ pub fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Re
 ///
 /// The link or file at `location` is removed without following it.
 pub fn remove_virtualenv(location: &Path) -> io::Result<()> {
-    if !fs_err::symlink_metadata(location)?.is_dir() {
+    if !uv_vfs::fs::symlink_metadata(location)?.is_dir() {
         return remove_symlink(location);
     }
 
@@ -879,27 +879,27 @@ pub fn remove_virtualenv(location: &Path) -> io::Result<()> {
 
     // We defer removal of the `pyvenv.cfg` until the end, so if we fail to remove the environment,
     // uv can still identify it as a Python virtual environment that can be deleted.
-    for entry in fs_err::read_dir(location)? {
+    for entry in uv_vfs::fs::read_dir(location)? {
         let entry = entry?;
         let path = entry.path();
         if path == location.join("pyvenv.cfg") {
             continue;
         }
         if path.is_dir() {
-            fs_err::remove_dir_all(&path)?;
+            uv_vfs::fs::remove_dir_all(&path)?;
         } else {
-            fs_err::remove_file(&path)?;
+            uv_vfs::fs::remove_file(&path)?;
         }
     }
 
-    match fs_err::remove_file(location.join("pyvenv.cfg")) {
+    match uv_vfs::fs::remove_file(location.join("pyvenv.cfg")) {
         Ok(()) => {}
         Err(err) if err.kind() == io::ErrorKind::NotFound => {}
         Err(err) => return Err(err),
     }
 
     // Remove the virtual environment directory itself
-    match fs_err::remove_dir_all(location) {
+    match uv_vfs::fs::remove_dir_all(location) {
         Ok(()) => {}
         Err(err) if err.kind() == io::ErrorKind::NotFound => {}
         // If the virtual environment is a mounted file system, e.g., in a Docker container, we
@@ -928,7 +928,7 @@ pub fn clear_virtualenv(location: &Path) -> io::Result<bool> {
         Err(err) if err.kind() == io::ErrorKind::NotFound => false,
         Err(err) => return Err(err),
     };
-    fs_err::create_dir_all(location)?;
+    uv_vfs::fs::create_dir_all(location)?;
     Ok(cleared)
 }
 
@@ -938,37 +938,37 @@ mod tests {
 
     #[test]
     fn remove_symlink_removes_directory_link_without_removing_target() -> io::Result<()> {
-        let tempdir = tempfile::tempdir()?;
+        let tempdir = uv_vfs::temp::tempdir()?;
         let target = tempdir.path().join("target");
-        fs_err::create_dir(&target)?;
-        fs_err::write(target.join("file"), "content")?;
+        uv_vfs::fs::create_dir(&target)?;
+        uv_vfs::fs::write(target.join("file"), "content")?;
         let link = tempdir.path().join("link");
 
         create_symlink(&target, &link)?;
         remove_symlink(&link)?;
 
         assert!(matches!(
-            fs_err::symlink_metadata(&link),
+            uv_vfs::fs::symlink_metadata(&link),
             Err(err) if err.kind() == io::ErrorKind::NotFound
         ));
-        assert_eq!(fs_err::read_to_string(target.join("file"))?, "content");
+        assert_eq!(uv_vfs::fs::read_to_string(target.join("file"))?, "content");
         Ok(())
     }
 
     #[test]
     fn remove_virtualenv_removes_directory_link_without_removing_target() -> io::Result<()> {
-        let tempdir = tempfile::tempdir()?;
+        let tempdir = uv_vfs::temp::tempdir()?;
         let target = tempdir.path().join("target");
-        fs_err::create_dir(&target)?;
+        uv_vfs::fs::create_dir(&target)?;
         let marker = target.join("marker");
-        fs_err::write(&marker, "")?;
+        uv_vfs::fs::write(&marker, "")?;
         let environment = tempdir.path().join("environment");
         create_symlink(&target, &environment)?;
 
         remove_virtualenv(&environment)?;
 
         assert!(matches!(
-            fs_err::symlink_metadata(environment),
+            uv_vfs::fs::symlink_metadata(environment),
             Err(err) if err.kind() == io::ErrorKind::NotFound
         ));
         assert!(marker.is_file());
@@ -977,7 +977,7 @@ mod tests {
 
     #[test]
     fn clear_virtualenv_recreates_missing_directory() -> io::Result<()> {
-        let tempdir = tempfile::tempdir()?;
+        let tempdir = uv_vfs::temp::tempdir()?;
         let environment = tempdir.path().join("environment");
 
         assert!(!clear_virtualenv(&environment)?);

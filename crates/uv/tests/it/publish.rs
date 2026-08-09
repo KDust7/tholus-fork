@@ -1,6 +1,6 @@
 use assert_cmd::assert::OutputAssertExt;
 use assert_fs::fixture::{FileTouch, FileWriteStr, PathChild};
-use fs_err::OpenOptions;
+use uv_vfs::fs::OpenOptions;
 use indoc::{formatdoc, indoc};
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -467,7 +467,7 @@ async fn read_index_credential_env_vars_for_check_url() {
 
     let filename = "astral_test_private-0.1.0-py3-none-any.whl";
     let wheel = context.temp_dir.join("dist").join(filename);
-    let sha256 = hex::encode(Sha256::digest(fs_err::read(&wheel).unwrap()));
+    let sha256 = hex::encode(Sha256::digest(uv_vfs::fs::read(&wheel).unwrap()));
 
     let simple_index = json! ({
           "files": [

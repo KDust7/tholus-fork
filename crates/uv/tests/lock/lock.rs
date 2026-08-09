@@ -24,6 +24,8 @@ use uv_test::uv_snapshot;
 use uv_test::{READ_ONLY_GITHUB_TOKEN, decode_token};
 #[cfg(feature = "test-universal")]
 use uv_test::{download_to_disk, venv_bin_path};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// Generate the preview lock without package metadata.
 #[cfg(feature = "test-universal")]
@@ -1019,7 +1021,7 @@ fn lock_sdist_git_archive() -> Result<()> {
     "###);
 
     // Clear the environment, and re-install.
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(context.filters(), context.sync().arg("--frozen"), @r###"
     exit_code: 0 (success)
@@ -1162,7 +1164,7 @@ fn lock_wheel_git_archive() -> Result<()> {
     "###);
 
     // Clear the environment, and re-install.
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(context.filters(), context.sync().arg("--frozen"), @r###"
     exit_code: 0 (success)
@@ -2368,7 +2370,7 @@ fn lock_project_with_excludes() -> Result<()> {
     ");
 
     // Check the lockfile contains the excludes.
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock"))?;
     insta::with_settings!({
         filters => context.filters(),
     }, {
@@ -2940,7 +2942,7 @@ fn lock_conditional_dependency_extra() -> Result<()> {
     Resolved 8 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -3178,8 +3180,8 @@ fn lock_conditional_dependency_extra() -> Result<()> {
     // Validate that the extra is included on relevant Python versions.
     let context_38 = uv_test::test_context!("3.8");
 
-    fs_err::copy(pyproject_toml, context_38.temp_dir.join("pyproject.toml"))?;
-    fs_err::copy(lockfile, context_38.temp_dir.join("uv.lock"))?;
+    uv_vfs::fs::copy(pyproject_toml, context_38.temp_dir.join("pyproject.toml"))?;
+    uv_vfs::fs::copy(lockfile, context_38.temp_dir.join("uv.lock"))?;
 
     // Re-run with `--locked`.
     uv_snapshot!(context.filters(), context.lock().arg("--locked"), @"
@@ -5889,7 +5891,7 @@ fn lock_requires_python() -> Result<()> {
     Resolved 17 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -6158,7 +6160,7 @@ fn lock_requires_python() -> Result<()> {
     });
 
     // Remove the lockfile.
-    fs_err::remove_file(&lockfile)?;
+    uv_vfs::fs::remove_file(&lockfile)?;
 
     // Bump the Python requirement, which should allow a newer version of `pygls`.
     pyproject_toml.write_str(
@@ -6177,7 +6179,7 @@ fn lock_requires_python() -> Result<()> {
     Resolved 13 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -6375,7 +6377,7 @@ fn lock_requires_python() -> Result<()> {
     });
 
     // Remove the lockfile.
-    fs_err::remove_file(&lockfile)?;
+    uv_vfs::fs::remove_file(&lockfile)?;
 
     // Bump the Python requirement even further.
     pyproject_toml.write_str(
@@ -6394,7 +6396,7 @@ fn lock_requires_python() -> Result<()> {
     Resolved 5 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -6472,11 +6474,11 @@ fn lock_requires_python() -> Result<()> {
     // Validate that attempting to install with an unsupported Python version raises an error.
     let context_unsupported = uv_test::test_context!("3.9").with_filtered_python_sources();
 
-    fs_err::copy(
+    uv_vfs::fs::copy(
         pyproject_toml,
         context_unsupported.temp_dir.join("pyproject.toml"),
     )?;
-    fs_err::copy(&lockfile, context_unsupported.temp_dir.join("uv.lock"))?;
+    uv_vfs::fs::copy(&lockfile, context_unsupported.temp_dir.join("uv.lock"))?;
 
     // Re-run with `--locked`.
     uv_snapshot!(context.filters(), context.lock().arg("--locked"), @"
@@ -6525,7 +6527,7 @@ fn lock_requires_python_upper() -> Result<()> {
     Resolved 5 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -6644,7 +6646,7 @@ fn lock_requires_python_exact() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -6772,7 +6774,7 @@ fn lock_requires_python_fork() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -6862,7 +6864,7 @@ fn lock_requires_python_wheels() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -6941,7 +6943,7 @@ fn lock_requires_python_wheels() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -7030,7 +7032,7 @@ fn lock_requires_python_star() -> Result<()> {
     Resolved 6 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -7147,7 +7149,7 @@ fn lock_requires_python_not_equal() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -7221,7 +7223,7 @@ fn lock_requires_python_pre() -> Result<()> {
     Resolved 6 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -7338,7 +7340,7 @@ fn lock_requires_python_unbounded() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -7472,7 +7474,7 @@ fn lock_requires_python_maximum_version() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -7626,7 +7628,7 @@ fn lock_requires_python_fewest_versions() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -7738,7 +7740,7 @@ fn lock_python_version_marker_complement() -> Result<()> {
     Resolved 4 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -8350,7 +8352,7 @@ fn lock_constraint_dependency_absolute_path() -> Result<()> {
 
     // Check the lockfile - the absolute path should stay absolute, and sniffio
     // should be resolved from the local path rather than PyPI.
-    let lock = fs_err::read_to_string(context.temp_dir.join("project/uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("project/uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -8423,9 +8425,9 @@ fn lock_index_absolute_path_from_config() -> Result<()> {
 
     // Create a local flat index with a wheel.
     let index_dir = context.temp_dir.child("local_index");
-    fs_err::create_dir_all(&index_dir)?;
+    uv_vfs::fs::create_dir_all(&index_dir)?;
 
-    for entry in fs_err::read_dir(context.workspace_root.join("test/links"))? {
+    for entry in uv_vfs::fs::read_dir(context.workspace_root.join("test/links"))? {
         let entry = entry?;
         let path = entry.path();
         if path
@@ -8434,13 +8436,13 @@ fn lock_index_absolute_path_from_config() -> Result<()> {
             .is_some_and(|file_name| file_name.starts_with("tqdm-1000"))
         {
             let dest = index_dir.join(path.file_name().unwrap());
-            fs_err::copy(&path, &dest)?;
+            uv_vfs::fs::copy(&path, &dest)?;
         }
     }
 
     // Create a project directory.
     let project = context.temp_dir.child("project");
-    fs_err::create_dir_all(&project)?;
+    uv_vfs::fs::create_dir_all(&project)?;
 
     // Configure the index with an ABSOLUTE path in pyproject.toml.
     let pyproject_toml = project.child("pyproject.toml");
@@ -8467,7 +8469,7 @@ fn lock_index_absolute_path_from_config() -> Result<()> {
     ");
 
     // Check the lockfile - the absolute path should stay absolute.
-    let lock = fs_err::read_to_string(project.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(project.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -9069,14 +9071,14 @@ fn lock_mixed_hashes() -> Result<()> {
     let context = uv_test::test_context!("3.13");
 
     let root = context.temp_dir.child("simple-html");
-    fs_err::create_dir_all(&root)?;
+    uv_vfs::fs::create_dir_all(&root)?;
 
     let basic_package = root.child("basic-package");
-    fs_err::create_dir_all(&basic_package)?;
+    uv_vfs::fs::create_dir_all(&basic_package)?;
 
     // Copy the wheel and sdist from `test/links`.
     let wheel = basic_package.child("basic_package-0.1.0-py3-none-any.whl");
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context
             .workspace_root
             .join("test/links/basic_package-0.1.0-py3-none-any.whl"),
@@ -9084,7 +9086,7 @@ fn lock_mixed_hashes() -> Result<()> {
     )?;
 
     let sdist = basic_package.child("basic_package-0.1.0.tar.gz");
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context
             .workspace_root
             .join("test/links/basic_package-0.1.0.tar.gz"),
@@ -9504,7 +9506,7 @@ async fn lock_zstd_wheel() -> Result<()> {
     let wheel_path = context
         .temp_dir
         .child("basic_package-0.1.0-py3-none-any.whl");
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context
             .workspace_root
             .join("test/links/basic_package-0.1.0-py3-none-any.whl"),
@@ -9519,7 +9521,7 @@ async fn lock_zstd_wheel() -> Result<()> {
     // Serve the wheel file
     Mock::given(method("GET"))
         .and(path("/files/basic_package-0.1.0-py3-none-any.whl"))
-        .respond_with(ResponseTemplate::new(200).set_body_bytes(fs_err::read(&wheel_path)?))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(uv_vfs::fs::read(&wheel_path)?))
         .mount(&server)
         .await;
 
@@ -9946,7 +9948,7 @@ fn lock_same_version_multiple_urls() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let v1 = context.temp_dir.child("v1");
-    fs_err::create_dir_all(&v1)?;
+    uv_vfs::fs::create_dir_all(&v1)?;
     let pyproject_toml = v1.child("pyproject.toml");
     pyproject_toml.write_str(
         r#"
@@ -9959,7 +9961,7 @@ fn lock_same_version_multiple_urls() -> Result<()> {
     )?;
 
     let v2 = context.temp_dir.child("v2");
-    fs_err::create_dir_all(&v2)?;
+    uv_vfs::fs::create_dir_all(&v2)?;
     let pyproject_toml = v2.child("pyproject.toml");
     pyproject_toml.write_str(
         r#"
@@ -10178,7 +10180,7 @@ fn lock_exclusion() -> Result<()> {
     )?;
 
     let child = context.temp_dir.child("child");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
 
     let pyproject_toml = child.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -10205,7 +10207,7 @@ fn lock_exclusion() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(child.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(child.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10372,7 +10374,7 @@ fn lock_non_workspace_source() -> Result<()> {
     )?;
 
     let child = context.temp_dir.child("child");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
 
     let pyproject_toml = child.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -10421,7 +10423,7 @@ fn lock_no_workspace_source() -> Result<()> {
     )?;
 
     let child = context.temp_dir.child("child");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
 
     let pyproject_toml = child.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -10589,7 +10591,7 @@ fn lock_external_workspace_source() -> Result<()> {
     )?;
 
     let external_member = external_workspace.child("packages").child("pkg-b");
-    fs_err::create_dir_all(&external_member)?;
+    uv_vfs::fs::create_dir_all(&external_member)?;
     external_member.child("pyproject.toml").write_str(
         r#"
         [project]
@@ -10607,7 +10609,7 @@ fn lock_external_workspace_source() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(project.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(project.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10654,7 +10656,7 @@ fn lock_external_workspace_source() -> Result<()> {
         "#,
     )?;
 
-    fs_err::remove_file(project.join("uv.lock"))?;
+    uv_vfs::fs::remove_file(project.join("uv.lock"))?;
 
     uv_snapshot!(context.filters(), context.lock().current_dir(&project), @"
     exit_code: 1 (failure)
@@ -10720,7 +10722,7 @@ fn lock_workspace_member_with_external_workspace_source() -> Result<()> {
     )?;
 
     let child = context.temp_dir.child("packages").child("child");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
     child.child("pyproject.toml").write_str(
         r#"
         [project]
@@ -10793,7 +10795,7 @@ fn lock_peer_member() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.child("project").child("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.child("project").child("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -10947,7 +10949,7 @@ async fn lock_index_workspace_member() -> Result<()> {
     )?;
 
     let child = context.temp_dir.child("child");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
 
     let pyproject_toml = child.child("pyproject.toml");
     pyproject_toml.write_str(&format!(
@@ -10990,7 +10992,7 @@ async fn lock_index_workspace_member() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -11065,7 +11067,7 @@ fn lock_dev_transitive() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let foo = context.temp_dir.child("foo");
-    fs_err::create_dir_all(&foo)?;
+    uv_vfs::fs::create_dir_all(&foo)?;
 
     let pyproject_toml = foo.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -11082,7 +11084,7 @@ fn lock_dev_transitive() -> Result<()> {
     )?;
 
     let bar = context.temp_dir.child("bar");
-    fs_err::create_dir_all(&bar)?;
+    uv_vfs::fs::create_dir_all(&bar)?;
 
     let pyproject_toml = bar.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -11107,7 +11109,7 @@ fn lock_dev_transitive() -> Result<()> {
     )?;
 
     let baz = bar.child("baz");
-    fs_err::create_dir_all(&baz)?;
+    uv_vfs::fs::create_dir_all(&baz)?;
 
     let pyproject_toml = baz.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -11138,7 +11140,7 @@ fn lock_dev_transitive() -> Result<()> {
     Resolved 5 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(bar.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(bar.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -11913,7 +11915,7 @@ async fn lock_env_credentials() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     // The lockfile should omit the credentials.
     insta::with_settings!({
@@ -12155,7 +12157,7 @@ fn lock_no_sources() -> Result<()> {
     )?;
 
     let anyio = context.temp_dir.child("anyio");
-    fs_err::create_dir_all(&anyio)?;
+    uv_vfs::fs::create_dir_all(&anyio)?;
 
     let pyproject_toml = anyio.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -13193,9 +13195,9 @@ fn lock_find_links_local_wheel() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     // Populate the `--find-links` entries.
-    fs_err::create_dir_all(context.temp_dir.join("links"))?;
+    uv_vfs::fs::create_dir_all(context.temp_dir.join("links"))?;
 
-    for entry in fs_err::read_dir(context.workspace_root.join("test/links"))? {
+    for entry in uv_vfs::fs::read_dir(context.workspace_root.join("test/links"))? {
         let entry = entry?;
         let path = entry.path();
         if path
@@ -13207,7 +13209,7 @@ fn lock_find_links_local_wheel() -> Result<()> {
                 .temp_dir
                 .join("links")
                 .join(path.file_name().unwrap());
-            fs_err::copy(&path, &dest)?;
+            uv_vfs::fs::copy(&path, &dest)?;
         }
     }
 
@@ -13234,7 +13236,7 @@ fn lock_find_links_local_wheel() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(workspace.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(workspace.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -13299,9 +13301,9 @@ fn lock_find_links_ignore_explicit_index() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     // Populate the `--find-links` entries.
-    fs_err::create_dir_all(context.temp_dir.join("links"))?;
+    uv_vfs::fs::create_dir_all(context.temp_dir.join("links"))?;
 
-    for entry in fs_err::read_dir(context.workspace_root.join("test/links"))? {
+    for entry in uv_vfs::fs::read_dir(context.workspace_root.join("test/links"))? {
         let entry = entry?;
         let path = entry.path();
         if path
@@ -13313,7 +13315,7 @@ fn lock_find_links_ignore_explicit_index() -> Result<()> {
                 .temp_dir
                 .join("links")
                 .join(path.file_name().unwrap());
-            fs_err::copy(&path, &dest)?;
+            uv_vfs::fs::copy(&path, &dest)?;
         }
     }
 
@@ -13347,7 +13349,7 @@ fn lock_find_links_ignore_explicit_index() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(workspace.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(workspace.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -13415,9 +13417,9 @@ fn lock_find_links_relative_url() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     // Populate the `--find-links` entries.
-    fs_err::create_dir_all(context.temp_dir.join("links"))?;
+    uv_vfs::fs::create_dir_all(context.temp_dir.join("links"))?;
 
-    for entry in fs_err::read_dir(context.workspace_root.join("test/links"))? {
+    for entry in uv_vfs::fs::read_dir(context.workspace_root.join("test/links"))? {
         let entry = entry?;
         let path = entry.path();
         if path
@@ -13429,7 +13431,7 @@ fn lock_find_links_relative_url() -> Result<()> {
                 .temp_dir
                 .join("links")
                 .join(path.file_name().unwrap());
-            fs_err::copy(&path, &dest)?;
+            uv_vfs::fs::copy(&path, &dest)?;
         }
     }
 
@@ -13459,7 +13461,7 @@ fn lock_find_links_relative_url() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(workspace.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(workspace.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -13526,9 +13528,9 @@ fn lock_find_links_local_sdist() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     // Populate the `--find-links` entries.
-    fs_err::create_dir_all(context.temp_dir.join("links"))?;
+    uv_vfs::fs::create_dir_all(context.temp_dir.join("links"))?;
 
-    for entry in fs_err::read_dir(context.workspace_root.join("test/links"))? {
+    for entry in uv_vfs::fs::read_dir(context.workspace_root.join("test/links"))? {
         let entry = entry?;
         let path = entry.path();
         if path
@@ -13540,7 +13542,7 @@ fn lock_find_links_local_sdist() -> Result<()> {
                 .temp_dir
                 .join("links")
                 .join(path.file_name().unwrap());
-            fs_err::copy(&path, &dest)?;
+            uv_vfs::fs::copy(&path, &dest)?;
         }
     }
 
@@ -13567,7 +13569,7 @@ fn lock_find_links_local_sdist() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(workspace.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(workspace.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -13800,9 +13802,9 @@ fn lock_find_links_explicit_index() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     // Populate the `--find-links` entries.
-    fs_err::create_dir_all(context.temp_dir.join("links"))?;
+    uv_vfs::fs::create_dir_all(context.temp_dir.join("links"))?;
 
-    for entry in fs_err::read_dir(context.workspace_root.join("test/links"))? {
+    for entry in uv_vfs::fs::read_dir(context.workspace_root.join("test/links"))? {
         let entry = entry?;
         let path = entry.path();
         if path
@@ -13814,7 +13816,7 @@ fn lock_find_links_explicit_index() -> Result<()> {
                 .temp_dir
                 .join("links")
                 .join(path.file_name().unwrap());
-            fs_err::copy(&path, &dest)?;
+            uv_vfs::fs::copy(&path, &dest)?;
         }
     }
 
@@ -13847,7 +13849,7 @@ fn lock_find_links_explicit_index() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(workspace.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(workspace.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -13901,9 +13903,9 @@ fn lock_find_links_higher_priority_index() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     // Populate the `--find-links` entries.
-    fs_err::create_dir_all(context.temp_dir.join("links"))?;
+    uv_vfs::fs::create_dir_all(context.temp_dir.join("links"))?;
 
-    for entry in fs_err::read_dir(context.workspace_root.join("test/links"))? {
+    for entry in uv_vfs::fs::read_dir(context.workspace_root.join("test/links"))? {
         let entry = entry?;
         let path = entry.path();
         if path
@@ -13915,7 +13917,7 @@ fn lock_find_links_higher_priority_index() -> Result<()> {
                 .temp_dir
                 .join("links")
                 .join(path.file_name().unwrap());
-            fs_err::copy(&path, &dest)?;
+            uv_vfs::fs::copy(&path, &dest)?;
         }
     }
 
@@ -13944,7 +13946,7 @@ fn lock_find_links_higher_priority_index() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(workspace.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(workspace.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -13990,9 +13992,9 @@ fn lock_find_links_lower_priority_index() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     // Populate the `--find-links` entries.
-    fs_err::create_dir_all(context.temp_dir.join("links"))?;
+    uv_vfs::fs::create_dir_all(context.temp_dir.join("links"))?;
 
-    for entry in fs_err::read_dir(context.workspace_root.join("test/links"))? {
+    for entry in uv_vfs::fs::read_dir(context.workspace_root.join("test/links"))? {
         let entry = entry?;
         let path = entry.path();
         if path
@@ -14004,7 +14006,7 @@ fn lock_find_links_lower_priority_index() -> Result<()> {
                 .temp_dir
                 .join("links")
                 .join(path.file_name().unwrap());
-            fs_err::copy(&path, &dest)?;
+            uv_vfs::fs::copy(&path, &dest)?;
         }
     }
 
@@ -14037,7 +14039,7 @@ fn lock_find_links_lower_priority_index() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(workspace.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(workspace.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -14096,13 +14098,13 @@ fn lock_local_index() -> Result<()> {
     let context = uv_test::test_context!("3.13");
 
     let root = context.temp_dir.child("simple-html");
-    fs_err::create_dir_all(&root)?;
+    uv_vfs::fs::create_dir_all(&root)?;
 
     let basic_package = root.child("basic-package");
-    fs_err::create_dir_all(&basic_package)?;
+    uv_vfs::fs::create_dir_all(&basic_package)?;
 
     let sdist = basic_package.child("basic_package-0.1.0.tar.gz");
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context
             .workspace_root
             .join("test/links/basic_package-0.1.0.tar.gz"),
@@ -14110,7 +14112,7 @@ fn lock_local_index() -> Result<()> {
     )?;
 
     let wheel = basic_package.child("basic_package-0.1.0-py3-none-any.whl");
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context
             .workspace_root
             .join("test/links/basic_package-0.1.0-py3-none-any.whl"),
@@ -14372,7 +14374,7 @@ fn lock_sources_url_offline_validates_transitive_source_tree() -> Result<()> {
     )?;
 
     let transitive = context.temp_dir.child("anyio");
-    fs_err::create_dir_all(&transitive)?;
+    uv_vfs::fs::create_dir_all(&transitive)?;
     let transitive_pyproject_toml = transitive.child("pyproject.toml");
     transitive_pyproject_toml.write_str(
         r#"
@@ -14556,7 +14558,7 @@ fn lock_sources_source_tree() -> Result<()> {
     );
 
     // Unzip the file.
-    let file = fs_err::File::open(&*workspace_archive)?;
+    let file = uv_vfs::fs::File::open(&*workspace_archive)?;
     uv_extract::unzip(file, &context.temp_dir)?;
 
     let pyproject_toml = context.temp_dir.child("pyproject.toml");
@@ -14891,7 +14893,7 @@ fn lock_mixed_extras() -> Result<()> {
     Resolved 6 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(workspace1.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(workspace1.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -15077,7 +15079,7 @@ fn lock_transitive_extra() -> Result<()> {
     Resolved 4 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(workspace.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(workspace.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -18107,7 +18109,7 @@ fn lock_regenerates_dependencies_without_metadata() -> Result<()> {
     Resolved 10 packages in [TIME]
     ");
 
-    let original_pyproject = fs_err::read_to_string(pyproject_toml.path())?;
+    let original_pyproject = uv_vfs::fs::read_to_string(pyproject_toml.path())?;
     let lockfile = context.temp_dir.child("uv.lock");
 
     // Ensure the preview feature gets enforced.
@@ -19962,7 +19964,7 @@ fn lock_narrowed_python_version_upper() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -20068,7 +20070,7 @@ fn lock_narrowed_python_version() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(&lockfile).unwrap();
+    let lock = uv_vfs::fs::read_to_string(&lockfile).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -22216,7 +22218,7 @@ fn lock_explicit_index() -> Result<()> {
     Resolved 5 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -22322,7 +22324,7 @@ fn lock_explicit_default_index() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -22409,7 +22411,7 @@ fn lock_explicit_default_index() -> Result<()> {
       ╰─▶ Because anyio was not found in the package registry and your project depends on anyio, we can conclude that your project's requirements are unsatisfiable.
     "#);
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -22573,7 +22575,7 @@ async fn lock_named_index() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -22640,7 +22642,7 @@ fn lock_default_index() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -22700,7 +22702,7 @@ fn lock_default_index() -> Result<()> {
       ╰─▶ Because iniconfig was not found in the package registry and your project depends on iniconfig, we can conclude that your project's requirements are unsatisfiable.
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -22775,7 +22777,7 @@ fn lock_named_index_cli() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -23061,7 +23063,7 @@ fn lock_repeat_named_index_member() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -23148,7 +23150,7 @@ fn lock_unique_named_index() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -23220,7 +23222,7 @@ fn lock_repeat_named_index_cli() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -23285,7 +23287,7 @@ fn lock_repeat_named_index_cli() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -23382,7 +23384,7 @@ fn lock_named_index_overlap() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -25572,7 +25574,7 @@ async fn lock_keyring_credentials() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     // The lockfile should omit the credentials.
     insta::with_settings!({
@@ -25759,7 +25761,7 @@ async fn lock_keyring_credentials_always_authenticate_fetches_username() -> Resu
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     // The lockfile should omit the credentials.
     insta::with_settings!({
@@ -26058,7 +26060,7 @@ fn lock_multiple_sources_index_disjoint_markers() -> Result<()> {
     Resolved 4 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -26184,7 +26186,7 @@ fn lock_multiple_sources_index_mixed() -> Result<()> {
     Resolved 4 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -26313,7 +26315,7 @@ fn lock_multiple_sources_index_non_total() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -26409,7 +26411,7 @@ fn lock_multiple_sources_index_explicit() -> Result<()> {
     Resolved 4 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -28604,7 +28606,7 @@ fn lock_dynamic_version() -> Result<()> {
     Resolved 1 package in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -28640,7 +28642,7 @@ fn lock_dynamic_version() -> Result<()> {
     Resolved 1 package in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -28709,7 +28711,7 @@ fn lock_dynamic_version_dependencies() -> Result<()> {
     Resolved 1 package in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -28745,7 +28747,7 @@ fn lock_dynamic_version_dependencies() -> Result<()> {
     Resolved 1 package in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -28831,7 +28833,7 @@ fn lock_dynamic_version_no_build() -> Result<()> {
     Resolved 1 package in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(pyproject_toml.path())?;
+    let pyproject = uv_vfs::fs::read_to_string(pyproject_toml.path())?;
     pyproject_toml.write_str(&pyproject.replace(
         "dependencies = []",
         indoc! {r#"
@@ -28926,7 +28928,7 @@ fn lock_dynamic_version_workspace_member() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -28993,7 +28995,7 @@ fn lock_dynamic_version_workspace_member() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -29109,7 +29111,7 @@ fn lock_dynamic_version_path_dependency() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -29170,7 +29172,7 @@ fn lock_dynamic_version_path_dependency() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -29268,7 +29270,7 @@ fn lock_dynamic_version_self_extra_hatchling() -> Result<()> {
     Resolved 5 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -29352,7 +29354,7 @@ fn lock_dynamic_version_self_extra_hatchling() -> Result<()> {
     Resolved 5 packages in [TIME]
     ");
 
-    fs_err::remove_dir_all(&context.cache_dir)?;
+    uv_vfs::fs::remove_dir_all(&context.cache_dir)?;
 
     // Running with `--offline` should also succeed.
     uv_snapshot!(context.filters(), context.lock().arg("--locked").arg("--offline"), @"
@@ -29432,7 +29434,7 @@ fn lock_dynamic_version_self_extra_setuptools() -> Result<()> {
     Resolved 5 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -29516,7 +29518,7 @@ fn lock_dynamic_version_self_extra_setuptools() -> Result<()> {
     Resolved 5 packages in [TIME]
     ");
 
-    fs_err::remove_dir_all(&context.cache_dir)?;
+    uv_vfs::fs::remove_dir_all(&context.cache_dir)?;
 
     // Running with `--offline` should also succeed.
     uv_snapshot!(context.filters(), context.lock().arg("--locked").arg("--offline"), @"
@@ -29588,7 +29590,7 @@ fn lock_dynamic_built_cache() -> Result<()> {
     Resolved 1 package in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -29620,7 +29622,7 @@ fn lock_dynamic_built_cache() -> Result<()> {
     ");
 
     // Remove the lockfile.
-    fs_err::remove_file(context.temp_dir.join("uv.lock"))?;
+    uv_vfs::fs::remove_file(context.temp_dir.join("uv.lock"))?;
 
     // Lock the project, which should omit the dynamic version.
     uv_snapshot!(context.filters(), context.lock(), @"
@@ -29629,7 +29631,7 @@ fn lock_dynamic_built_cache() -> Result<()> {
     Resolved 1 package in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -29702,7 +29704,7 @@ fn lock_shared_build_dependency() -> Result<()> {
     Resolved 7 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -29976,7 +29978,7 @@ fn lock_dynamic_to_static() -> Result<()> {
     Resolved 1 package in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -30029,7 +30031,7 @@ fn lock_dynamic_to_static() -> Result<()> {
     Updated project (dynamic) -> v0.1.0
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -30081,7 +30083,7 @@ fn lock_static_to_dynamic() -> Result<()> {
     Resolved 1 package in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -30154,7 +30156,7 @@ fn lock_static_to_dynamic() -> Result<()> {
     Updated project v0.1.0 -> (dynamic)
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -30200,7 +30202,7 @@ fn lock_bump_static_version() -> Result<()> {
     Resolved 1 package in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -30250,7 +30252,7 @@ fn lock_bump_static_version() -> Result<()> {
     Updated project v0.1.0 -> v0.2.0
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.join("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -30568,7 +30570,7 @@ fn lock_relative_project() -> Result<()> {
         )?;
 
     let peer = context.temp_dir.child("peer");
-    fs_err::create_dir_all(&peer)?;
+    uv_vfs::fs::create_dir_all(&peer)?;
 
     uv_snapshot!(context.filters(), context.lock().arg("--project").arg("../project").current_dir(&peer), @"
     exit_code: 0 (success)
@@ -32010,7 +32012,7 @@ fn lock_script_path() -> Result<()> {
     })?;
 
     let child = context.temp_dir.child("child");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
 
     let pyproject_toml = child.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -32143,7 +32145,7 @@ fn lock_script_editable_path_dependency_change() -> Result<()> {
     })?;
 
     let child = context.temp_dir.child("child");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
 
     let child_pyproject_toml = child.child("pyproject.toml");
     child_pyproject_toml.write_str(
@@ -36309,7 +36311,7 @@ async fn lock_path_dependency_explicit_index() -> Result<()> {
 
     // Create the path dependency with explicit index
     let pkg_a = context.temp_dir.child("pkg_a");
-    fs_err::create_dir_all(&pkg_a)?;
+    uv_vfs::fs::create_dir_all(&pkg_a)?;
 
     let pyproject_toml = pkg_a.child("pyproject.toml");
     pyproject_toml.write_str(&format!(
@@ -36333,7 +36335,7 @@ async fn lock_path_dependency_explicit_index() -> Result<()> {
 
     // Create a project that depends on pkg_a
     let pkg_b = context.temp_dir.child("pkg_b");
-    fs_err::create_dir_all(&pkg_b)?;
+    uv_vfs::fs::create_dir_all(&pkg_b)?;
 
     let pyproject_toml = pkg_b.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -36369,8 +36371,8 @@ async fn lock_path_dependency_explicit_index() -> Result<()> {
     Resolved 3 packages in [TIME]
     ");
 
-    let lock = lock_without_package_metadata(&fs_err::read_to_string(pkg_b.join("uv.lock"))?)?;
-    fs_err::write(pkg_b.join("uv.lock"), lock.to_string())?;
+    let lock = lock_without_package_metadata(&uv_vfs::fs::read_to_string(pkg_b.join("uv.lock"))?)?;
+    uv_vfs::fs::write(pkg_b.join("uv.lock"), lock.to_string())?;
 
     uv_snapshot!(context.filters(), context.lock().arg("--preview-features").arg("lock-without-metadata").arg("--locked").arg("--default-index").arg("https://example.invalid/simple").current_dir(&pkg_b), @"
     exit_code: 0 (success)
@@ -36392,7 +36394,7 @@ async fn lock_path_dependency_explicit_index_workspace_member() -> Result<()> {
 
     // Create the path dependency with explicit index
     let pkg_a = context.temp_dir.child("pkg_a");
-    fs_err::create_dir_all(&pkg_a)?;
+    uv_vfs::fs::create_dir_all(&pkg_a)?;
 
     let pyproject_toml = pkg_a.child("pyproject.toml");
     pyproject_toml.write_str(&format!(
@@ -36416,7 +36418,7 @@ async fn lock_path_dependency_explicit_index_workspace_member() -> Result<()> {
 
     // Create a project that depends on pkg_a
     let member = context.temp_dir.child("member");
-    fs_err::create_dir_all(&member)?;
+    uv_vfs::fs::create_dir_all(&member)?;
 
     let pyproject_toml = member.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -36487,7 +36489,7 @@ async fn lock_path_dependency_mixed_indexes() -> Result<()> {
 
     // Create the path dependency with both explicit and non-explicit indexes.
     let pkg_a = context.temp_dir.child("pkg_a");
-    fs_err::create_dir_all(&pkg_a)?;
+    uv_vfs::fs::create_dir_all(&pkg_a)?;
 
     let pyproject_toml = pkg_a.child("pyproject.toml");
     pyproject_toml.write_str(&format!(
@@ -36516,7 +36518,7 @@ async fn lock_path_dependency_mixed_indexes() -> Result<()> {
 
     // Create a project that depends on pkg_a.
     let pkg_b = context.temp_dir.child("pkg_b");
-    fs_err::create_dir_all(&pkg_b)?;
+    uv_vfs::fs::create_dir_all(&pkg_b)?;
 
     let pyproject_toml = pkg_b.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -36563,7 +36565,7 @@ fn lock_path_dependency_no_index() -> Result<()> {
 
     // Create the path dependency without explicit indexes.
     let pkg_a = context.temp_dir.child("pkg_a");
-    fs_err::create_dir_all(&pkg_a)?;
+    uv_vfs::fs::create_dir_all(&pkg_a)?;
 
     let pyproject_toml = pkg_a.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -36578,7 +36580,7 @@ fn lock_path_dependency_no_index() -> Result<()> {
 
     // Create a project that depends on pkg_a.
     let pkg_b = context.temp_dir.child("pkg_b");
-    fs_err::create_dir_all(&pkg_b)?;
+    uv_vfs::fs::create_dir_all(&pkg_b)?;
 
     let pyproject_toml = pkg_b.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -36675,7 +36677,7 @@ async fn lock_nested_path_dependency_explicit_index() -> Result<()> {
 
     // Create the inner dependency with explicit index.
     let pkg_a = context.temp_dir.child("pkg_a");
-    fs_err::create_dir_all(&pkg_a)?;
+    uv_vfs::fs::create_dir_all(&pkg_a)?;
 
     let pyproject_toml = pkg_a.child("pyproject.toml");
     pyproject_toml.write_str(&format!(
@@ -36699,7 +36701,7 @@ async fn lock_nested_path_dependency_explicit_index() -> Result<()> {
 
     // Create intermediate dependency that depends on pkg_a.
     let pkg_b = context.temp_dir.child("pkg_b");
-    fs_err::create_dir_all(&pkg_b)?;
+    uv_vfs::fs::create_dir_all(&pkg_b)?;
 
     let pyproject_toml = pkg_b.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -36717,7 +36719,7 @@ async fn lock_nested_path_dependency_explicit_index() -> Result<()> {
 
     // Create a project that depends on intermediate dependency.
     let pkg_c = context.temp_dir.child("pkg_c");
-    fs_err::create_dir_all(&pkg_c)?;
+    uv_vfs::fs::create_dir_all(&pkg_c)?;
 
     let pyproject_toml = pkg_c.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -36765,7 +36767,7 @@ async fn lock_circular_path_dependency_explicit_index() -> Result<()> {
 
     // Create pkg_a (with explicit index) that depends on pkg_b.
     let pkg_a = context.temp_dir.child("pkg_a");
-    fs_err::create_dir_all(&pkg_a)?;
+    uv_vfs::fs::create_dir_all(&pkg_a)?;
 
     let pyproject_toml = pkg_a.child("pyproject.toml");
     pyproject_toml.write_str(&format!(
@@ -36790,7 +36792,7 @@ async fn lock_circular_path_dependency_explicit_index() -> Result<()> {
 
     // Create pkg_b that depends on pkg_a. This is a circular dependency.
     let pkg_b = context.temp_dir.child("pkg_b");
-    fs_err::create_dir_all(&pkg_b)?;
+    uv_vfs::fs::create_dir_all(&pkg_b)?;
 
     let pyproject_toml = pkg_b.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -37661,9 +37663,9 @@ fn lock_supported_environment_abi3_wheel() -> Result<()> {
 
     // Create a local flat index with the abi3 test wheel.
     let index_dir = context.temp_dir.child("local_index");
-    fs_err::create_dir_all(&index_dir)?;
+    uv_vfs::fs::create_dir_all(&index_dir)?;
 
-    for entry in fs_err::read_dir(context.workspace_root.join("test/links"))? {
+    for entry in uv_vfs::fs::read_dir(context.workspace_root.join("test/links"))? {
         let entry = entry?;
         let path = entry.path();
         if path
@@ -37672,12 +37674,12 @@ fn lock_supported_environment_abi3_wheel() -> Result<()> {
             .is_some_and(|file_name| file_name.starts_with("abi3_package"))
         {
             let dest = index_dir.join(path.file_name().unwrap());
-            fs_err::copy(&path, &dest)?;
+            uv_vfs::fs::copy(&path, &dest)?;
         }
     }
 
     let project = context.temp_dir.child("project");
-    fs_err::create_dir_all(&project)?;
+    uv_vfs::fs::create_dir_all(&project)?;
 
     let pyproject_toml = project.child("pyproject.toml");
     pyproject_toml.write_str(&formatdoc! {r#"
@@ -37707,7 +37709,7 @@ fn lock_supported_environment_abi3_wheel() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(project.join("uv.lock"))?;
+    let lock = uv_vfs::fs::read_to_string(project.join("uv.lock"))?;
 
     insta::with_settings!({
         filters => context.filters(),

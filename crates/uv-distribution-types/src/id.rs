@@ -8,6 +8,8 @@ use uv_normalize::PackageName;
 use uv_pep440::Version;
 use uv_pypi_types::{HashDigest, ParsedUrl};
 use uv_redacted::DisplaySafeUrl;
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// A unique identifier for a package. A package can either be identified by a name (e.g., `black`)
 /// or a URL (e.g., `git+https://github.com/psf/black`).
@@ -240,7 +242,7 @@ impl From<&Self> for ResourceId {
 mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use fs_err as fs;
+    use uv_vfs::fs as fs;
 
     use super::VersionId;
     use uv_redacted::DisplaySafeUrl;

@@ -2,8 +2,8 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use fs_err as fs;
-use fs_err::File;
+use uv_vfs::fs as fs;
+use uv_vfs::fs::File;
 use owo_colors::OwoColorize;
 use thiserror::Error;
 use tracing::{debug, warn};
@@ -164,7 +164,7 @@ impl InstalledTools {
             };
             let name = PackageName::from_str(name)?;
             let path = directory.join("uv-receipt.toml");
-            let contents = match fs_err::read_to_string(&path) {
+            let contents = match uv_vfs::fs::read_to_string(&path) {
                 Ok(contents) => contents,
                 Err(err) if err.kind() == io::ErrorKind::NotFound => {
                     let err = Error::MissingToolReceipt(name.to_string(), path);
@@ -228,7 +228,7 @@ impl InstalledTools {
             .map_err(|err| Error::ReceiptWrite(path.clone(), Box::new(err)))?;
 
         // Save the modified `uv-receipt.toml`.
-        fs_err::write(&path, doc)?;
+        uv_vfs::fs::write(&path, doc)?;
 
         Ok(())
     }
@@ -293,7 +293,7 @@ impl InstalledTools {
                 venv: _,
             }))) => {
                 if unix {
-                    let target_path = fs_err::read_link(&path)?;
+                    let target_path = uv_vfs::fs::read_link(&path)?;
                     warn!(
                         "Ignoring existing virtual environment linked to non-existent Python interpreter: {} -> {}",
                         path.user_display().cyan(),

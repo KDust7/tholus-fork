@@ -109,7 +109,7 @@ mod tests {
     #[cfg(target_os = "windows")]
     use super::WindowsRunnable;
     #[cfg(target_os = "windows")]
-    use fs_err as fs;
+    use uv_vfs::fs as fs;
     #[cfg(target_os = "windows")]
     use std::ffi::OsStr;
     #[cfg(target_os = "windows")]
@@ -117,8 +117,8 @@ mod tests {
 
     /// Helper function to create a temporary directory with test files
     #[cfg(target_os = "windows")]
-    fn create_test_environment() -> io::Result<tempfile::TempDir> {
-        let temp_dir = tempfile::tempdir()?;
+    fn create_test_environment() -> io::Result<uv_vfs::temp::TempDir> {
+        let temp_dir = uv_vfs::temp::tempdir()?;
         let scripts_dir = temp_dir.path().join("Scripts");
         fs::create_dir_all(&scripts_dir)?;
 

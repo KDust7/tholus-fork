@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use fs_err::tokio as fs;
+use uv_vfs::fs::tokio as fs;
 use papaya::{HashMap, ResizeMode};
 use reqwest_middleware::ClientWithMiddleware;
 use tracing::debug;

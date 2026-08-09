@@ -80,7 +80,7 @@ fn workspace_dir_rejects_project_inside_cache() -> Result<()> {
     let cache_dir = workspace.child("cache");
     let cached_project = cache_dir.child("cached-project");
 
-    fs_err::create_dir_all(&cached_project)?;
+    uv_vfs::fs::create_dir_all(&cached_project)?;
     workspace.child("pyproject.toml").write_str(
         r#"
         [tool.uv.workspace]

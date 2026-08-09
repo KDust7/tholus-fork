@@ -128,7 +128,7 @@ pub(crate) async fn resolve<InstalledPackages: InstalledPackagesProvider>(
     logger: Box<dyn ResolveLogger>,
     printer: Printer,
 ) -> Result<(ResolverOutput, HashStrategy), Error> {
-    let start = std::time::Instant::now();
+    let start = web_time::Instant::now();
 
     // Resolve the requirements from the provided sources.
     let requirements = {
@@ -912,7 +912,7 @@ fn python_source_files_for_installs<'a>(
             ))));
         };
         let record_path = dist_info.join("RECORD");
-        let record_file = match fs_err::File::open(&record_path) {
+        let record_file = match uv_vfs::fs::File::open(&record_path) {
             Ok(record_file) => record_file,
             // Another process may have removed the installed distribution.
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
@@ -1040,7 +1040,7 @@ async fn execute_plan(
     let wheels = if remote.is_empty() {
         vec![]
     } else {
-        let start = std::time::Instant::now();
+        let start = web_time::Instant::now();
 
         let preparer = Preparer::new(
             cache,
@@ -1075,7 +1075,7 @@ async fn execute_plan(
     // Remove any upgraded or extraneous installations.
     let uninstalls = extraneous.into_iter().chain(reinstalls).collect::<Vec<_>>();
     if !uninstalls.is_empty() {
-        let start = std::time::Instant::now();
+        let start = web_time::Instant::now();
 
         let layout = venv.interpreter().layout();
         for dist_info in &uninstalls {
@@ -1116,7 +1116,7 @@ async fn execute_plan(
     // Install the resolved distributions.
     let mut installs = wheels.into_iter().chain(cached).collect::<Vec<_>>();
     if !installs.is_empty() {
-        let start = std::time::Instant::now();
+        let start = web_time::Instant::now();
         installs = uv_installer::Installer::new(venv, preview)
             .with_link_mode(link_mode)
             .with_cache(cache)
@@ -1257,7 +1257,7 @@ fn report_dry_run(
     resolution: &Resolution,
     plan: Plan,
     modifications: Modifications,
-    start: std::time::Instant,
+    start: web_time::Instant,
     logger: &dyn InstallLogger,
     printer: Printer,
 ) -> Result<Changelog, Error> {

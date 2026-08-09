@@ -122,7 +122,7 @@ impl FilesystemOptions {
     fn from_directory(dir: &Path) -> Result<Option<Self>, Error> {
         // Read a `uv.toml` file in the current directory.
         let path = dir.join("uv.toml");
-        match fs_err::read_to_string(&path) {
+        match uv_vfs::fs::read_to_string(&path) {
             Ok(content) => {
                 let options =
                     info_span!("toml::from_str filesystem options uv.toml", path = %path.display())
@@ -139,7 +139,7 @@ impl FilesystemOptions {
                 // If the directory also contains a `[tool.uv]` table in a `pyproject.toml` file,
                 // warn.
                 let pyproject = dir.join("pyproject.toml");
-                if let Ok(content) = fs_err::read_to_string(&pyproject) {
+                if let Ok(content) = uv_vfs::fs::read_to_string(&pyproject) {
                     let result = info_span!("toml::from_str filesystem options pyproject.toml", path = %pyproject.display())
                         .in_scope(|| toml::from_str::<PyProjectToml>(&content)).ok();
                     if let Some(options) =
@@ -159,7 +159,7 @@ impl FilesystemOptions {
 
         // Read a `pyproject.toml` file in the current directory.
         let path = dir.join("pyproject.toml");
-        match fs_err::read_to_string(&path) {
+        match uv_vfs::fs::read_to_string(&path) {
             Ok(content) => {
                 // Parse, but skip any `pyproject.toml` that doesn't have a `[tool.uv]` section.
                 let pyproject =
@@ -214,7 +214,7 @@ impl From<Options> for FilesystemOptions {
 
 /// Load [`Options`] from a `uv.toml` file.
 fn read_file(path: &Path) -> Result<Options, Error> {
-    let content = fs_err::read_to_string(path)?;
+    let content = uv_vfs::fs::read_to_string(path)?;
     let options = info_span!("toml::from_str filesystem options uv.toml", path = %path.display())
         .in_scope(|| toml::from_str::<Options>(&content))
         .map_err(|err| {

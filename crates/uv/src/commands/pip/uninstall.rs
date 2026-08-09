@@ -36,7 +36,7 @@ pub(crate) async fn pip_uninstall(
     dry_run: DryRun,
     printer: Printer,
 ) -> Result<ExitStatus> {
-    let start = std::time::Instant::now();
+    let start = web_time::Instant::now();
 
     let client_builder = client_builder.clone().keyring(keyring_provider);
 

@@ -664,12 +664,12 @@ mod tests {
 
     #[test]
     fn test_find_git_repository_root() -> std::io::Result<()> {
-        let temp_dir = tempfile::tempdir()?;
+        let temp_dir = uv_vfs::temp::tempdir()?;
 
         let repository = temp_dir.path().join("repository");
         let nested = repository.join("packages/project");
-        fs_err::create_dir_all(repository.join(".git"))?;
-        fs_err::create_dir_all(&nested)?;
+        uv_vfs::fs::create_dir_all(repository.join(".git"))?;
+        uv_vfs::fs::create_dir_all(&nested)?;
         assert_eq!(
             find_git_repository_root(&nested),
             Some(repository.as_path())
@@ -677,8 +677,8 @@ mod tests {
 
         let worktree = temp_dir.path().join("worktree");
         let nested = worktree.join("packages/project");
-        fs_err::create_dir_all(&nested)?;
-        fs_err::write(worktree.join(".git"), "gitdir: ../repository/.git")?;
+        uv_vfs::fs::create_dir_all(&nested)?;
+        uv_vfs::fs::write(worktree.join(".git"), "gitdir: ../repository/.git")?;
         assert_eq!(find_git_repository_root(&nested), Some(worktree.as_path()));
 
         Ok(())

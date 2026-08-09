@@ -17,6 +17,8 @@ use uv_fs::{normalize_absolute_path, normalize_url_path};
 use uv_redacted::{DisplaySafeUrl, DisplaySafeUrlError};
 
 use crate::Pep508Url;
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// A wrapper around [`Url`] that preserves the original string.
 ///

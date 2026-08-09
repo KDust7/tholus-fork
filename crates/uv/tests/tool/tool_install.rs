@@ -91,7 +91,7 @@ fn tool_install() {
         filters => context.filters(),
     }, {
         // Should run black in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/black/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -110,7 +110,7 @@ fn tool_install() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -162,7 +162,7 @@ fn tool_install() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(bin_dir.join("flask")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(bin_dir.join("flask")).unwrap(), @r#"
         #![TEMP_DIR]/tools/flask/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -187,7 +187,7 @@ fn tool_install() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("flask").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("flask").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "flask" }]
         entrypoints = [
@@ -222,7 +222,7 @@ fn tool_install_relative_exclude_newer_receipt_preserves_span() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black", specifier = "==24.2.0" }]
         entrypoints = [
@@ -260,7 +260,7 @@ fn tool_install_prerelease_package_receipt_preserves_policy() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -286,7 +286,7 @@ fn tool_install_prerelease_package_receipt_preserves_policy() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -1548,7 +1548,7 @@ fn tool_install_with_compatible_build_constraints() -> Result<()> {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [
             { name = "black" },
@@ -1710,7 +1710,7 @@ fn tool_install_version() {
         filters => context.filters(),
     }, {
         // Should run black in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/black/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -1729,7 +1729,7 @@ fn tool_install_version() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black", specifier = "==24.2.0" }]
         entrypoints = [
@@ -1788,7 +1788,7 @@ fn tool_install_editable() {
         filters => context.filters(),
     }, {
         // Should run black in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(&executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(&executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/black/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -1807,7 +1807,7 @@ fn tool_install_editable() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black", editable = "[WORKSPACE]/test/packages/black_editable" }]
         entrypoints = [
@@ -1842,7 +1842,7 @@ fn tool_install_editable() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -1882,7 +1882,7 @@ fn tool_install_editable() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black", specifier = "==24.2.0" }]
         entrypoints = [
@@ -2268,7 +2268,7 @@ fn tool_install_remove_on_empty() -> Result<()> {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -2283,7 +2283,7 @@ fn tool_install_remove_on_empty() -> Result<()> {
 
     // Install `black` as an editable package, but without any entrypoints.
     let black = context.temp_dir.child("black");
-    fs_err::create_dir_all(black.path())?;
+    uv_vfs::fs::create_dir_all(black.path())?;
 
     let pyproject_toml = black.child("pyproject.toml");
     pyproject_toml.write_str(indoc! {r#"
@@ -2302,7 +2302,7 @@ fn tool_install_remove_on_empty() -> Result<()> {
     })?;
 
     let src = black.child("src").child("black");
-    fs_err::create_dir_all(src.path())?;
+    uv_vfs::fs::create_dir_all(src.path())?;
 
     let init = src.child("__init__.py");
     init.touch()?;
@@ -2355,7 +2355,7 @@ fn tool_install_remove_on_empty() -> Result<()> {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -2411,7 +2411,7 @@ fn tool_install_editable_from() {
         filters => context.filters(),
     }, {
         // Should run black in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(&executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(&executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/black/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -2430,7 +2430,7 @@ fn tool_install_editable_from() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black", editable = "[WORKSPACE]/test/packages/black_editable" }]
         entrypoints = [
@@ -2549,7 +2549,7 @@ fn tool_install_already_installed() {
         filters => context.filters(),
     }, {
         // Should run black in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/black/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -2567,7 +2567,7 @@ fn tool_install_already_installed() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -2600,7 +2600,7 @@ fn tool_install_already_installed() {
         filters => context.filters(),
     }, {
         // We should not have an additional tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -2717,7 +2717,7 @@ fn tool_install_force() {
         filters => context.filters(),
     }, {
         // Nor should we change the `black` entry point that exists
-        assert_snapshot!(fs_err::read_to_string(&executable).unwrap(), @"");
+        assert_snapshot!(uv_vfs::fs::read_to_string(&executable).unwrap(), @"");
 
     });
 
@@ -2753,7 +2753,7 @@ fn tool_install_force() {
         filters => context.filters(),
     }, {
         // Nor should we change the `black` entry point that exists
-        assert_snapshot!(fs_err::read_to_string(&executable).unwrap(), @"");
+        assert_snapshot!(uv_vfs::fs::read_to_string(&executable).unwrap(), @"");
 
     });
 
@@ -2803,7 +2803,7 @@ fn tool_install_force() {
     tool_dir.child("black").assert(predicate::path::is_dir());
 
     let marker = tool_dir.child("black").child("marker");
-    fs_err::write(&marker, b"marker").unwrap();
+    uv_vfs::fs::write(&marker, b"marker").unwrap();
     marker.assert(predicate::path::is_file());
 
     // Re-install `black` with `--force`
@@ -2870,7 +2870,7 @@ fn tool_install_force() {
         filters => context.filters(),
     }, {
         // We write a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -2889,7 +2889,7 @@ fn tool_install_force() {
         filters => context.filters(),
     }, {
         // Should run black in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/black/bin/python3
         # -*- coding: utf-8 -*-
         import sys
@@ -2908,7 +2908,7 @@ fn tool_install_force() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -3179,7 +3179,7 @@ fn tool_install_no_binary_package_env_var() {
     ");
 
     let receipt: toml::Value = toml::from_str(
-        &fs_err::read_to_string(tool_dir.join("pytest").join("uv-receipt.toml")).unwrap(),
+        &uv_vfs::fs::read_to_string(tool_dir.join("pytest").join("uv-receipt.toml")).unwrap(),
     )
     .unwrap();
     assert_snapshot!(
@@ -3287,7 +3287,7 @@ fn tool_install_unnamed_package() {
         filters => context.filters(),
     }, {
         // Should run black in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/black/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -3306,7 +3306,7 @@ fn tool_install_unnamed_package() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black", url = "https://files.pythonhosted.org/packages/0f/89/294c9a6b6c75a08da55e9d05321d0707e9418735e3062b12ef0f54c33474/black-24.4.2-py3-none-any.whl" }]
         entrypoints = [
@@ -3365,8 +3365,8 @@ fn tool_install_git() {
     let executable = bin_dir.child(format!("black{}", std::env::consts::EXE_SUFFIX));
     assert!(executable.exists());
 
-    fs_err::remove_dir_all(&bin_dir).expect("Failed to remove bin dir.");
-    fs_err::remove_dir_all(&tool_dir).expect("Failed to remove tool dir.");
+    uv_vfs::fs::remove_dir_all(&bin_dir).expect("Failed to remove bin dir.");
+    uv_vfs::fs::remove_dir_all(&tool_dir).expect("Failed to remove tool dir.");
 
     // Named Git Install
     uv_snapshot!(context.filters(), context.tool_install()
@@ -3540,7 +3540,7 @@ fn tool_install_git_lfs() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("test-lfs-repo").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("test-lfs-repo").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "test-lfs-repo", git = "https://github.com/astral-sh/test-lfs-repo?lfs=true&rev=e282f5be233e3f1d44934164895a043fc534b8aa" }]
         entrypoints = [
@@ -3710,7 +3710,7 @@ fn tool_install_unnamed_from() {
         filters => context.filters(),
     }, {
         // Should run black in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/black/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -3729,7 +3729,7 @@ fn tool_install_unnamed_from() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black", url = "https://files.pythonhosted.org/packages/0f/89/294c9a6b6c75a08da55e9d05321d0707e9418735e3062b12ef0f54c33474/black-24.4.2-py3-none-any.whl" }]
         entrypoints = [
@@ -3795,7 +3795,7 @@ fn tool_install_unnamed_with() {
         filters => context.filters(),
     }, {
         // Should run black in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/black/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -3814,7 +3814,7 @@ fn tool_install_unnamed_with() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [
             { name = "black" },
@@ -3887,7 +3887,7 @@ fn tool_install_with_dependencies_from_script() -> Result<()> {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [
             { name = "black" },
@@ -3937,7 +3937,7 @@ fn tool_install_with_dependencies_from_script() -> Result<()> {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [
             { name = "black" },
@@ -3996,7 +3996,7 @@ fn tool_install_requirements_txt() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [
             { name = "black" },
@@ -4038,7 +4038,7 @@ fn tool_install_requirements_txt() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [
             { name = "black" },
@@ -4099,7 +4099,7 @@ fn tool_install_requirements_txt_arguments() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [
             { name = "black" },
@@ -4207,7 +4207,7 @@ fn tool_install_upgrade() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black", specifier = "==24.1.1" }]
         entrypoints = [
@@ -4238,7 +4238,7 @@ fn tool_install_upgrade() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -4272,7 +4272,7 @@ fn tool_install_upgrade() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [
             { name = "black" },
@@ -4312,7 +4312,7 @@ fn tool_install_upgrade() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -4714,7 +4714,7 @@ fn tool_install_malformed_dist_info() {
         filters => context.filters(),
     }, {
         // Should run black in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/executable-application/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -4733,7 +4733,7 @@ fn tool_install_malformed_dist_info() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("executable-application").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("executable-application").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "executable-application" }]
         entrypoints = [
@@ -4791,7 +4791,7 @@ fn tool_install_settings() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/flask/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -4810,7 +4810,7 @@ fn tool_install_settings() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("flask").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("flask").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "flask", specifier = ">=3" }]
         entrypoints = [
@@ -4840,7 +4840,7 @@ fn tool_install_settings() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("flask").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("flask").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "flask", specifier = ">=3" }]
         entrypoints = [
@@ -4877,7 +4877,7 @@ fn tool_install_settings() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("flask").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("flask").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "flask", specifier = ">=3" }]
         entrypoints = [
@@ -4923,7 +4923,7 @@ fn tool_install_at_version() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black", specifier = "==24.1.0" }]
         entrypoints = [
@@ -4983,7 +4983,7 @@ fn tool_install_at_latest() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -5026,7 +5026,7 @@ fn tool_install_from_at_latest() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("executable-application").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("executable-application").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "executable-application" }]
         entrypoints = [
@@ -5068,7 +5068,7 @@ fn tool_install_from_at_version() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("executable-application").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("executable-application").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "executable-application", specifier = "==0.2.0" }]
         entrypoints = [
@@ -5114,7 +5114,7 @@ fn tool_install_at_latest_upgrade() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black", specifier = "==24.1.1" }]
         entrypoints = [
@@ -5145,7 +5145,7 @@ fn tool_install_at_latest_upgrade() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -5179,7 +5179,7 @@ fn tool_install_at_latest_upgrade() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -5234,7 +5234,7 @@ fn tool_install_constraints() -> Result<()> {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         constraints = [
@@ -5332,7 +5332,7 @@ fn tool_install_overrides() -> Result<()> {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         overrides = [
@@ -5474,7 +5474,7 @@ async fn tool_install_credentials() {
         filters => context.filters(),
     }, {
         // Should run black in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/executable-application/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -5493,7 +5493,7 @@ async fn tool_install_credentials() {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("executable-application").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("executable-application").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "executable-application" }]
         entrypoints = [
@@ -5564,7 +5564,7 @@ async fn tool_install_default_credentials() -> Result<()> {
         filters => context.filters(),
     }, {
         // Should run black in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/executable-application/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -5582,7 +5582,7 @@ async fn tool_install_default_credentials() -> Result<()> {
         filters => context.filters(),
     }, {
         // We should have a tool receipt
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("executable-application").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("executable-application").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "executable-application" }]
         entrypoints = [
@@ -5668,7 +5668,7 @@ fn tool_install_with_executables_from() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("ansible").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("ansible").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [
             { name = "ansible", specifier = "==9.3.0" },
@@ -5808,7 +5808,7 @@ fn tool_install_find_links() {
         filters => context.filters(),
     }, {
         // Should run basic-app in the virtual environment
-        assert_snapshot!(fs_err::read_to_string(executable).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(executable).unwrap(), @r#"
         #![TEMP_DIR]/tools/basic-app/bin/python
         # -*- coding: utf-8 -*-
         import sys
@@ -5941,14 +5941,14 @@ fn tool_install_removed_python() {
     cfg_select! {
         unix => {
             let tool_python = tool_root.child("bin").child("python");
-            fs_err::remove_file(&tool_python).unwrap();
-            fs_err::os::unix::fs::symlink(context.temp_dir.join("missing-python"), &tool_python)
+            uv_vfs::fs::remove_file(&tool_python).unwrap();
+            uv_vfs::fs::os::unix::fs::symlink(context.temp_dir.join("missing-python"), &tool_python)
                 .unwrap();
         },
         windows => {
             let pyvenv_cfg = tool_root.child("pyvenv.cfg");
             let broken_home = context.temp_dir.join("missing-python");
-            let contents = fs_err::read_to_string(&pyvenv_cfg).unwrap();
+            let contents = uv_vfs::fs::read_to_string(&pyvenv_cfg).unwrap();
             let contents = contents
                 .lines()
                 .map(|line| {
@@ -5960,7 +5960,7 @@ fn tool_install_removed_python() {
                 })
                 .collect::<Vec<_>>()
                 .join("\n");
-            fs_err::write(&pyvenv_cfg, format!("{contents}\n")).unwrap();
+            uv_vfs::fs::write(&pyvenv_cfg, format!("{contents}\n")).unwrap();
         },
     }
 
@@ -6108,7 +6108,7 @@ fn tool_install_lock_verifies_hashes() -> Result<()> {
         .success();
 
     let lock_path = tool_dir.child("simple-launcher").child("uv.lock");
-    let lock = fs_err::read_to_string(&lock_path)?;
+    let lock = uv_vfs::fs::read_to_string(&lock_path)?;
     lock_path.write_str(&lock.replace(
         "sha256:5327e0bb67cdb46800999de6dcf034bf0a5335702883494af0d8b7f6ca48cee4",
         "sha256:0000000000000000000000000000000000000000000000000000000000000000",

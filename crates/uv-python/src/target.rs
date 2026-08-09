@@ -26,7 +26,7 @@ impl Target {
 
     /// Initialize the `--target` directory.
     pub(crate) fn init(&self) -> std::io::Result<()> {
-        fs_err::create_dir_all(&self.0)?;
+        uv_vfs::fs::create_dir_all(&self.0)?;
         Ok(())
     }
 

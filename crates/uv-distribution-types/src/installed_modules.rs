@@ -10,7 +10,7 @@
 use std::collections::BTreeSet;
 use std::path::{Component, Path};
 
-use fs_err::File;
+use uv_vfs::fs::File;
 use uv_fs::normalize_path;
 use uv_install_wheel::read_record;
 use uv_pypi_types::ModuleName;

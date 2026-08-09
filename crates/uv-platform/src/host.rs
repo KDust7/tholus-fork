@@ -116,8 +116,8 @@ impl LinuxOsRelease {
     pub fn from_env() -> Option<Self> {
         cfg_select! {
             target_os = "linux" => {
-                let content = fs_err::read_to_string("/etc/os-release")
-                    .or_else(|_| fs_err::read_to_string("/usr/lib/os-release"))
+                let content = uv_vfs::fs::read_to_string("/etc/os-release")
+                    .or_else(|_| uv_vfs::fs::read_to_string("/usr/lib/os-release"))
                     .ok()?;
                 Some(content.parse().unwrap())
             },

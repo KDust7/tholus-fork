@@ -5,7 +5,7 @@ use anyhow::Result;
 use assert_cmd::prelude::*;
 use assert_fs::prelude::*;
 #[cfg(unix)]
-use fs_err::{metadata, set_permissions};
+use uv_vfs::fs::{metadata, set_permissions};
 use indoc::indoc;
 use uv_fs::copy_dir_all;
 use uv_static::EnvVars;
@@ -972,7 +972,7 @@ fn tool_run_git() {
     ");
 
     // Clear the cache.
-    fs_err::remove_dir_all(&context.cache_dir).expect("Failed to remove cache dir.");
+    uv_vfs::fs::remove_dir_all(&context.cache_dir).expect("Failed to remove cache dir.");
 
     uv_snapshot!(context.filters(), context.tool_run()
         .arg("--from")
@@ -1119,7 +1119,7 @@ fn tool_run_git_lfs() {
     ");
 
     // Clear the cache.
-    fs_err::remove_dir_all(&context.cache_dir).expect("Failed to remove cache dir.");
+    uv_vfs::fs::remove_dir_all(&context.cache_dir).expect("Failed to remove cache dir.");
 
     uv_snapshot!(context.filters(), context.tool_run()
         .arg("--from")
@@ -1155,7 +1155,7 @@ fn tool_run_git_lfs() {
     ");
 
     // Clear the cache.
-    fs_err::remove_dir_all(&context.cache_dir).expect("Failed to remove cache dir.");
+    uv_vfs::fs::remove_dir_all(&context.cache_dir).expect("Failed to remove cache dir.");
 
     // Attempt to run when LFS artifacts are missing and LFS is requested.
 

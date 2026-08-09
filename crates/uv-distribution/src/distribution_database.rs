@@ -38,6 +38,8 @@ use crate::hash::http_hash_algorithms;
 use crate::metadata::{ArchiveMetadata, Metadata};
 use crate::source::SourceDistributionBuilder;
 use crate::{Error, LocalWheel, Reporter, RequiresDist};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// A cached high-level interface to convert distributions (a requirement resolved to a location)
 /// to a wheel or wheel metadata.
@@ -713,7 +715,7 @@ impl<'a, Context: BuildContext> DistributionDatabase<'a, Context> {
                 let mut hasher = uv_extract::hash::HashReader::new(reader.compat(), &mut hashers);
 
                 // Download and unzip the wheel to a temporary directory.
-                let temp_dir = tempfile::tempdir_in(self.build_context.cache().root())
+                let temp_dir = uv_vfs::temp::tempdir_in(self.build_context.cache().root())
                     .map_err(Error::CacheWrite)?;
 
                 let files = match progress {
@@ -913,11 +915,11 @@ impl<'a, Context: BuildContext> DistributionDatabase<'a, Context> {
                 let mut hasher = uv_extract::hash::HashReader::new(reader.compat(), &mut hashers);
 
                 // Download the wheel to a temporary file.
-                let temp_file = tempfile::tempfile_in(self.build_context.cache().root())
+                let temp_file = uv_vfs::temp::tempfile_in(self.build_context.cache().root())
                     .map_err(Error::CacheWrite)?;
-                let mut writer = tokio::io::BufWriter::new(fs_err::tokio::File::from_std(
+                let mut writer = tokio::io::BufWriter::new(uv_vfs::fs::tokio::File::from_std(
                     // It's an unnamed file on Linux so that's the best approximation.
-                    fs_err::File::from_parts(temp_file, self.build_context.cache().root()),
+                    uv_vfs::fs::File::from_parts(temp_file, self.build_context.cache().root()),
                 ));
 
                 match progress {
@@ -950,7 +952,7 @@ impl<'a, Context: BuildContext> DistributionDatabase<'a, Context> {
                 let actual_size = hasher.bytes_read();
 
                 // Unzip the wheel to a temporary directory.
-                let temp_dir = tempfile::tempdir_in(self.build_context.cache().root())
+                let temp_dir = uv_vfs::temp::tempdir_in(self.build_context.cache().root())
                     .map_err(Error::CacheWrite)?;
                 let mut file = writer.into_inner();
                 file.seek(io::SeekFrom::Start(0))
@@ -1150,10 +1152,10 @@ impl<'a, Context: BuildContext> DistributionDatabase<'a, Context> {
             })
         } else {
             // If necessary, compute the hashes of the wheel.
-            let file = fs_err::tokio::File::open(path)
+            let file = uv_vfs::fs::tokio::File::open(path)
                 .await
                 .map_err(Error::CacheRead)?;
-            let temp_dir = tempfile::tempdir_in(self.build_context.cache().root())
+            let temp_dir = uv_vfs::temp::tempdir_in(self.build_context.cache().root())
                 .map_err(Error::CacheWrite)?;
 
             // Create a hasher for each hash algorithm.
@@ -1228,8 +1230,8 @@ impl<'a, Context: BuildContext> DistributionDatabase<'a, Context> {
             let root = self.build_context.cache().root().to_path_buf();
             move || -> Result<_, Error> {
                 // Unzip the wheel into a temporary directory.
-                let temp_dir = tempfile::tempdir_in(root).map_err(Error::CacheWrite)?;
-                let reader = fs_err::File::open(&path).map_err(Error::CacheWrite)?;
+                let temp_dir = uv_vfs::temp::tempdir_in(root).map_err(Error::CacheWrite)?;
+                let reader = uv_vfs::fs::File::open(&path).map_err(Error::CacheWrite)?;
                 let files = uv_extract::unzip(reader, temp_dir.path())
                     .map_err(|err| Error::Extract(path.to_string_lossy().into_owned(), err))?;
                 Ok((temp_dir, files))
@@ -1372,7 +1374,7 @@ pub struct HttpArchivePointer {
 impl HttpArchivePointer {
     /// Read an [`HttpArchivePointer`] from the cache.
     pub fn read_from(path: impl AsRef<Path>) -> Result<Option<Self>, Error> {
-        match fs_err::File::open(path.as_ref()) {
+        match uv_vfs::fs::File::open(path.as_ref()) {
             Ok(file) => {
                 let data = DataWithCachePolicy::from_reader(file)?.data;
                 let archive = rmp_serde::from_slice::<Archive>(&data)?;
@@ -1411,7 +1413,7 @@ pub struct PathArchivePointer {
 impl PathArchivePointer {
     /// Read an [`PathArchivePointer`] from the cache.
     pub fn read_from(path: impl AsRef<Path>) -> Result<Option<Self>, Error> {
-        match fs_err::read(path) {
+        match uv_vfs::fs::read(path) {
             Ok(cached) => Ok(Some(rmp_serde::from_slice::<Self>(&cached)?)),
             Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(None),
             Err(err) => Err(Error::CacheRead(err)),

@@ -82,7 +82,7 @@ pub(super) async fn update_shell(
     let mut updated = false;
     for file in files {
         // Search for the command in the file, to avoid redundant updates.
-        match fs_err::tokio::read_to_string(&file).await {
+        match uv_vfs::fs::tokio::read_to_string(&file).await {
             Ok(contents) => {
                 if contents
                     .lines()
@@ -98,7 +98,7 @@ pub(super) async fn update_shell(
                 }
 
                 // Append the command to the file.
-                let mut configuration_file = fs_err::tokio::OpenOptions::new()
+                let mut configuration_file = uv_vfs::fs::tokio::OpenOptions::new()
                     .create(true)
                     .truncate(true)
                     .write(true)
@@ -119,11 +119,11 @@ pub(super) async fn update_shell(
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
                 // Ensure that the directory containing the file exists.
                 if let Some(parent) = file.parent() {
-                    fs_err::tokio::create_dir_all(&parent).await?;
+                    uv_vfs::fs::tokio::create_dir_all(&parent).await?;
                 }
 
                 // Append the command to the file.
-                let mut configuration_file = fs_err::tokio::OpenOptions::new()
+                let mut configuration_file = uv_vfs::fs::tokio::OpenOptions::new()
                     .create(true)
                     .truncate(true)
                     .write(true)

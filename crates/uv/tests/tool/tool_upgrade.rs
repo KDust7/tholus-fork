@@ -558,7 +558,7 @@ fn tool_upgrade_recomputes_relative_exclude_newer() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "black" }]
         entrypoints = [
@@ -996,7 +996,7 @@ fn tool_upgrade_no_binary_package_env_var() {
     ");
 
     let receipt: toml::Value = toml::from_str(
-        &fs_err::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(),
+        &uv_vfs::fs::read_to_string(tool_dir.join("black").join("uv-receipt.toml")).unwrap(),
     )
     .unwrap();
     assert_snapshot!(
@@ -1241,7 +1241,7 @@ fn tool_upgrade_python() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        let content = fs_err::read_to_string(tool_dir.join("babel").join("pyvenv.cfg")).unwrap();
+        let content = uv_vfs::fs::read_to_string(tool_dir.join("babel").join("pyvenv.cfg")).unwrap();
         let lines: Vec<&str> = content.split('\n').collect();
         assert_snapshot!(lines[lines.len() - 3], @"version_info = 3.12.[X]");
     });
@@ -1315,7 +1315,7 @@ fn tool_upgrade_python_with_all() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        let content = fs_err::read_to_string(tool_dir.join("babel").join("pyvenv.cfg")).unwrap();
+        let content = uv_vfs::fs::read_to_string(tool_dir.join("babel").join("pyvenv.cfg")).unwrap();
         let lines: Vec<&str> = content.split('\n').collect();
         assert_snapshot!(lines[lines.len() - 3], @"version_info = 3.12.[X]");
     });
@@ -1323,7 +1323,7 @@ fn tool_upgrade_python_with_all() {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        let content = fs_err::read_to_string(tool_dir.join("python-dotenv").join("pyvenv.cfg")).unwrap();
+        let content = uv_vfs::fs::read_to_string(tool_dir.join("python-dotenv").join("pyvenv.cfg")).unwrap();
         let lines: Vec<&str> = content.split('\n').collect();
         assert_snapshot!(lines[lines.len() - 3], @"version_info = 3.12.[X]");
     });
@@ -1483,7 +1483,7 @@ async fn tool_upgrade_invalid_auth() -> Result<()> {
     }, {
         // Verify the receipt has `authenticate = "always"` (promoted from "auto" because the
         // original URL had embedded credentials).
-        assert_snapshot!(fs_err::read_to_string(tool_dir.join("executable-application").join("uv-receipt.toml")).unwrap(), @r#"
+        assert_snapshot!(uv_vfs::fs::read_to_string(tool_dir.join("executable-application").join("uv-receipt.toml")).unwrap(), @r#"
         [tool]
         requirements = [{ name = "executable-application" }]
         entrypoints = [
@@ -1624,7 +1624,7 @@ async fn tool_upgrade_lock_verifies_hashes() -> Result<()> {
     let tool_dir = context.temp_dir.child("tools");
     let bin_dir = context.temp_dir.child("bin");
     let wheel_filename = "simple_launcher-0.1.0-py3-none-any.whl";
-    let wheel = fs_err::read(
+    let wheel = uv_vfs::fs::read(
         context
             .workspace_root
             .join("test/links")
@@ -1738,7 +1738,7 @@ fn tool_upgrade_lock_uses_requested_python() -> Result<()> {
         .assert()
         .success();
 
-    let pyvenv = fs_err::read_to_string(tool_dir.join("simple-launcher").join("pyvenv.cfg"))?;
+    let pyvenv = uv_vfs::fs::read_to_string(tool_dir.join("simple-launcher").join("pyvenv.cfg"))?;
     let Some(version_info) = pyvenv
         .lines()
         .find(|line| line.starts_with("version_info = "))

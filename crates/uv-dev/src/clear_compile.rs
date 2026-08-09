@@ -18,12 +18,12 @@ pub(crate) fn clear_compile(args: &ClearCompileArgs) -> anyhow::Result<()> {
         let metadata = entry.metadata()?;
         if metadata.is_file() {
             if entry.path().extension().is_some_and(|ext| ext == "pyc") {
-                fs_err::remove_file(entry.path())?;
+                uv_vfs::fs::remove_file(entry.path())?;
                 removed_files += 1;
             }
         } else if metadata.is_dir() {
             if entry.file_name() == "__pycache__" {
-                fs_err::remove_dir(entry.path())?;
+                uv_vfs::fs::remove_dir(entry.path())?;
                 removed_directories += 1;
             }
         }

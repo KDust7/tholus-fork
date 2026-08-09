@@ -94,7 +94,7 @@ impl CacheEntry {
 
     /// Acquire the [`CacheEntry`] as an exclusive lock.
     pub async fn lock(&self) -> Result<LockedFile, Error> {
-        fs_err::create_dir_all(self.dir())?;
+        uv_vfs::fs::create_dir_all(self.dir())?;
         Ok(LockedFile::acquire(
             self.path(),
             LockedFileMode::Exclusive,
@@ -128,7 +128,7 @@ impl CacheShard {
 
     /// Acquire the cache entry as an exclusive lock.
     pub async fn lock(&self) -> Result<LockedFile, Error> {
-        fs_err::create_dir_all(self.as_ref())?;
+        uv_vfs::fs::create_dir_all(self.as_ref())?;
         Ok(LockedFile::acquire(
             self.join(".lock"),
             LockedFileMode::Exclusive,
@@ -170,7 +170,7 @@ pub struct Cache {
     ///
     /// Included to ensure that the temporary directory exists for the length of the operation, but
     /// is dropped at the end as appropriate.
-    temp_dir: Option<Arc<tempfile::TempDir>>,
+    temp_dir: Option<Arc<uv_vfs::temp::TempDir>>,
     /// Ensure that `uv cache` operations don't remove items from the cache that are used by another
     /// uv process.
     lock_file: Option<Arc<LockedFile>>,
@@ -192,7 +192,7 @@ impl Cache {
 
     /// Create a temporary cache directory.
     pub fn temp() -> Result<Self, io::Error> {
-        let temp_dir = tempfile::tempdir()?;
+        let temp_dir = uv_vfs::temp::tempdir()?;
         Ok(Self {
             root: temp_dir.path().to_path_buf(),
             refresh: Refresh::None(Timestamp::now()),
@@ -327,15 +327,15 @@ impl Cache {
     }
 
     /// Create a temporary directory to be used as a Python virtual environment.
-    pub fn venv_dir(&self) -> io::Result<tempfile::TempDir> {
-        fs_err::create_dir_all(self.bucket(CacheBucket::Builds))?;
-        tempfile::tempdir_in(self.bucket(CacheBucket::Builds))
+    pub fn venv_dir(&self) -> io::Result<uv_vfs::temp::TempDir> {
+        uv_vfs::fs::create_dir_all(self.bucket(CacheBucket::Builds))?;
+        uv_vfs::temp::tempdir_in(self.bucket(CacheBucket::Builds))
     }
 
     /// Create a temporary directory to be used for executing PEP 517 source distribution builds.
-    pub fn build_dir(&self) -> io::Result<tempfile::TempDir> {
-        fs_err::create_dir_all(self.bucket(CacheBucket::Builds))?;
-        tempfile::tempdir_in(self.bucket(CacheBucket::Builds))
+    pub fn build_dir(&self) -> io::Result<uv_vfs::temp::TempDir> {
+        uv_vfs::fs::create_dir_all(self.bucket(CacheBucket::Builds))?;
+        uv_vfs::temp::tempdir_in(self.bucket(CacheBucket::Builds))
     }
 
     /// Returns `true` if a cache entry must be revalidated given the [`Refresh`] policy.
@@ -387,7 +387,7 @@ impl Cache {
             }
         };
 
-        match fs_err::metadata(entry.path()) {
+        match uv_vfs::fs::metadata(entry.path()) {
             Ok(metadata) => {
                 if Timestamp::from_metadata(&metadata) >= *timestamp {
                     Ok(Freshness::Fresh)
@@ -412,11 +412,11 @@ impl Cache {
 
         // Move the temporary directory into the directory store.
         let archive_entry = self.entry(CacheBucket::Archive, "", &id);
-        fs_err::create_dir_all(archive_entry.dir())?;
+        uv_vfs::fs::create_dir_all(archive_entry.dir())?;
         uv_fs::rename_with_retry(temp_dir.as_ref(), archive_entry.path()).await?;
 
         // Create a symlink to the directory store.
-        fs_err::create_dir_all(path.as_ref().parent().expect("Cache entry to have parent"))?;
+        uv_vfs::fs::create_dir_all(path.as_ref().parent().expect("Cache entry to have parent"))?;
         self.create_link(&id, path.as_ref())?;
 
         Ok(id)
@@ -430,13 +430,13 @@ impl Cache {
     /// Populate the cache scaffold.
     fn create_base_files(root: &PathBuf) -> io::Result<()> {
         // Create the cache directory, if it doesn't exist.
-        fs_err::create_dir_all(root)?;
+        uv_vfs::fs::create_dir_all(root)?;
 
         // Add the CACHEDIR.TAG.
         cachedir::ensure_tag(root)?;
 
         // Add the .gitignore.
-        match fs_err::OpenOptions::new()
+        match uv_vfs::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
             .open(root.join(".gitignore"))
@@ -449,8 +449,8 @@ impl Cache {
         // Add an empty .gitignore to the build bucket, to ensure that the cache's own .gitignore
         // doesn't interfere with source distribution builds. Build backends (like hatchling) will
         // traverse upwards to look for .gitignore files.
-        fs_err::create_dir_all(root.join(CacheBucket::SourceDistributions.to_str()))?;
-        match fs_err::OpenOptions::new()
+        uv_vfs::fs::create_dir_all(root.join(CacheBucket::SourceDistributions.to_str()))?;
+        match uv_vfs::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
             .open(
@@ -472,7 +472,7 @@ impl Cache {
         let phony_git = root
             .join(CacheBucket::SourceDistributions.to_str())
             .join(".git");
-        match fs_err::OpenOptions::new()
+        match uv_vfs::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .open(&phony_git)
@@ -560,12 +560,12 @@ impl Cache {
         // Remove the `.lock` file, unlocking it first
         if let Some(lock) = lock_file {
             drop(lock);
-            fs_err::remove_file(root.join(".lock"))?;
+            uv_vfs::fs::remove_file(root.join(".lock"))?;
         }
         removal.num_files += 1;
 
         // Remove the root directory
-        match fs_err::remove_dir(root) {
+        match uv_vfs::fs::remove_dir(root) {
             Ok(()) => {
                 removal.num_dirs += 1;
             }
@@ -599,7 +599,7 @@ impl Cache {
 
         // Only remove targets in the archive bucket. Cache entries may contain unexpected links
         // to paths outside the cache.
-        let archive_root = fs_err::canonicalize(&self.root)?.join(CacheBucket::Archive.to_str());
+        let archive_root = uv_vfs::fs::canonicalize(&self.root)?.join(CacheBucket::Archive.to_str());
 
         // Remove any archives that are no longer referenced.
         for (target, references) in references {
@@ -618,7 +618,7 @@ impl Cache {
 
         // First, remove any top-level directories that are unused. These typically represent
         // outdated cache buckets (e.g., `wheels-v0`, when latest is `wheels-v1`).
-        for entry in fs_err::read_dir(&self.root)? {
+        for entry in uv_vfs::fs::read_dir(&self.root)? {
             let entry = entry?;
             let metadata = entry.metadata()?;
 
@@ -647,7 +647,7 @@ impl Cache {
 
         // Second, remove all cached environments. Centralized project environments can be
         // referenced by `.venv` links, but are recreated when next needed.
-        match fs_err::read_dir(self.bucket(CacheBucket::Environments)) {
+        match uv_vfs::fs::read_dir(self.bucket(CacheBucket::Environments)) {
             Ok(entries) => {
                 for entry in entries {
                     let entry = entry?;
@@ -663,7 +663,7 @@ impl Cache {
         // Third, if enabled, remove all unzipped wheels, leaving only the wheel archives.
         if ci {
             // Remove the entire pre-built wheel cache, since every entry is an unzipped wheel.
-            match fs_err::read_dir(self.bucket(CacheBucket::Wheels)) {
+            match uv_vfs::fs::read_dir(self.bucket(CacheBucket::Wheels)) {
                 Ok(entries) => {
                     for entry in entries {
                         let entry = entry?;
@@ -693,7 +693,7 @@ impl Cache {
                     }
 
                     // Remove everything except the built wheel archive and the metadata.
-                    for entry in fs_err::read_dir(entry.path())? {
+                    for entry in uv_vfs::fs::read_dir(entry.path())? {
                         let entry = entry?;
                         let path = entry.path();
 
@@ -723,12 +723,12 @@ impl Cache {
         // Fourth, remove any unused archives (by searching for archives that are not symlinked).
         let references = self.find_archive_references()?;
 
-        match fs_err::read_dir(self.bucket(CacheBucket::Archive)) {
+        match uv_vfs::fs::read_dir(self.bucket(CacheBucket::Archive)) {
             Ok(entries) => {
                 for entry in entries {
                     let entry = entry?;
                     let path = entry.path();
-                    let target = fs_err::canonicalize(&path)?;
+                    let target = uv_vfs::fs::canonicalize(&path)?;
                     if !references.contains_key(&target) {
                         debug!("Removing dangling cache archive: {}", path.display());
                         summary += self.remove_path(path)?;
@@ -818,7 +818,7 @@ impl Cache {
         let contents = link.to_string();
 
         // First, attempt to create a file at the location, but fail if it already exists.
-        match fs_err::OpenOptions::new()
+        match uv_vfs::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
             .open(dst.as_ref())
@@ -830,12 +830,12 @@ impl Cache {
             }
             Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
                 // Write to a temporary file, then move it into place.
-                let temp_dir = tempfile::tempdir_in(dst.as_ref().parent().unwrap())?;
+                let temp_dir = uv_vfs::temp::tempdir_in(dst.as_ref().parent().unwrap())?;
                 let temp_file = temp_dir.path().join("link");
-                fs_err::write(&temp_file, contents.as_bytes())?;
+                uv_vfs::fs::write(&temp_file, contents.as_bytes())?;
 
                 // Move the symlink into the target location.
-                fs_err::rename(&temp_file, dst.as_ref())?;
+                uv_vfs::fs::rename(&temp_file, dst.as_ref())?;
 
                 Ok(())
             }
@@ -849,7 +849,7 @@ impl Cache {
     #[cfg(windows)]
     pub fn resolve_link(&self, path: impl AsRef<Path>) -> io::Result<PathBuf> {
         // Deserialize the link.
-        let contents = fs_err::read_to_string(path.as_ref())?;
+        let contents = uv_vfs::fs::read_to_string(path.as_ref())?;
         let link = Link::from_str(&contents)?;
 
         // Ignore stale links.
@@ -877,16 +877,16 @@ impl Cache {
         let src = uv_fs::relative_to(self.archive(id), dst_parent)?;
 
         // Attempt to create the symlink directly.
-        match fs_err::os::unix::fs::symlink(&src, dst) {
+        match uv_vfs::fs::os::unix::fs::symlink(&src, dst) {
             Ok(()) => Ok(()),
             Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
                 // Create a symlink, using a temporary file to ensure atomicity.
-                let temp_dir = tempfile::tempdir_in(dst_parent)?;
+                let temp_dir = uv_vfs::temp::tempdir_in(dst_parent)?;
                 let temp_file = temp_dir.path().join("link");
-                fs_err::os::unix::fs::symlink(&src, &temp_file)?;
+                uv_vfs::fs::os::unix::fs::symlink(&src, &temp_file)?;
 
                 // Move the symlink into the target location.
-                fs_err::rename(&temp_file, dst)?;
+                uv_vfs::fs::rename(&temp_file, dst)?;
 
                 Ok(())
             }
@@ -1262,7 +1262,7 @@ impl CacheBucket {
     fn remove(self, cache: &Cache, name: &PackageName) -> Result<Removal, io::Error> {
         /// Returns `true` if the [`Path`] represents a built wheel for the given package.
         fn is_match(path: &Path, name: &PackageName) -> bool {
-            let Ok(metadata) = fs_err::read(path.join("metadata.msgpack")) else {
+            let Ok(metadata) = uv_vfs::fs::read(path.join("metadata.msgpack")) else {
                 return false;
             };
             let Ok(metadata) = rmp_serde::from_slice::<ResolutionMetadata>(&metadata) else {
@@ -1503,15 +1503,15 @@ mod tests {
     fn prune_does_not_follow_environment_symlinks() {
         use super::{Cache, CacheBucket};
 
-        let cache_root = tempfile::tempdir().unwrap();
-        let victim_root = tempfile::tempdir().unwrap();
+        let cache_root = uv_vfs::temp::tempdir().unwrap();
+        let victim_root = uv_vfs::temp::tempdir().unwrap();
         let environments = cache_root.path().join(CacheBucket::Environments.to_str());
         let victim_dir = victim_root.path().join("victim-dir");
 
-        fs_err::create_dir_all(&environments).unwrap();
-        fs_err::create_dir_all(&victim_dir).unwrap();
-        fs_err::write(victim_dir.join("payload.txt"), "payload").unwrap();
-        fs_err::os::unix::fs::symlink(&victim_dir, environments.join("escape")).unwrap();
+        uv_vfs::fs::create_dir_all(&environments).unwrap();
+        uv_vfs::fs::create_dir_all(&victim_dir).unwrap();
+        uv_vfs::fs::write(victim_dir.join("payload.txt"), "payload").unwrap();
+        uv_vfs::fs::os::unix::fs::symlink(&victim_dir, environments.join("escape")).unwrap();
 
         let summary = Cache::from_path(cache_root.path()).prune(false).unwrap();
 
@@ -1519,7 +1519,7 @@ mod tests {
         assert_eq!(summary.num_dirs, 0);
         assert!(victim_dir.is_dir());
         assert!(victim_dir.join("payload.txt").is_file());
-        assert!(fs_err::symlink_metadata(environments.join("escape")).is_err());
+        assert!(uv_vfs::fs::symlink_metadata(environments.join("escape")).is_err());
     }
 
     #[test]
@@ -1527,8 +1527,8 @@ mod tests {
     fn prune_ci_does_not_follow_wheel_symlinks() {
         use super::{Cache, CacheBucket};
 
-        let cache_root = tempfile::tempdir().unwrap();
-        let victim_root = tempfile::tempdir().unwrap();
+        let cache_root = uv_vfs::temp::tempdir().unwrap();
+        let victim_root = uv_vfs::temp::tempdir().unwrap();
         let wheels = cache_root.path().join(CacheBucket::Wheels.to_str());
         let source_distributions = cache_root
             .path()
@@ -1536,11 +1536,11 @@ mod tests {
         let victim_dir = victim_root.path().join("victim-dir");
         let symlink = wheels.join("escape");
 
-        fs_err::create_dir_all(&wheels).unwrap();
-        fs_err::create_dir_all(&source_distributions).unwrap();
-        fs_err::create_dir_all(&victim_dir).unwrap();
-        fs_err::write(victim_dir.join("payload.txt"), "payload").unwrap();
-        fs_err::os::unix::fs::symlink(&victim_dir, &symlink).unwrap();
+        uv_vfs::fs::create_dir_all(&wheels).unwrap();
+        uv_vfs::fs::create_dir_all(&source_distributions).unwrap();
+        uv_vfs::fs::create_dir_all(&victim_dir).unwrap();
+        uv_vfs::fs::write(victim_dir.join("payload.txt"), "payload").unwrap();
+        uv_vfs::fs::os::unix::fs::symlink(&victim_dir, &symlink).unwrap();
 
         let summary = Cache::from_path(cache_root.path()).prune(true).unwrap();
 
@@ -1548,7 +1548,7 @@ mod tests {
         assert_eq!(summary.num_dirs, 0);
         assert!(victim_dir.is_dir());
         assert!(victim_dir.join("payload.txt").is_file());
-        assert!(fs_err::symlink_metadata(symlink).is_err());
+        assert!(uv_vfs::fs::symlink_metadata(symlink).is_err());
     }
 
     #[test]
@@ -1556,16 +1556,16 @@ mod tests {
     fn prune_does_not_follow_archive_symlinks() {
         use super::{Cache, CacheBucket};
 
-        let cache_root = tempfile::tempdir().unwrap();
-        let victim_root = tempfile::tempdir().unwrap();
+        let cache_root = uv_vfs::temp::tempdir().unwrap();
+        let victim_root = uv_vfs::temp::tempdir().unwrap();
         let archives = cache_root.path().join(CacheBucket::Archive.to_str());
         let victim_dir = victim_root.path().join("victim-dir");
         let symlink = archives.join("escape");
 
-        fs_err::create_dir_all(&archives).unwrap();
-        fs_err::create_dir_all(&victim_dir).unwrap();
-        fs_err::write(victim_dir.join("payload.txt"), "payload").unwrap();
-        fs_err::os::unix::fs::symlink(&victim_dir, &symlink).unwrap();
+        uv_vfs::fs::create_dir_all(&archives).unwrap();
+        uv_vfs::fs::create_dir_all(&victim_dir).unwrap();
+        uv_vfs::fs::write(victim_dir.join("payload.txt"), "payload").unwrap();
+        uv_vfs::fs::os::unix::fs::symlink(&victim_dir, &symlink).unwrap();
 
         let summary = Cache::from_path(cache_root.path()).prune(false).unwrap();
 
@@ -1573,6 +1573,6 @@ mod tests {
         assert_eq!(summary.num_dirs, 0);
         assert!(victim_dir.is_dir());
         assert!(victim_dir.join("payload.txt").is_file());
-        assert!(fs_err::symlink_metadata(symlink).is_err());
+        assert!(uv_vfs::fs::symlink_metadata(symlink).is_err());
     }
 }

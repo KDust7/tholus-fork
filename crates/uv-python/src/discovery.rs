@@ -699,7 +699,7 @@ fn find_all_minor(
                 ))
                 .unwrap()
             };
-            let all_minors = fs_err::read_dir(dir)
+            let all_minors = uv_vfs::fs::read_dir(dir)
                 .into_iter()
                 .flatten()
                 .flatten()
@@ -1662,7 +1662,7 @@ fn is_windows_store_shim(path: &Path) -> bool {
     }
 
     // The file is only relevant if it's a reparse point.
-    let Ok(md) = fs_err::symlink_metadata(path) else {
+    let Ok(md) = uv_vfs::fs::symlink_metadata(path) else {
         return false;
     };
     if md.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT.0 == 0 {

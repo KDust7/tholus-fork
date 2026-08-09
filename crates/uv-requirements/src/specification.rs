@@ -285,7 +285,7 @@ impl RequirementsSpecification {
                 Self::from_requirements_txt(requirements_txt)
             }
             RequirementsSource::PyprojectToml(path) => {
-                let content = match fs_err::tokio::read_to_string(&path).await {
+                let content = match uv_vfs::fs::tokio::read_to_string(&path).await {
                     Ok(content) => content,
                     Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
                         return Err(anyhow::anyhow!("File not found: `{}`", path.user_display()));

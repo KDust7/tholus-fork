@@ -50,6 +50,8 @@ pub use crate::verbatim_url::{
 // https://github.com/konstin/pep508_rs/issues/19
 pub use uv_pep440;
 use uv_pep440::{VersionSpecifier, VersionSpecifiers};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 mod cursor;
 pub mod marker;

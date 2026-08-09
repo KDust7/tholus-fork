@@ -42,6 +42,8 @@ use uv_small_str::SmallString;
 use crate::lock::export::ExportableRequirements;
 use crate::lock::{Source, WheelTagHint, is_wheel_unreachable};
 use crate::{Installable, LockError, ResolverOutput};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// Format an array so that each element is on its own line and has a trailing comma.
 fn each_element_on_its_line_array(elements: impl Iterator<Item = impl Into<Value>>) -> Array {
@@ -210,7 +212,7 @@ fn validate_path_size(path: &Path, expected: Option<u64>) -> Result<(), PylockTo
     let Some(expected) = expected else {
         return Ok(());
     };
-    let actual = fs_err::metadata(path)?.len();
+    let actual = uv_vfs::fs::metadata(path)?.len();
     if actual != expected {
         return Err(PylockTomlErrorKind::ArchiveSizeMismatch {
             path: path.to_path_buf(),

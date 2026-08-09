@@ -10,6 +10,8 @@ use url::Url;
 
 use uv_static::EnvVars;
 use uv_test::{copy_dir_ignore, uv_snapshot};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 fn write_wheel(
     path: &Path,
@@ -64,7 +66,7 @@ fn write_wheel_with_metadata(
     let record = format!("{}\n", record.join("\n"));
     block_on(writer.write_entry_whole(entry, record.as_bytes()))?;
 
-    fs_err::write(path, block_on(writer.close())?)?;
+    uv_vfs::fs::write(path, block_on(writer.close())?)?;
     Ok(())
 }
 
@@ -669,7 +671,7 @@ fn workspace_metadata_sync_centralized_environment() -> Result<()> {
         .assert()
         .success();
     let metadata: serde_json::Value = serde_json::from_slice(&assert.get_output().stdout)?;
-    let target = fs_err::read_link(context.temp_dir.child(".venv").path())?;
+    let target = uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?;
 
     assert_eq!(
         metadata["environment"]["root"].as_str().map(Path::new),
@@ -809,7 +811,7 @@ dependencies = [
         .success();
 
     // Removing the uninstalled wheel makes any accidental synchronization fail.
-    fs_err::remove_file(missing_owner.path())?;
+    uv_vfs::fs::remove_file(missing_owner.path())?;
 
     let assert = context
         .workspace_metadata()
@@ -1054,7 +1056,7 @@ fn workspace_metadata_module_owners_use_installed_package_id() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let py311_dir = context.temp_dir.child("py311");
-    fs_err::create_dir_all(py311_dir.path())?;
+    uv_vfs::fs::create_dir_all(py311_dir.path())?;
     let module_owner_311 = py311_dir.child("module_owner-0.1.0-py3-none-any.whl");
     write_wheel(
         module_owner_311.path(),
@@ -1064,7 +1066,7 @@ fn workspace_metadata_module_owners_use_installed_package_id() -> Result<()> {
     )?;
 
     let py312_dir = context.temp_dir.child("py312");
-    fs_err::create_dir_all(py312_dir.path())?;
+    uv_vfs::fs::create_dir_all(py312_dir.path())?;
     let module_owner_312 = py312_dir.child("module_owner-0.1.0-py3-none-any.whl");
     write_wheel(
         module_owner_312.path(),
@@ -1189,7 +1191,7 @@ dependencies = [
         ))?;
 
     context.lock().assert().success();
-    fs_err::remove_file(gpu_a.path())?;
+    uv_vfs::fs::remove_file(gpu_a.path())?;
 
     uv_snapshot!(context.filters(), context.workspace_metadata().arg("--frozen").arg("--sync"), @r#"
     exit_code: 2 (failure)

@@ -1061,7 +1061,7 @@ fn existing_project_environment(
                 }
                 InvalidEnvironmentKind::MissingExecutable(_) => {
                     if !centralized
-                        && fs_err::read_dir(root).is_ok_and(|mut dir| dir.next().is_some())
+                        && uv_vfs::fs::read_dir(root).is_ok_and(|mut dir| dir.next().is_some())
                     {
                         if !root.join("pyvenv.cfg").try_exists().unwrap_or_default() {
                             return Err(ProjectError::InvalidProjectEnvironmentDir(
@@ -1085,7 +1085,7 @@ fn existing_project_environment(
             venv: _,
         }))) => {
             if unix {
-                let target_path = fs_err::read_link(&path)?;
+                let target_path = uv_vfs::fs::read_link(&path)?;
                 warn_user!(
                     "Ignoring existing virtual environment linked to non-existent Python interpreter: {} -> {}",
                     path.user_display().cyan(),
@@ -1190,15 +1190,15 @@ fn is_centralized_environment_path(path: &Path, cache: &Cache) -> bool {
 
     // Resolve existing relative or indirect paths; only the lexical check can handle dangling
     // paths.
-    fs_err::canonicalize(path).is_ok_and(|path| {
-        fs_err::canonicalize(&environments)
+    uv_vfs::fs::canonicalize(path).is_ok_and(|path| {
+        uv_vfs::fs::canonicalize(&environments)
             .is_ok_and(|environments| is_path_lexically_within(&path, &environments))
     })
 }
 
 /// Return whether `path` appears to link into the current cache's environment bucket.
 fn is_centralized_environment_link(path: &Path, cache: &Cache) -> bool {
-    let Ok(target) = fs_err::read_link(path) else {
+    let Ok(target) = uv_vfs::fs::read_link(path) else {
         return false;
     };
     is_centralized_environment_path(&target, cache) || is_centralized_environment_path(path, cache)
@@ -1206,7 +1206,7 @@ fn is_centralized_environment_link(path: &Path, cache: &Cache) -> bool {
 
 /// Read an environment path from a file.
 fn read_environment_path_file(path: &Path) -> io::Result<PathBuf> {
-    let target = PathBuf::from(fs_err::read_to_string(path)?);
+    let target = PathBuf::from(uv_vfs::fs::read_to_string(path)?);
     Ok(if target.is_absolute() {
         target
     } else {
@@ -1229,7 +1229,7 @@ pub(crate) fn centralized_environment_root(
     upgradeable: bool,
     cache: &Cache,
 ) -> PathBuf {
-    let workspace_path = fs_err::canonicalize(workspace.install_path())
+    let workspace_path = uv_vfs::fs::canonicalize(workspace.install_path())
         .unwrap_or_else(|_| workspace.install_path().clone());
     let interpreter_key = interpreter.key();
     // Use the workspace path to isolate projects and the interpreter key to maximize intra-project
@@ -1300,7 +1300,7 @@ pub(crate) fn update_project_environment_link(
         LinkErrorReporting::Log => warn!("{message}"),
     };
 
-    if fs_err::symlink_metadata(&link).is_ok_and(|metadata| metadata.is_dir()) {
+    if uv_vfs::fs::symlink_metadata(&link).is_ok_and(|metadata| metadata.is_dir()) {
         if uv_fs::is_virtualenv_base(&link) {
             if let Err(err) = uv_fs::remove_virtualenv(&link) {
                 report_error(format_args!(
@@ -1311,7 +1311,7 @@ pub(crate) fn update_project_environment_link(
         } else {
             // On Windows, copying a junction can produce an empty directory.
             #[cfg(windows)]
-            if let Err(err) = fs_err::remove_dir(&link) {
+            if let Err(err) = uv_vfs::fs::remove_dir(&link) {
                 report_error(format_args!(
                     "Failed to create link to project environment: {err}"
                 ));
@@ -1323,7 +1323,7 @@ pub(crate) fn update_project_environment_link(
     // On Windows replace_symlink won't replace a file, but we want to try to upgrade to a junction
     // if possible.
     if cfg!(windows) {
-        let _ = fs_err::remove_file(&link);
+        let _ = uv_vfs::fs::remove_file(&link);
     }
 
     let Err(link_error) = uv_fs::replace_symlink(environment.root(), &link) else {
@@ -1376,7 +1376,7 @@ impl ProjectInterpreter {
         let centralized = centralized_environments_enabled(&selection, cache)
             || is_centralized_environment_reference(&root, cache);
         let root = if centralized {
-            fs_err::canonicalize(&root).unwrap_or(root)
+            uv_vfs::fs::canonicalize(&root).unwrap_or(root)
         } else {
             root
         };
@@ -1794,14 +1794,14 @@ pub(crate) enum ProjectEnvironment {
     WouldReplace(
         PathBuf,
         PythonEnvironment,
-        #[allow(unused)] tempfile::TempDir,
+        #[allow(unused)] uv_vfs::temp::TempDir,
     ),
     /// A new [`PythonEnvironment`] would've been created, but `--dry-run` mode is enabled; as such,
     /// a temporary environment was created instead.
     WouldCreate(
         PathBuf,
         PythonEnvironment,
-        #[allow(unused)] tempfile::TempDir,
+        #[allow(unused)] uv_vfs::temp::TempDir,
     ),
 }
 
@@ -2081,14 +2081,14 @@ pub(crate) enum ScriptEnvironment {
     WouldReplace(
         PathBuf,
         PythonEnvironment,
-        #[allow(unused)] tempfile::TempDir,
+        #[allow(unused)] uv_vfs::temp::TempDir,
     ),
     /// A new [`PythonEnvironment`] would've been created, but `--dry-run` mode is enabled; as such,
     /// a temporary environment was created instead.
     WouldCreate(
         PathBuf,
         PythonEnvironment,
-        #[allow(unused)] tempfile::TempDir,
+        #[allow(unused)] uv_vfs::temp::TempDir,
     ),
 }
 

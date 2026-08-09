@@ -106,7 +106,7 @@ impl LockedFileMode {
     ///
     /// [rust-lang/rust#148325]: https://github.com/rust-lang/rust/issues/148325
     #[cfg(not(target_os = "android"))]
-    fn try_lock(self, file: &fs_err::File) -> Result<(), std::fs::TryLockError> {
+    fn try_lock(self, file: &uv_vfs::fs::File) -> Result<(), std::fs::TryLockError> {
         match self {
             Self::Exclusive => file.try_lock()?,
             Self::Shared => file.try_lock_shared()?,
@@ -123,7 +123,7 @@ impl LockedFileMode {
     ///
     /// [rust-lang/rust#148325]: https://github.com/rust-lang/rust/issues/148325
     #[cfg(target_os = "android")]
-    fn try_lock(self, file: &fs_err::File) -> Result<(), std::fs::TryLockError> {
+    fn try_lock(self, file: &uv_vfs::fs::File) -> Result<(), std::fs::TryLockError> {
         use std::os::fd::AsFd;
 
         let operation = match self {
@@ -146,7 +146,7 @@ impl LockedFileMode {
     ///
     /// [rust-lang/rust#148325]: https://github.com/rust-lang/rust/issues/148325
     #[cfg(not(target_os = "android"))]
-    fn lock(self, file: &fs_err::File) -> Result<(), io::Error> {
+    fn lock(self, file: &uv_vfs::fs::File) -> Result<(), io::Error> {
         match self {
             Self::Exclusive => file.lock()?,
             Self::Shared => file.lock_shared()?,
@@ -162,7 +162,7 @@ impl LockedFileMode {
     ///
     /// [rust-lang/rust#148325]: https://github.com/rust-lang/rust/issues/148325
     #[cfg(target_os = "android")]
-    fn lock(self, file: &fs_err::File) -> Result<(), io::Error> {
+    fn lock(self, file: &uv_vfs::fs::File) -> Result<(), io::Error> {
         use std::os::fd::AsFd;
 
         let operation = match self {
@@ -187,13 +187,13 @@ impl Display for LockedFileMode {
 #[cfg(feature = "tokio")]
 #[derive(Debug)]
 #[must_use]
-pub struct LockedFile(fs_err::File);
+pub struct LockedFile(uv_vfs::fs::File);
 
 #[cfg(feature = "tokio")]
 impl LockedFile {
     /// Inner implementation for [`LockedFile::acquire`].
     async fn lock_file(
-        file: fs_err::File,
+        file: uv_vfs::fs::File,
         mode: LockedFileMode,
         resource: &str,
     ) -> Result<Self, LockedFileError> {
@@ -231,7 +231,7 @@ impl LockedFile {
                 resource: resource.to_string(),
                 path: path.clone(),
             })??;
-        // Not an fs_err method, we need to build our own path context
+        // Not an uv_vfs::fs method, we need to build our own path context
         result.map_err(|err| LockedFileError::Lock {
             resource: resource.to_string(),
             path,
@@ -243,7 +243,7 @@ impl LockedFile {
     }
 
     /// Inner implementation for [`LockedFile::acquire_no_wait`].
-    fn lock_file_no_wait(file: fs_err::File, mode: LockedFileMode, resource: &str) -> Option<Self> {
+    fn lock_file_no_wait(file: uv_vfs::fs::File, mode: LockedFileMode, resource: &str) -> Option<Self> {
         trace!(
             "Checking lock for `{resource}` at `{}`",
             file.path().user_display()
@@ -291,11 +291,11 @@ impl LockedFile {
     }
 
     #[cfg(unix)]
-    fn create(path: impl AsRef<Path>) -> Result<fs_err::File, LockedFileError> {
+    fn create(path: impl AsRef<Path>) -> Result<uv_vfs::fs::File, LockedFileError> {
         use rustix::io::Errno;
         #[expect(clippy::disallowed_types)]
         use std::{fs::File, os::unix::fs::PermissionsExt};
-        use tempfile::NamedTempFile;
+        use uv_vfs::temp::NamedTempFile;
 
         /// The permissions the lockfile should end up with
         const DESIRED_MODE: u32 = 0o666;
@@ -311,7 +311,7 @@ impl LockedFile {
         }
 
         // If path already exists, return it.
-        if let Ok(file) = fs_err::OpenOptions::new()
+        if let Ok(file) = uv_vfs::fs::OpenOptions::new()
             .read(true)
             .write(true)
             .open(path.as_ref())
@@ -331,10 +331,10 @@ impl LockedFile {
 
         // Try to move the file to path, but if path exists now, just open path
         match file.persist_noclobber(path.as_ref()) {
-            Ok(file) => Ok(fs_err::File::from_parts(file, path.as_ref())),
+            Ok(file) => Ok(uv_vfs::fs::File::from_parts(file, path.as_ref())),
             Err(err) => {
                 if err.error.kind() == std::io::ErrorKind::AlreadyExists {
-                    fs_err::OpenOptions::new()
+                    uv_vfs::fs::OpenOptions::new()
                         .read(true)
                         .write(true)
                         .open(path.as_ref())
@@ -356,7 +356,7 @@ impl LockedFile {
                     // are locking two different files. Also, since `persist_noclobber` is more
                     // likely to not be supported on special filesystems which don't have permission
                     // bits, it's less likely to ever matter.
-                    let file = fs_err::OpenOptions::new()
+                    let file = uv_vfs::fs::OpenOptions::new()
                         .read(true)
                         .write(true)
                         .create(true)
@@ -376,7 +376,7 @@ impl LockedFile {
                 } else {
                     let temp_path = err.file.into_temp_path();
                     Err(LockedFileError::PersistTemporary {
-                        path: <tempfile::TempPath as AsRef<Path>>::as_ref(&temp_path).to_path_buf(),
+                        path: <uv_vfs::temp::TempPath as AsRef<Path>>::as_ref(&temp_path).to_path_buf(),
                         source: err.error,
                     })
                 }
@@ -385,8 +385,8 @@ impl LockedFile {
     }
 
     #[cfg(not(unix))]
-    fn create(path: impl AsRef<Path>) -> Result<fs_err::File, LockedFileError> {
-        fs_err::OpenOptions::new()
+    fn create(path: impl AsRef<Path>) -> Result<uv_vfs::fs::File, LockedFileError> {
+        uv_vfs::fs::OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)

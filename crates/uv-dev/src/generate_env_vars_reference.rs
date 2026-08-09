@@ -28,7 +28,7 @@ pub(crate) fn main(args: &Args) -> anyhow::Result<()> {
         Mode::DryRun => {
             anstream::println!("{reference_string}");
         }
-        Mode::Check => match fs_err::read_to_string(reference_path) {
+        Mode::Check => match uv_vfs::fs::read_to_string(reference_path) {
             Ok(current) => {
                 if current == reference_string {
                     anstream::println!("Up-to-date: {filename}");
@@ -48,18 +48,18 @@ pub(crate) fn main(args: &Args) -> anyhow::Result<()> {
                 );
             }
         },
-        Mode::Write => match fs_err::read_to_string(&reference_path) {
+        Mode::Write => match uv_vfs::fs::read_to_string(&reference_path) {
             Ok(current) => {
                 if current == reference_string {
                     anstream::println!("Up-to-date: {filename}");
                 } else {
                     anstream::println!("Updating: {filename}");
-                    fs_err::write(reference_path, reference_string.as_bytes())?;
+                    uv_vfs::fs::write(reference_path, reference_string.as_bytes())?;
                 }
             }
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
                 anstream::println!("Updating: {filename}");
-                fs_err::write(reference_path, reference_string.as_bytes())?;
+                uv_vfs::fs::write(reference_path, reference_string.as_bytes())?;
             }
             Err(err) => {
                 bail!(

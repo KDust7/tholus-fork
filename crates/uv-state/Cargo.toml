@@ -17,5 +17,6 @@ test = false
 workspace = true
 
 [dependencies]
+uv-vfs = { workspace = true }
 uv-dirs = { workspace = true }
 tempfile = { workspace = true }

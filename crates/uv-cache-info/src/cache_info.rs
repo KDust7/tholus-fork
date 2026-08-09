@@ -52,7 +52,7 @@ impl CacheInfo {
 
     /// Compute the cache info for a given path, which may be a file or a directory.
     pub fn from_path(path: &Path) -> Result<Self, CacheInfoError> {
-        let metadata = fs_err::metadata(path)?;
+        let metadata = uv_vfs::fs::metadata(path)?;
         if metadata.is_file() {
             Ok(Self::from_file(path)?)
         } else {
@@ -70,7 +70,7 @@ impl CacheInfo {
 
         // Read the cache keys.
         let pyproject_path = directory.join("pyproject.toml");
-        let cache_keys = if let Ok(contents) = fs_err::read_to_string(&pyproject_path) {
+        let cache_keys = if let Ok(contents) = uv_vfs::fs::read_to_string(&pyproject_path) {
             let result = info_span!("toml::from_str cache keys", path = %pyproject_path.display())
                 .in_scope(|| toml::from_str::<PyProjectToml>(&contents));
             if let Ok(pyproject_toml) = result {
@@ -242,7 +242,7 @@ impl CacheInfo {
                     };
                     let metadata = if entry.path_is_symlink() {
                         // resolve symlinks for leaf entries without following symlinks while globbing
-                        match fs_err::metadata(entry.path()) {
+                        match uv_vfs::fs::metadata(entry.path()) {
                             Ok(metadata) => metadata,
                             Err(err) => {
                                 warn!("Failed to resolve symlink for glob entry: {err}");
@@ -300,7 +300,7 @@ impl CacheInfo {
     /// Compute the cache info for a given file, assumed to be a binary or source distribution
     /// represented as (e.g.) a `.whl` or `.tar.gz` archive.
     pub fn from_file(path: impl AsRef<Path>) -> std::io::Result<Self> {
-        let metadata = fs_err::metadata(path.as_ref())?;
+        let metadata = uv_vfs::fs::metadata(path.as_ref())?;
         let timestamp = Timestamp::from_metadata(&metadata);
         Ok(Self {
             timestamp: Some(timestamp),
@@ -385,12 +385,12 @@ mod tests_unix {
 
     #[test]
     fn test_cache_info_symlink_resolve() -> Result<()> {
-        let dir = tempfile::tempdir()?;
+        let dir = uv_vfs::temp::tempdir()?;
         let dir = dir.path().join("dir");
-        fs_err::create_dir_all(&dir)?;
+        uv_vfs::fs::create_dir_all(&dir)?;
 
         let write_manifest = |cache_key: &str| {
-            fs_err::write(
+            uv_vfs::fs::write(
                 dir.join("pyproject.toml"),
                 format!(
                     r#"
@@ -405,8 +405,8 @@ mod tests_unix {
 
         let touch = |path: &str| -> Result<_> {
             let path = dir.join(path);
-            fs_err::create_dir_all(path.parent().unwrap())?;
-            fs_err::write(&path, "")?;
+            uv_vfs::fs::create_dir_all(path.parent().unwrap())?;
+            uv_vfs::fs::write(&path, "")?;
             Ok(Timestamp::from_metadata(&path.metadata()?))
         };
 
@@ -421,12 +421,12 @@ mod tests_unix {
 
         // leaf entry symlink should be resolved
         let a = touch("../a")?;
-        fs_err::os::unix::fs::symlink(dir.join("../a"), dir.join("x/a"))?;
+        uv_vfs::fs::os::unix::fs::symlink(dir.join("../a"), dir.join("x/a"))?;
         assert_eq!(cache_timestamp()?, Some(a));
 
         // symlink directories should not be followed while globbing
         let c = touch("../b/c")?;
-        fs_err::os::unix::fs::symlink(dir.join("../b"), dir.join("x/b"))?;
+        uv_vfs::fs::os::unix::fs::symlink(dir.join("../b"), dir.join("x/b"))?;
         assert_eq!(cache_timestamp()?, Some(a));
 
         // no globs, should work as expected

@@ -194,7 +194,7 @@ fn tool_audit_invalid_receipt() -> Result<()> {
     let context = uv_test::test_context!("3.12");
     let tool_dir = context.temp_dir.child("tools");
     install_tool(&context, "simple-launcher", true);
-    fs_err::write(
+    uv_vfs::fs::write(
         tool_dir.join("simple-launcher").join("uv-receipt.toml"),
         "not valid toml",
     )?;
@@ -226,7 +226,7 @@ fn tool_audit_invalid_lockfile() -> Result<()> {
     let context = uv_test::test_context!("3.12");
     let tool_dir = context.temp_dir.child("tools");
     install_tool(&context, "simple-launcher", true);
-    fs_err::write(
+    uv_vfs::fs::write(
         tool_dir.join("simple-launcher").join("uv.lock"),
         "not valid toml",
     )?;
@@ -269,8 +269,8 @@ fn tool_audit_unsupported_lockfile_version() -> Result<()> {
     install_tool(&context, "simple-launcher", true);
 
     let lock_path = tool_dir.join("simple-launcher").join("uv.lock");
-    let contents = fs_err::read_to_string(&lock_path)?;
-    fs_err::write(
+    let contents = uv_vfs::fs::read_to_string(&lock_path)?;
+    uv_vfs::fs::write(
         &lock_path,
         contents.replacen("version = 1\n", "version = 2\n", 1),
     )?;
@@ -304,10 +304,10 @@ fn tool_audit_unparsable_unsupported_lockfile_version() -> Result<()> {
     install_tool(&context, "simple-launcher", true);
 
     let lock_path = tool_dir.join("simple-launcher").join("uv.lock");
-    let contents = fs_err::read_to_string(&lock_path)?
+    let contents = uv_vfs::fs::read_to_string(&lock_path)?
         .replacen("version = 1\n", "version = 2\n", 1)
         .replacen("version = \"0.1.0\"\n", "version = false\n", 1);
-    fs_err::write(&lock_path, contents)?;
+    uv_vfs::fs::write(&lock_path, contents)?;
 
     uv_snapshot!(context.filters(), context.tool_audit()
         .arg("simple-launcher")
@@ -874,7 +874,7 @@ async fn tool_audit_persisted_index_and_project_status() -> Result<()> {
     let bin_dir = context.temp_dir.child("bin");
     let server = MockServer::start().await;
     let wheel_filename = "simple_launcher-0.1.0-py3-none-any.whl";
-    let wheel = fs_err::read(
+    let wheel = uv_vfs::fs::read(
         context
             .workspace_root
             .join("test/links")

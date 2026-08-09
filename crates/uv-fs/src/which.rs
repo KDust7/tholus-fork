@@ -34,7 +34,7 @@ pub fn is_executable(path: &Path) -> bool {
 
     #[cfg(target_os = "windows")]
     {
-        let Ok(file_type) = fs_err::symlink_metadata(path).map(|metadata| metadata.file_type())
+        let Ok(file_type) = uv_vfs::fs::symlink_metadata(path).map(|metadata| metadata.file_type())
         else {
             return false;
         };
@@ -50,7 +50,7 @@ pub fn is_executable(path: &Path) -> bool {
     {
         use std::os::unix::fs::PermissionsExt;
 
-        if !fs_err::metadata(path)
+        if !uv_vfs::fs::metadata(path)
             .is_ok_and(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
         {
             return false;

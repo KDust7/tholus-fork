@@ -176,7 +176,7 @@ pub fn read_archive_metadata(
 /// See: <https://github.com/PyO3/python-pkginfo-rs>
 fn find_flat_dist_info(filename: &WheelFilename, path: impl AsRef<Path>) -> Result<String, Error> {
     // Iterate over `path` to find the `.dist-info` directory. It should be at the top-level.
-    let Some(dist_info_prefix) = fs_err::read_dir(path.as_ref())
+    let Some(dist_info_prefix) = uv_vfs::fs::read_dir(path.as_ref())
         .map_err(Error::Io)?
         .find_map(|entry| {
             let entry = entry.ok()?;
@@ -223,7 +223,7 @@ fn read_dist_info_metadata(
     let metadata_file = wheel
         .as_ref()
         .join(format!("{dist_info_prefix}.dist-info/METADATA"));
-    fs_err::read(metadata_file).map_err(Error::Io)
+    uv_vfs::fs::read(metadata_file).map_err(Error::Io)
 }
 
 /// Read a wheel's `METADATA` file from a zip file.

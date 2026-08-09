@@ -65,6 +65,8 @@ use crate::commands::reporters::{PythonDownloadReporter, ResolverReporter};
 use crate::commands::{ExitStatus, ScriptPath, diagnostics, project};
 use crate::printer::Printer;
 use crate::settings::{FrozenSource, LockCheck, ResolverInstallerSettings};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// Add one or more packages to the project requirements.
 #[expect(clippy::fn_params_excessive_bools)]
@@ -611,7 +613,7 @@ pub(crate) async fn add(
         // the discovered members, etc.
         target = if modified {
             let workspace_content = toml.to_string();
-            fs_err::write(
+            uv_vfs::fs::write(
                 project.workspace().install_path().join("pyproject.toml"),
                 &workspace_content,
             )?;
@@ -683,7 +685,7 @@ pub(crate) async fn add(
             if !path.is_dir() {
                 bail!("Directory not found for index: {url}");
             }
-            if fs_err::read_dir(&path)?.next().is_none() {
+            if uv_vfs::fs::read_dir(&path)?.next().is_none() {
                 warn_user_once!("Index directory `{url}` is empty, skipping");
                 continue;
             }
@@ -1401,7 +1403,7 @@ impl AddTarget {
                     Ok(false)
                 } else {
                     let pyproject_path = project.root().join("pyproject.toml");
-                    fs_err::write(pyproject_path, content)?;
+                    uv_vfs::fs::write(pyproject_path, content)?;
                     Ok(true)
                 }
             }
@@ -1471,10 +1473,10 @@ impl AddTargetSnapshot {
                 let target = LockTarget::from(script);
                 if let Some(lock) = lock {
                     debug!("Reverting changes to `uv.lock`");
-                    fs_err::write(target.lock_path(), lock)?;
+                    uv_vfs::fs::write(target.lock_path(), lock)?;
                 } else {
                     debug!("Removing `uv.lock`");
-                    fs_err::remove_file(target.lock_path())?;
+                    uv_vfs::fs::remove_file(target.lock_path())?;
                 }
                 Ok(())
             }
@@ -1483,7 +1485,7 @@ impl AddTargetSnapshot {
                 let workspace = project.workspace();
                 if workspace.install_path() != project.root() {
                     debug!("Reverting changes to workspace `pyproject.toml`");
-                    fs_err::write(
+                    uv_vfs::fs::write(
                         workspace.install_path().join("pyproject.toml"),
                         workspace.pyproject_toml().as_ref(),
                     )?;
@@ -1491,7 +1493,7 @@ impl AddTargetSnapshot {
 
                 // Write the `pyproject.toml` back to disk.
                 debug!("Reverting changes to `pyproject.toml`");
-                fs_err::write(
+                uv_vfs::fs::write(
                     project.root().join("pyproject.toml"),
                     project.pyproject_toml().as_ref(),
                 )?;
@@ -1500,10 +1502,10 @@ impl AddTargetSnapshot {
                 let target = LockTarget::from(project.workspace());
                 if let Some(lock) = lock {
                     debug!("Reverting changes to `uv.lock`");
-                    fs_err::write(target.lock_path(), lock)?;
+                    uv_vfs::fs::write(target.lock_path(), lock)?;
                 } else {
                     debug!("Removing `uv.lock`");
-                    fs_err::remove_file(target.lock_path())?;
+                    uv_vfs::fs::remove_file(target.lock_path())?;
                 }
                 Ok(())
             }

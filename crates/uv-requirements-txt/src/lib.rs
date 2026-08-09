@@ -62,6 +62,8 @@ use uv_redacted::DisplaySafeUrlError;
 use crate::requirement::EditableError;
 pub use crate::requirement::RequirementsTxtRequirement;
 use crate::shquote::unquote;
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 mod requirement;
 mod shquote;
@@ -1581,11 +1583,11 @@ mod test {
 
     use anyhow::Result;
     use assert_fs::prelude::*;
-    use fs_err as fs;
+    use uv_vfs::fs as fs;
     use indoc::indoc;
     use insta::assert_debug_snapshot;
     use itertools::Itertools;
-    use tempfile::tempdir;
+    use uv_vfs::temp::tempdir;
     use test_case::test_case;
     use unscanny::Scanner;
 

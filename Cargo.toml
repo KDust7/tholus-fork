@@ -85,6 +85,7 @@ uv-toml = { version = "0.0.70", path = "crates/uv-toml" }
 uv-tool = { version = "0.0.70", path = "crates/uv-tool" }
 uv-torch = { version = "0.0.70", path = "crates/uv-torch" }
 uv-trampoline-builder = { version = "0.0.70", path = "crates/uv-trampoline-builder" }
+uv-vfs = { version = "0.0.70", path = "crates/uv-vfs" }
 uv-types = { version = "0.0.70", path = "crates/uv-types" }
 uv-unix = { version = "0.0.70", path = "crates/uv-unix" }
 uv-version = { version = "0.12.3", path = "crates/uv-version" }

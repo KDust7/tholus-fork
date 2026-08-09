@@ -33,7 +33,7 @@ pub(crate) async fn compile(args: CompileArgs) -> anyhow::Result<()> {
     };
 
     let files = uv_installer::compile_tree(
-        &fs_err::canonicalize(args.root)?,
+        &uv_vfs::fs::canonicalize(args.root)?,
         &interpreter,
         &Concurrency::default(),
         cache.root(),

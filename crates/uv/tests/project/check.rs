@@ -1983,8 +1983,8 @@ fn check_script() -> Result<()> {
     // If `ty` accidentally uses the workspace environment, it will see this incompatible stub
     // instead of the script dependency and report that `IniConfig` is not callable.
     let workspace_iniconfig = context.site_packages().join("iniconfig");
-    fs_err::create_dir_all(&workspace_iniconfig)?;
-    fs_err::write(workspace_iniconfig.join("__init__.pyi"), "IniConfig: int\n")?;
+    uv_vfs::fs::create_dir_all(&workspace_iniconfig)?;
+    uv_vfs::fs::write(workspace_iniconfig.join("__init__.pyi"), "IniConfig: int\n")?;
 
     let script = context.temp_dir.child("-script.py");
     script.write_str(indoc! {r#"
@@ -2544,7 +2544,7 @@ fn check_isolated_no_project() -> Result<()> {
         dependencies = []
     "#})?;
 
-    fs_err::write(context.site_packages().join("active_only.py"), "")?;
+    uv_vfs::fs::write(context.site_packages().join("active_only.py"), "")?;
 
     let main_py = context.temp_dir.child("main.py");
     main_py.write_str(indoc! {r"

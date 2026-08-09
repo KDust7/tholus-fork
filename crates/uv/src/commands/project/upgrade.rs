@@ -33,6 +33,8 @@ use crate::commands::project::{ProjectError, ProjectInterpreter, UniversalState,
 use crate::commands::{ExitStatus, diagnostics};
 use crate::printer::Printer;
 use crate::settings::ResolverSettings;
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// A dependency requirement selected for upgrading.
 struct UpgradableRequirement {
@@ -505,7 +507,7 @@ pub(crate) async fn upgrade(
         )?;
         apply_requirement_replacements(&mut pyproject, updated_requirements.values())?;
         let pyproject_path = project.project_root().join("pyproject.toml");
-        fs_err::write(pyproject_path, pyproject.to_string())?;
+        uv_vfs::fs::write(pyproject_path, pyproject.to_string())?;
     }
 
     let events = match &result {

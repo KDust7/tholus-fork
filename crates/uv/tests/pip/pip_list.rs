@@ -186,7 +186,7 @@ fn list_outdated_find_links() -> Result<()> {
     let links_dir = context.workspace_root.join("test/links");
     let first_links_dir = context.temp_dir.child("first-links");
     first_links_dir.create_dir_all()?;
-    fs_err::copy(
+    uv_vfs::fs::copy(
         links_dir.join("validation-2.0.0-py3-none-any.whl"),
         first_links_dir
             .child("validation-2.0.0-py3-none-any.whl")
@@ -194,7 +194,7 @@ fn list_outdated_find_links() -> Result<()> {
     )?;
     let second_links_dir = context.temp_dir.child("second-links");
     second_links_dir.create_dir_all()?;
-    fs_err::copy(
+    uv_vfs::fs::copy(
         links_dir.join("validation-3.0.0-py3-none-any.whl"),
         second_links_dir
             .child("validation-3.0.0-py3-none-any.whl")

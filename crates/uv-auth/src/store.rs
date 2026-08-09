@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
-use fs_err as fs;
+use uv_vfs::fs as fs;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -419,7 +419,7 @@ mod tests {
     use std::io::Write;
     use std::str::FromStr;
 
-    use tempfile::NamedTempFile;
+    use uv_vfs::temp::NamedTempFile;
 
     use super::*;
 

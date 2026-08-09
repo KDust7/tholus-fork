@@ -128,7 +128,7 @@ fn tool_uninstall_missing_receipt() {
         .assert()
         .success();
 
-    fs_err::remove_file(tool_dir.join("black").join("uv-receipt.toml")).unwrap();
+    uv_vfs::fs::remove_file(tool_dir.join("black").join("uv-receipt.toml")).unwrap();
 
     uv_snapshot!(context.filters(), context.tool_uninstall().arg("black")
         .env(EnvVars::UV_TOOL_DIR, tool_dir.as_os_str())
@@ -162,7 +162,7 @@ fn tool_uninstall_multiple_names_with_missing_receipt() {
         .assert()
         .success();
 
-    fs_err::remove_file(tool_dir.join("black").join("uv-receipt.toml")).unwrap();
+    uv_vfs::fs::remove_file(tool_dir.join("black").join("uv-receipt.toml")).unwrap();
 
     uv_snapshot!(context.filters(), context.tool_uninstall().arg("black").arg("ruff")
         .env(EnvVars::UV_TOOL_DIR, tool_dir.as_os_str())
@@ -198,7 +198,7 @@ fn tool_uninstall_all_missing_receipt() {
         .assert()
         .success();
 
-    fs_err::remove_file(tool_dir.join("black").join("uv-receipt.toml")).unwrap();
+    uv_vfs::fs::remove_file(tool_dir.join("black").join("uv-receipt.toml")).unwrap();
 
     uv_snapshot!(context.filters(), context.tool_uninstall().arg("--all")
         .env(EnvVars::UV_TOOL_DIR, tool_dir.as_os_str())

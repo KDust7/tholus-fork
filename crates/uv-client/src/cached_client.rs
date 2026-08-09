@@ -266,7 +266,7 @@ impl CachedClient {
                         "Broken cache entry at {}, removing: {err}",
                         cache_entry.path().display()
                     );
-                    let _ = fs_err::tokio::remove_file(&cache_entry.path()).await;
+                    let _ = uv_vfs::fs::tokio::remove_file(&cache_entry.path()).await;
                 }
             }
 
@@ -425,7 +425,7 @@ impl CachedClient {
         cache_control: CacheControl,
         response_callback: Callback,
     ) -> Result<Payload::Target, CachedClientError<CallBackError>> {
-        let _ = fs_err::tokio::remove_file(&cache_entry.path()).await;
+        let _ = uv_vfs::fs::tokio::remove_file(&cache_entry.path()).await;
         let start = Instant::now();
         let (response, cache_policy) = self.fresh_request(req, cache_control).await?;
         self.run_response_callback(
@@ -469,7 +469,7 @@ impl CachedClient {
             return Ok(data.into_target());
         };
         async {
-            fs_err::tokio::create_dir_all(cache_entry.dir())
+            uv_vfs::fs::tokio::create_dir_all(cache_entry.dir())
                 .await
                 .map_err(ErrorKind::CacheWrite)?;
             let data_with_cache_policy_bytes =
@@ -500,7 +500,7 @@ impl CachedClient {
                         "Broken cache policy entry at {}, removing: {err}",
                         cache_entry.path().display()
                     );
-                    let _ = fs_err::tokio::remove_file(&cache_entry.path()).await;
+                    let _ = uv_vfs::fs::tokio::remove_file(&cache_entry.path()).await;
                 }
                 None
             }
@@ -908,7 +908,7 @@ impl DataWithCachePolicy {
     /// file given fails, then this returns an error.
     #[instrument]
     fn from_path_sync(path: &Path) -> Result<Self, Error> {
-        let mut file = fs_err::File::open(path).map_err(ErrorKind::Io)?;
+        let mut file = uv_vfs::fs::File::open(path).map_err(ErrorKind::Io)?;
         let file_size = file.metadata().map_err(ErrorKind::Io)?.len();
         let file_size = usize::try_from(file_size)
             .ok()

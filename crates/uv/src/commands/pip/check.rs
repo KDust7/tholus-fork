@@ -1,5 +1,5 @@
 use std::fmt::Write;
-use std::time::Instant;
+use web_time::Instant;
 
 use anyhow::Result;
 use owo_colors::OwoColorize;

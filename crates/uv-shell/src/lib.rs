@@ -99,7 +99,7 @@ impl Shell {
 
             // Try to read the parent process executable path
             let proc_exe_path = format!("/proc/{ppid}/exe");
-            if let Ok(exe_path) = fs_err::read_link(&proc_exe_path) {
+            if let Ok(exe_path) = uv_vfs::fs::read_link(&proc_exe_path) {
                 debug!("Parent process executable: {}", exe_path.display());
                 if let Some(shell) = Self::from_shell_path(&exe_path) {
                     return Some(shell);
@@ -108,7 +108,7 @@ impl Shell {
 
             // If reading exe fails, try reading the comm file
             let proc_comm_path = format!("/proc/{ppid}/comm");
-            if let Ok(comm) = fs_err::read_to_string(&proc_comm_path) {
+            if let Ok(comm) = uv_vfs::fs::read_to_string(&proc_comm_path) {
                 let comm = comm.trim();
                 debug!("Parent process comm: {comm}");
                 if let Some(shell) = parse_shell_from_path(Path::new(comm)) {
@@ -362,9 +362,9 @@ fn backtick_escape(s: &str) -> Cow<'_, str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fs_err::File;
+    use uv_vfs::fs::File;
     use temp_env::with_vars;
-    use tempfile::tempdir;
+    use uv_vfs::temp::tempdir;
 
     // First option used by std::env::home_dir.
     const HOME_DIR_ENV_VAR: &str = if cfg!(windows) {

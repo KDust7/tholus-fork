@@ -1105,7 +1105,7 @@ pub(crate) async fn run(
                 // Copy each entrypoint from the base environments to the ephemeral environment,
                 // updating the Python executable target to ensure they run in the ephemeral
                 // environment.
-                let scripts = match fs_err::read_dir(interpreter.scripts()) {
+                let scripts = match uv_vfs::fs::read_dir(interpreter.scripts()) {
                     Ok(scripts) => scripts,
                     Err(err) if err.kind() == io::ErrorKind::NotFound => continue,
                     Err(err) => return Err(err.into()),
@@ -1159,7 +1159,7 @@ pub(crate) async fn run(
                     }
                     let target = ephemeral_env.sys_prefix().join(dir);
                     if let Some(parent) = target.parent() {
-                        fs_err::create_dir_all(parent)?;
+                        uv_vfs::fs::create_dir_all(parent)?;
                     }
                     match create_symlink(&source, &target) {
                         Ok(()) => trace!(
@@ -1211,7 +1211,7 @@ pub(crate) async fn run(
             "Provide a command or script to invoke with `uv run <command>` or `uv run <script>.py`.\n"
         )?;
 
-        let scripts = match fs_err::read_dir(interpreter.scripts()) {
+        let scripts = match uv_vfs::fs::read_dir(interpreter.scripts()) {
             Ok(scripts) => scripts.into_iter().collect::<Result<Vec<_>, _>>()?,
             Err(err) if err.kind() == io::ErrorKind::NotFound => Vec::new(),
             Err(err) => return Err(err.into()),
@@ -1424,7 +1424,7 @@ pub(crate) enum RunCommand {
     /// Execute a `pythonw` script provided via `stdin`.
     PythonGuiStdin(Vec<u8>, Vec<OsString>),
     /// Execute a Python script downloaded from a remote URL.
-    PythonRemote(tempfile::NamedTempFile, Vec<OsString>),
+    PythonRemote(uv_vfs::temp::NamedTempFile, Vec<OsString>),
     /// Execute an external command.
     External(OsString, Vec<OsString>),
     /// Execute an empty command (in practice, `python` with no arguments).
@@ -1454,7 +1454,7 @@ impl PendingRemoteRunCommand {
     async fn download(
         self,
         client_builder: &BaseClientBuilder<'_>,
-    ) -> anyhow::Result<(DisplaySafeUrl, tempfile::NamedTempFile, Vec<OsString>)> {
+    ) -> anyhow::Result<(DisplaySafeUrl, uv_vfs::temp::NamedTempFile, Vec<OsString>)> {
         let url = self.url.clone();
         let downloaded_script =
             ParsedRunCommand::download_remote_script(&self.url, client_builder).await?;
@@ -1607,7 +1607,7 @@ impl ParsedRunCommand {
     async fn download_remote_script(
         mut url: &DisplaySafeUrl,
         client_builder: &BaseClientBuilder<'_>,
-    ) -> anyhow::Result<tempfile::NamedTempFile> {
+    ) -> anyhow::Result<uv_vfs::temp::NamedTempFile> {
         let client = client_builder.build()?;
         let mut response = client
             .for_host(url)
@@ -1634,7 +1634,7 @@ impl ParsedRunCommand {
             .and_then(Iterator::last)
             .and_then(|segment| segment.strip_suffix(".py"))
             .unwrap_or("script");
-        let file = tempfile::Builder::new()
+        let file = uv_vfs::temp::Builder::new()
             .prefix(file_stem)
             .suffix(".py")
             .tempfile()?;
@@ -1973,7 +1973,7 @@ async fn resolve_gist_url(
 
 /// Returns `true` if the target is a ZIP archive containing a `__main__.py` file.
 fn is_python_zipapp(target: &Path) -> bool {
-    if let Ok(file) = fs_err::File::open(target) {
+    if let Ok(file) = uv_vfs::fs::File::open(target) {
         let reader = std::io::BufReader::new(file);
         return futures::executor::block_on(async {
             let archive = async_zip::base::read::seek::ZipFileReader::new(
@@ -2044,9 +2044,9 @@ fn copy_entrypoint(
     use std::io::{Seek, Write};
     use std::os::unix::fs::PermissionsExt;
 
-    use fs_err::os::unix::fs::OpenOptionsExt;
+    use uv_vfs::fs::os::unix::fs::OpenOptionsExt;
 
-    let mut file = fs_err::File::open(source)?;
+    let mut file = uv_vfs::fs::File::open(source)?;
     let mut buffer = [0u8; 2];
     if file.read_exact(&mut buffer).is_err() {
         // File is too small to have a shebang
@@ -2109,8 +2109,8 @@ fn copy_entrypoint(
     };
 
     let contents = format!("#!{}\n{}", python_executable.display(), contents);
-    let mode = fs_err::metadata(source)?.permissions().mode();
-    let mut file = fs_err::OpenOptions::new()
+    let mode = uv_vfs::fs::metadata(source)?.permissions().mode();
+    let mut file = uv_vfs::fs::OpenOptions::new()
         .create_new(true)
         .write(true)
         .mode(mode)
@@ -2146,7 +2146,7 @@ fn copy_entrypoint(
     };
 
     let launcher = launcher.with_python_path(python_path);
-    let mut file = fs_err::OpenOptions::new()
+    let mut file = uv_vfs::fs::OpenOptions::new()
         .create_new(true)
         .write(true)
         .open(target)?;

@@ -165,11 +165,11 @@ fn load_vendor_file(artifact: &VendorArtifact) -> Result<Arc<[u8]>> {
 #[tokio::main(flavor = "current_thread")]
 async fn load_vendor_file_async(artifact: &VendorArtifact) -> Result<Vec<u8>> {
     let cache_dir = vendor_cache_dir();
-    fs_err::create_dir_all(&cache_dir)
+    uv_vfs::fs::create_dir_all(&cache_dir)
         .with_context(|| format!("failed to create vendor cache at `{}`", cache_dir.display()))?;
     let path = cache_dir.join(artifact.filename);
     ensure_cached_artifact(artifact, &path).await?;
-    let bytes = fs_err::read(&path)
+    let bytes = uv_vfs::fs::read(&path)
         .with_context(|| format!("failed to read cached vendor artifact `{}`", path.display()))?;
     verify_bytes(artifact, &bytes)?;
     Ok(bytes)
@@ -245,7 +245,7 @@ async fn ensure_cached_artifact(artifact: &VendorArtifact, path: &Path) -> Resul
     match persist_with_retry_sync(temp, path) {
         Ok(()) => Ok(()),
         Err(_)
-            if let Ok(bytes) = fs_err::read(path)
+            if let Ok(bytes) = uv_vfs::fs::read(path)
                 && verify_bytes(artifact, &bytes).is_ok() =>
         {
             Ok(())
@@ -260,7 +260,7 @@ async fn ensure_cached_artifact(artifact: &VendorArtifact, path: &Path) -> Resul
 }
 
 fn cached_artifact_matches(artifact: &VendorArtifact, path: &Path) -> bool {
-    fs_err::read(path).is_ok_and(|bytes| verify_bytes(artifact, &bytes).is_ok())
+    uv_vfs::fs::read(path).is_ok_and(|bytes| verify_bytes(artifact, &bytes).is_ok())
 }
 
 fn artifact_lock_path(path: &Path) -> Result<PathBuf> {

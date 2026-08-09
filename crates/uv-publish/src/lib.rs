@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{fmt, io};
 
-use fs_err::tokio::File;
+use uv_vfs::fs::tokio::File;
 use futures::TryStreamExt;
 use glob::{GlobError, PatternError, glob};
 use itertools::Itertools;
@@ -821,7 +821,7 @@ pub async fn upload_two_phase(
         debug!("Got pre-signed URL for upload: {s3_url}");
 
         // Use a custom retry loop since streaming uploads can't be retried by the middleware.
-        let file_size = fs_err::tokio::metadata(&group.file)
+        let file_size = uv_vfs::fs::tokio::metadata(&group.file)
             .await
             .map_err(|err| {
                 PublishError::PublishPrepare(
@@ -1337,7 +1337,7 @@ async fn build_upload_request<'a>(
 
     let mut attestations = vec![];
     for attestation_path in &group.attestations {
-        let contents = fs_err::read_to_string(attestation_path)?;
+        let contents = uv_vfs::fs::read_to_string(attestation_path)?;
         // NOTE: We don't currently validate the interior structure of an attestation beyond being
         // valid JSON. We could validate it pretty easily in the future.
         let raw_attestation = serde_json::from_str::<serde_json::Value>(&contents)

@@ -95,7 +95,7 @@ pub(crate) fn main(args: &Args) -> Result<()> {
             Mode::DryRun => println!("{output}"),
             Mode::Write => {
                 println!("Updating: {}", template.test_file());
-                fs_err::write(&path, output.as_bytes())
+                uv_vfs::fs::write(&path, output.as_bytes())
                     .with_context(|| format!("failed to write {}", path.display()))?;
 
                 if args.no_snapshot_update {
@@ -199,15 +199,15 @@ fn format_rust_file(path: &Path) -> Result<()> {
 }
 
 fn format_rust_source(output: &str) -> Result<String> {
-    let temporary_directory = tempfile::Builder::new()
+    let temporary_directory = uv_vfs::temp::Builder::new()
         .prefix(".generate-scenario-tests-")
         .tempdir_in(ROOT_DIR)
         .context("failed to create temporary directory for rustfmt")?;
     let path = temporary_directory.path().join("scenarios.rs");
-    fs_err::write(&path, output.as_bytes())
+    uv_vfs::fs::write(&path, output.as_bytes())
         .with_context(|| format!("failed to write {}", path.display()))?;
     format_rust_file(&path)?;
-    fs_err::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))
+    uv_vfs::fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))
 }
 
 fn check_generated_file(path: &Path, output: &str) -> Result<()> {
@@ -216,7 +216,7 @@ fn check_generated_file(path: &Path, output: &str) -> Result<()> {
         .unwrap_or(path)
         .to_string_lossy();
     let output = normalize_inline_snapshots(output)?;
-    match fs_err::read_to_string(path) {
+    match uv_vfs::fs::read_to_string(path) {
         Ok(current) => {
             let current = normalize_inline_snapshots(&current)?;
             if current == output {
@@ -991,7 +991,7 @@ mod tests {
 
     #[test]
     fn missing_scenarios_directory_is_an_error() {
-        let temp_dir = tempfile::tempdir().expect("temporary directory should be created");
+        let temp_dir = uv_vfs::temp::tempdir().expect("temporary directory should be created");
         let directory = temp_dir.path().join("missing");
 
         assert!(load_scenarios_from(&directory).is_err());
@@ -1007,8 +1007,8 @@ mod tests {
     #[test]
     fn scenario_can_skip_generated_tests() {
         let temporary_directory =
-            tempfile::tempdir().expect("temporary directory should be created");
-        fs_err::write(
+            uv_vfs::temp::tempdir().expect("temporary directory should be created");
+        uv_vfs::fs::write(
             temporary_directory.path().join("skip.toml"),
             r#"
 name = "skip"
@@ -1041,9 +1041,9 @@ kind = "compile"
     #[test]
     fn stale_generated_file_is_an_error() {
         let temporary_directory =
-            tempfile::tempdir().expect("temporary directory should be created");
+            uv_vfs::temp::tempdir().expect("temporary directory should be created");
         let path = temporary_directory.path().join("scenario.rs");
-        fs_err::write(&path, "old contents").expect("temporary file should be written");
+        uv_vfs::fs::write(&path, "old contents").expect("temporary file should be written");
 
         let error =
             check_generated_file(&path, "new contents").expect_err("stale file should fail");
@@ -1066,9 +1066,9 @@ kind = "compile"
     #[test]
     fn accepted_snapshots_do_not_make_generated_file_stale() {
         let temporary_directory =
-            tempfile::tempdir().expect("temporary directory should be created");
+            uv_vfs::temp::tempdir().expect("temporary directory should be created");
         let path = temporary_directory.path().join("scenario.rs");
-        fs_err::write(
+        uv_vfs::fs::write(
             &path,
             "/// Literal @\"accepted\" remains significant.\nfn scenario() {\n    uv_snapshot!(filters, cmd, @\"\naccepted output\n\");\n}\n",
         )
@@ -1084,9 +1084,9 @@ kind = "compile"
     #[test]
     fn snapshot_like_documentation_changes_make_generated_file_stale() {
         let temporary_directory =
-            tempfile::tempdir().expect("temporary directory should be created");
+            uv_vfs::temp::tempdir().expect("temporary directory should be created");
         let path = temporary_directory.path().join("scenario.rs");
-        fs_err::write(
+        uv_vfs::fs::write(
             &path,
             "/// Literal @\"current\" remains significant.\nfn scenario() {\n    uv_snapshot!(filters, cmd, @\"\naccepted output\n\");\n}\n",
         )

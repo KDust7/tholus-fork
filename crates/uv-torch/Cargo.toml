@@ -10,6 +10,7 @@ authors = { workspace = true }
 license = { workspace = true }
 
 [dependencies]
+uv-vfs = { workspace = true }
 uv-distribution-types = { workspace = true }
 uv-normalize = { workspace = true }
 uv-pep440 = { workspace = true }

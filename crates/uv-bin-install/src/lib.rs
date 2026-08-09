@@ -733,7 +733,7 @@ async fn bin_install_from_urls(
     }
 
     let cache_dir = cache_entry.dir();
-    fs_err::tokio::create_dir_all(&cache_dir).await?;
+    uv_vfs::fs::tokio::create_dir_all(&cache_dir).await?;
 
     let path = fetch_with_url_fallback(
         download_urls,
@@ -760,9 +760,9 @@ async fn bin_install_from_urls(
     {
         use std::fs::Permissions;
         use std::os::unix::fs::PermissionsExt;
-        let permissions = fs_err::tokio::metadata(&path).await?.permissions();
+        let permissions = uv_vfs::fs::tokio::metadata(&path).await?.permissions();
         if permissions.mode() & 0o111 != 0o111 {
-            fs_err::tokio::set_permissions(
+            uv_vfs::fs::tokio::set_permissions(
                 &path,
                 Permissions::from_mode(permissions.mode() | 0o111),
             )
@@ -788,7 +788,7 @@ async fn download_and_unpack(
     cache_entry: &CacheEntry,
 ) -> Result<PathBuf, Error> {
     // Create a temporary directory for extraction
-    let temp_dir = tempfile::tempdir_in(cache.bucket(CacheBucket::Binaries))?;
+    let temp_dir = uv_vfs::temp::tempdir_in(cache.bucket(CacheBucket::Binaries))?;
 
     let response = client
         .for_host(&download_url)
@@ -869,7 +869,7 @@ async fn download_and_unpack(
     }
 
     // Move the binary to its final location before the temp directory is dropped
-    fs_err::tokio::rename(&extracted_binary, cache_entry.path()).await?;
+    uv_vfs::fs::tokio::rename(&extracted_binary, cache_entry.path()).await?;
 
     Ok(cache_entry.path().to_path_buf())
 }

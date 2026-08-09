@@ -22,7 +22,7 @@ async fn unzip(url: &str) -> anyhow::Result<(), uv_extract::Error> {
         .map_err(std::io::Error::other)
         .into_async_read();
 
-    let target = tempfile::TempDir::new().map_err(uv_extract::Error::Io)?;
+    let target = uv_vfs::temp::TempDir::new().map_err(uv_extract::Error::Io)?;
     uv_extract::stream::unzip(reader.compat(), target.path()).await?;
     Ok(())
 }
@@ -45,11 +45,11 @@ async fn unzip_seekable(url: &str) -> anyhow::Result<(), uv_extract::Error> {
         .map_err(std::io::Error::other)
         .map_err(uv_extract::Error::Io)?;
 
-    let archive = tempfile::NamedTempFile::new().map_err(uv_extract::Error::Io)?;
-    fs_err::write(archive.path(), bytes).map_err(uv_extract::Error::Io)?;
-    let archive = fs_err::File::open(archive.path()).map_err(uv_extract::Error::Io)?;
+    let archive = uv_vfs::temp::NamedTempFile::new().map_err(uv_extract::Error::Io)?;
+    uv_vfs::fs::write(archive.path(), bytes).map_err(uv_extract::Error::Io)?;
+    let archive = uv_vfs::fs::File::open(archive.path()).map_err(uv_extract::Error::Io)?;
 
-    let target = tempfile::TempDir::new().map_err(uv_extract::Error::Io)?;
+    let target = uv_vfs::temp::TempDir::new().map_err(uv_extract::Error::Io)?;
     let target_path = target.path().to_path_buf();
     tokio::task::spawn_blocking(move || uv_extract::unzip(archive, &target_path))
         .await

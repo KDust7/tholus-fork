@@ -52,13 +52,13 @@ fn sync_centralized_env() -> Result<()> {
     "#);
 
     let link = context.temp_dir.child(".venv");
-    let target = fs_err::read_link(link.path())?;
+    let target = uv_vfs::fs::read_link(link.path())?;
     // The project link points into the cache.
     insta::with_settings!({ filters => context.filters() }, {
         assert_snapshot!(target.portable_display(), @"[CACHE_DIR]/environments-v2/project-cp3.12.[X]-[HASH]");
     });
 
-    fs_err::remove_dir_all(link.path())?;
+    uv_vfs::fs::remove_dir_all(link.path())?;
 
     // Reuses the cache entry without recreating `.venv`.
     uv_snapshot!(context.filters(), context.sync()
@@ -92,7 +92,7 @@ fn sync_centralized_env_switch_python() -> Result<()> {
         .arg("3.12")
         .assert()
         .success();
-    let link_312 = fs_err::read_link(context.temp_dir.child(".venv").path())?;
+    let link_312 = uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?;
     insta::with_settings!({ filters => context.filters() }, {
         assert_snapshot!(link_312.portable_display(), @"[CACHE_DIR]/environments-v2/project-cp3.12.[X]-[HASH]");
     });
@@ -105,7 +105,7 @@ fn sync_centralized_env_switch_python() -> Result<()> {
         .arg("3.11")
         .assert()
         .success();
-    let link_311 = fs_err::read_link(context.temp_dir.child(".venv").path())?;
+    let link_311 = uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?;
     insta::with_settings!({ filters => context.filters() }, {
         assert_snapshot!(link_311.portable_display(), @"[CACHE_DIR]/environments-v2/project-cp3.11.[X]-[HASH]");
     });
@@ -146,7 +146,7 @@ fn sync_centralized_env_distinguishes_python_patch() -> Result<()> {
         .arg("3.12.9")
         .assert()
         .success();
-    let first = fs_err::read_link(context.temp_dir.child(".venv").path())?;
+    let first = uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?;
     insta::with_settings!({ filters => context.filters() }, {
         assert_snapshot!(first.portable_display(), @"[CACHE_DIR]/environments-v2/project-cp3.12.9-[HASH]");
     });
@@ -159,7 +159,7 @@ fn sync_centralized_env_distinguishes_python_patch() -> Result<()> {
         .arg("3.12.11")
         .assert()
         .success();
-    let second = fs_err::read_link(context.temp_dir.child(".venv").path())?;
+    let second = uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?;
     insta::with_settings!({ filters => context.filters() }, {
         assert_snapshot!(second.portable_display(), @"[CACHE_DIR]/environments-v2/project-cp3.12.11-[HASH]");
     });
@@ -184,7 +184,7 @@ fn sync_centralized_env_survives_python_patch_upgrade() -> Result<()> {
         .arg("3.12")
         .assert()
         .success();
-    let first = fs_err::read_link(context.temp_dir.child(".venv").path())?;
+    let first = uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?;
     insta::with_settings!({ filters => context.filters() }, {
         assert_snapshot!(first.portable_display(), @"[CACHE_DIR]/environments-v2/project-cp3.12-[HASH]");
     });
@@ -214,7 +214,7 @@ fn sync_centralized_env_survives_python_patch_upgrade() -> Result<()> {
     Checked in [TIME]
     "#);
 
-    let second = fs_err::read_link(context.temp_dir.child(".venv").path())?;
+    let second = uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?;
     assert_eq!(first, second);
     Ok(())
 }
@@ -248,8 +248,8 @@ fn sync_centralized_env_avoids_project_name_collisions() -> Result<()> {
             .success();
     }
 
-    let target_a = fs_err::read_link(project_a.child(".venv").path())?;
-    let target_b = fs_err::read_link(project_b.child(".venv").path())?;
+    let target_a = uv_vfs::fs::read_link(project_a.child(".venv").path())?;
+    let target_b = uv_vfs::fs::read_link(project_b.child(".venv").path())?;
     // Projects with the same name use different environments.
     assert_ne!(target_a, target_b);
     Ok(())
@@ -282,9 +282,9 @@ fn sync_centralized_env_reuses_symlinked_workspace() -> Result<()> {
         .arg(project.path())
         .assert()
         .success();
-    let first = fs_err::read_link(project.child(".venv").path())?;
+    let first = uv_vfs::fs::read_link(project.child(".venv").path())?;
 
-    fs_err::remove_file(project.child(".venv").path())?;
+    uv_vfs::fs::remove_file(project.child(".venv").path())?;
     context
         .sync()
         .arg("--preview-features")
@@ -293,7 +293,7 @@ fn sync_centralized_env_reuses_symlinked_workspace() -> Result<()> {
         .arg(symlink.path())
         .assert()
         .success();
-    let second = fs_err::read_link(project.child(".venv").path())?;
+    let second = uv_vfs::fs::read_link(project.child(".venv").path())?;
 
     assert_eq!(first, second);
     Ok(())
@@ -382,7 +382,7 @@ fn sync_centralized_env_virtual_workspace() -> Result<()> {
         .assert()
         .success();
 
-    let target = fs_err::read_link(context.temp_dir.child(".venv").path())?;
+    let target = uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?;
     // The workspace root owns the centralized environment.
     insta::with_settings!({ filters => context.filters() }, {
         assert_snapshot!(target.portable_display(), @"[CACHE_DIR]/environments-v2/temp-cp3.12.[X]-[HASH]");
@@ -401,7 +401,7 @@ fn sync_centralized_env_virtual_workspace() -> Result<()> {
 
     // Selecting a workspace member still uses the workspace environment.
     assert_eq!(
-        fs_err::read_link(context.temp_dir.child(".venv").path())?,
+        uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?,
         target
     );
     assert!(!member.child(".venv").exists());
@@ -448,7 +448,7 @@ fn cache_prune_removes_and_recreates_centralized_environment() -> Result<()> {
         .assert()
         .success();
     let link = context.temp_dir.child(".venv");
-    let target = fs_err::read_link(link.path())?;
+    let target = uv_vfs::fs::read_link(link.path())?;
 
     context
         .prune()
@@ -456,7 +456,7 @@ fn cache_prune_removes_and_recreates_centralized_environment() -> Result<()> {
         .assert()
         .success();
     assert!(!target.exists());
-    assert_eq!(target, fs_err::read_link(link.path())?);
+    assert_eq!(target, uv_vfs::fs::read_link(link.path())?);
 
     // Without the preview, uv replaces the dangling cache link with a local environment.
     context
@@ -465,7 +465,7 @@ fn cache_prune_removes_and_recreates_centralized_environment() -> Result<()> {
         .assert()
         .success();
     assert!(link.is_dir());
-    assert!(fs_err::read_link(link.path()).is_err());
+    assert!(uv_vfs::fs::read_link(link.path()).is_err());
 
     context
         .sync()
@@ -475,7 +475,7 @@ fn cache_prune_removes_and_recreates_centralized_environment() -> Result<()> {
         .assert()
         .success();
     // The recreated environment uses the same cache entry.
-    assert_eq!(target, fs_err::read_link(link.path())?);
+    assert_eq!(target, uv_vfs::fs::read_link(link.path())?);
     // The dangling target is recreated.
     assert!(target.is_dir());
     Ok(())
@@ -493,14 +493,14 @@ fn sync_recovers_incomplete_centralized_environment() -> Result<()> {
         .success();
 
     let link = context.temp_dir.child(".venv");
-    let target = fs_err::read_link(link.path())?;
+    let target = uv_vfs::fs::read_link(link.path())?;
 
     // Simulate a mangled environment (e.g., due to interruption).
     uv_fs::remove_virtualenv(link.path())?;
     uv_fs::remove_virtualenv(&target)?;
-    fs_err::create_dir(&target)?;
+    uv_vfs::fs::create_dir(&target)?;
     uv_fs::cachedir::ensure_tag(&target)?;
-    fs_err::write(target.join(".gitignore"), "*")?;
+    uv_vfs::fs::write(target.join(".gitignore"), "*")?;
 
     context
         .sync()
@@ -509,7 +509,7 @@ fn sync_recovers_incomplete_centralized_environment() -> Result<()> {
         .assert()
         .success();
 
-    assert_eq!(target, fs_err::read_link(link.path())?);
+    assert_eq!(target, uv_vfs::fs::read_link(link.path())?);
     assert!(target.join("pyvenv.cfg").is_file());
     Ok(())
 }
@@ -535,7 +535,7 @@ fn sync_centralized_env_no_cache_uses_dot_venv() -> Result<()> {
 
     let environment = context.temp_dir.child(".venv");
     assert!(environment.is_dir());
-    assert!(fs_err::read_link(environment.path()).is_err());
+    assert!(uv_vfs::fs::read_link(environment.path()).is_err());
 
     uv_snapshot!(context.filters(), context.sync()
         .arg("--preview-features")
@@ -548,7 +548,7 @@ fn sync_centralized_env_no_cache_uses_dot_venv() -> Result<()> {
     Checked in [TIME]
     "#);
 
-    let target = fs_err::read_link(environment.path())?;
+    let target = uv_vfs::fs::read_link(environment.path())?;
     // A later cached invocation replaces the local environment with a centralized one.
     insta::with_settings!({ filters => context.filters() }, {
         assert_snapshot!(target.portable_display(), @"[CACHE_DIR]/environments-v2/project-cp3.12.[X]-[HASH]");
@@ -565,7 +565,7 @@ fn sync_centralized_env_no_cache_uses_dot_venv() -> Result<()> {
     Resolved 1 package in [TIME]
     Checked in [TIME]
     "#);
-    assert_eq!(fs_err::read_link(environment.path())?, target);
+    assert_eq!(uv_vfs::fs::read_link(environment.path())?, target);
     Ok(())
 }
 
@@ -587,7 +587,7 @@ fn sync_centralized_env_replaces_existing_directory_link() -> Result<()> {
         .assert()
         .success();
 
-    let target = fs_err::read_link(environment.path())?;
+    let target = uv_vfs::fs::read_link(environment.path())?;
     insta::with_settings!({ filters => context.filters() }, {
         assert_snapshot!(target.portable_display(), @"[CACHE_DIR]/environments-v2/project-cp3.12.[X]-[HASH]");
     });
@@ -616,7 +616,7 @@ fn sync_centralized_env_with_existing_file() -> Result<()> {
     Resolved 1 package in [TIME]
     Checked in [TIME]
     "#);
-    let target = fs_err::read_link(environment.path())?;
+    let target = uv_vfs::fs::read_link(environment.path())?;
     insta::with_settings!({ filters => context.filters() }, {
         assert_snapshot!(target.portable_display(), @"[CACHE_DIR]/environments-v2/project-cp3.12.[X]-[HASH]");
     });
@@ -632,7 +632,7 @@ fn sync_recovers_from_centralized_environment_path_file() -> Result<()> {
     // An arbitrary `.venv` file is preserved.
     environment.write_str("user-data")?;
     context.sync().assert().failure();
-    assert_eq!(fs_err::read_to_string(environment.path())?, "user-data");
+    assert_eq!(uv_vfs::fs::read_to_string(environment.path())?, "user-data");
 
     // A centralized path file can be replaced when returning to a local environment.
     let target = context
@@ -662,7 +662,7 @@ fn sync_centralized_env_replaces_existing_empty_directory() -> Result<()> {
         .assert()
         .success();
 
-    let target = fs_err::read_link(context.temp_dir.child(".venv").path())?;
+    let target = uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?;
     insta::with_settings!({ filters => context.filters() }, {
         assert_snapshot!(target.portable_display(), @"[CACHE_DIR]/environments-v2/project-cp3.12.[X]-[HASH]");
     });
@@ -778,7 +778,7 @@ fn sync_centralized_env_link_creation_failure_preserves_cached_target() -> Resul
 
     let environment = context.temp_dir.child(".venv");
     // Record the cache target to verify the failed link update leaves it selected.
-    let target = fs_err::read_link(environment.path())?;
+    let target = uv_vfs::fs::read_link(environment.path())?;
 
     let _guard = ReadOnlyDirectoryGuard::new(context.temp_dir.path())?;
     uv_snapshot!(context.filters(), context.sync()
@@ -791,7 +791,7 @@ fn sync_centralized_env_link_creation_failure_preserves_cached_target() -> Resul
     Checked in [TIME]
     "#);
 
-    assert_eq!(target, fs_err::read_link(environment.path())?);
+    assert_eq!(target, uv_vfs::fs::read_link(environment.path())?);
     assert!(target.join("pyvenv.cfg").is_file());
     Ok(())
 }
@@ -809,7 +809,7 @@ fn sync_replaces_environment_links_without_removing_cached_targets() -> Result<(
         .assert()
         .success();
     // Record the cache target so the final sync can verify it remains reusable.
-    let cache_target = fs_err::read_link(context.temp_dir.child(".venv").path())?;
+    let cache_target = uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?;
 
     let override_environment = context.temp_dir.child("override");
     uv_fs::create_symlink(&cache_target, override_environment.path())?;
@@ -825,7 +825,7 @@ fn sync_replaces_environment_links_without_removing_cached_targets() -> Result<(
 
     // An explicit environment path is local, but replacing it does not remove the cached target.
     assert!(override_environment.is_dir());
-    assert!(fs_err::read_link(override_environment.path()).is_err());
+    assert!(uv_vfs::fs::read_link(override_environment.path()).is_err());
 
     let environment = context.temp_dir.child(".venv");
     let intermediate = context.temp_dir.child("intermediate");
@@ -847,11 +847,11 @@ fn sync_replaces_environment_links_without_removing_cached_targets() -> Result<(
 
     // Without the preview, uv replaces the indirect cache link with a local environment.
     assert!(environment.is_dir());
-    assert!(fs_err::read_link(environment.path()).is_err());
+    assert!(uv_vfs::fs::read_link(environment.path()).is_err());
 
     // uv rebuilds the linked environment without replacing the link.
     let target = context.temp_dir.child("environment");
-    fs_err::rename(environment.path(), target.path())?;
+    uv_vfs::fs::rename(environment.path(), target.path())?;
     uv_fs::create_symlink(target.path(), environment.path())?;
     uv_snapshot!(context.filters(), context.sync()
         .arg("--python")
@@ -865,7 +865,7 @@ fn sync_replaces_environment_links_without_removing_cached_targets() -> Result<(
     Checked in [TIME]
     "#);
 
-    assert_eq!(fs_err::read_link(environment.path())?, target.path());
+    assert_eq!(uv_vfs::fs::read_link(environment.path())?, target.path());
     // The link still points to the rebuilt Python 3.12 environment.
     let python = if cfg!(windows) {
         target.join("Scripts/python.exe")
@@ -889,6 +889,6 @@ fn sync_replaces_environment_links_without_removing_cached_targets() -> Result<(
     Resolved 1 package in [TIME]
     Checked in [TIME]
     "#);
-    assert_eq!(fs_err::read_link(environment.path())?, cache_target);
+    assert_eq!(uv_vfs::fs::read_link(environment.path())?, cache_target);
     Ok(())
 }

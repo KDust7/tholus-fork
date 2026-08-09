@@ -5,7 +5,7 @@ use std::time::Duration;
 use std::{env, io, panic};
 
 use async_channel::{Receiver, SendError};
-use tempfile::tempdir_in;
+use uv_vfs::temp::tempdir_in;
 use thiserror::Error;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command};
@@ -321,7 +321,7 @@ async fn worker(
     receiver: Receiver<PathBuf>,
     timeout: Option<Duration>,
 ) -> Result<(), CompileError> {
-    fs_err::tokio::write(&pip_compileall_py, COMPILEALL_SCRIPT)
+    uv_vfs::fs::tokio::write(&pip_compileall_py, COMPILEALL_SCRIPT)
         .await
         .map_err(CompileError::TempFile)?;
 

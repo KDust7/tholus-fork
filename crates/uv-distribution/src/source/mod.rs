@@ -14,7 +14,7 @@ use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use fs_err::tokio as fs;
+use uv_vfs::fs::tokio as fs;
 use futures::{FutureExt, TryStreamExt};
 use reqwest::{Response, StatusCode};
 use tokio_util::compat::FuturesAsyncReadCompatExt;
@@ -55,6 +55,8 @@ use crate::metadata::{ArchiveMetadata, GitWorkspaceMember, Metadata};
 use crate::source::built_wheel_metadata::{BuiltWheelFile, BuiltWheelMetadata};
 use crate::source::revision::Revision;
 use crate::{Reporter, RequiresDist};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 mod built_wheel_metadata;
 mod revision;
@@ -2822,7 +2824,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
         target: &Path,
         algorithms: &[HashAlgorithm],
     ) -> Result<(Vec<HashDigest>, u64), Error> {
-        let temp_dir = tempfile::tempdir_in(
+        let temp_dir = uv_vfs::temp::tempdir_in(
             self.build_context
                 .cache()
                 .bucket(CacheBucket::SourceDistributions),
@@ -2887,7 +2889,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
         };
 
         // Persist it to the cache.
-        fs_err::tokio::create_dir_all(target.parent().expect("Cache entry to have parent"))
+        uv_vfs::fs::tokio::create_dir_all(target.parent().expect("Cache entry to have parent"))
             .await
             .map_err(Error::CacheWrite)?;
         if let Err(err) = rename_with_retry(extracted, target).await {
@@ -2912,13 +2914,13 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
     ) -> Result<Vec<HashDigest>, Error> {
         debug!("Unpacking for build: {}", path.display());
 
-        let temp_dir = tempfile::tempdir_in(
+        let temp_dir = uv_vfs::temp::tempdir_in(
             self.build_context
                 .cache()
                 .bucket(CacheBucket::SourceDistributions),
         )
         .map_err(Error::CacheWrite)?;
-        let reader = fs_err::tokio::File::open(&path)
+        let reader = uv_vfs::fs::tokio::File::open(&path)
             .await
             .map_err(Error::CacheRead)?;
 
@@ -2955,7 +2957,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
         };
 
         // Persist it to the cache.
-        fs_err::tokio::create_dir_all(target.parent().expect("Cache entry to have parent"))
+        uv_vfs::fs::tokio::create_dir_all(target.parent().expect("Cache entry to have parent"))
             .await
             .map_err(Error::CacheWrite)?;
         if let Err(err) = rename_with_retry(extracted, target).await {
@@ -3572,7 +3574,7 @@ pub(crate) struct HttpRevisionPointer {
 impl HttpRevisionPointer {
     /// Read an [`HttpRevisionPointer`] from the cache.
     pub(crate) fn read_from(path: impl AsRef<Path>) -> Result<Option<Self>, Error> {
-        match fs_err::File::open(path.as_ref()) {
+        match uv_vfs::fs::File::open(path.as_ref()) {
             Ok(file) => {
                 let data = DataWithCachePolicy::from_reader(file)?.data;
                 let revision = rmp_serde::from_slice::<Revision>(&data)?;
@@ -3601,7 +3603,7 @@ pub(crate) struct LocalRevisionPointer {
 impl LocalRevisionPointer {
     /// Read an [`LocalRevisionPointer`] from the cache.
     pub(crate) fn read_from(path: impl AsRef<Path>) -> Result<Option<Self>, Error> {
-        match fs_err::read(path) {
+        match uv_vfs::fs::read(path) {
             Ok(cached) => Ok(Some(rmp_serde::from_slice::<Self>(&cached)?)),
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
             Err(err) => Err(Error::CacheRead(err)),
@@ -3645,7 +3647,7 @@ pub(crate) struct RevisionHashes {
 impl RevisionHashes {
     /// Read an [`RevisionHashes`] from the cache.
     pub(crate) fn read_from(path: impl AsRef<Path>) -> Result<Option<Self>, Error> {
-        match fs_err::read(path) {
+        match uv_vfs::fs::read(path) {
             Ok(cached) => Ok(Some(rmp_serde::from_slice::<Self>(&cached)?)),
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
             Err(err) => Err(Error::CacheRead(err)),
@@ -3756,7 +3758,7 @@ fn read_wheel_metadata(
     filename: &WheelFilename,
     wheel: &Path,
 ) -> Result<ResolutionMetadata, Error> {
-    let file = fs_err::File::open(wheel).map_err(Error::CacheRead)?;
+    let file = uv_vfs::fs::File::open(wheel).map_err(Error::CacheRead)?;
     let reader = std::io::BufReader::new(file);
     let dist_info = read_archive_metadata(filename, reader)
         .map_err(|err| Error::WheelMetadata(wheel.to_path_buf(), Box::new(err)))?;

@@ -27,7 +27,7 @@ pub(crate) fn main(args: &Args) -> Result<()> {
     match args.mode {
         Mode::DryRun => anstream::println!("{generated}"),
         Mode::Check => {
-            let current = fs_err::read_to_string(&reference_path).with_context(|| {
+            let current = uv_vfs::fs::read_to_string(&reference_path).with_context(|| {
                 format!(
                     "failed to read {filename}; run `cargo dev generate-preview-features-reference`"
                 )
@@ -38,7 +38,7 @@ pub(crate) fn main(args: &Args) -> Result<()> {
             anstream::println!("Up-to-date: {filename}");
         }
         Mode::Write => {
-            fs_err::write(&reference_path, generated)
+            uv_vfs::fs::write(&reference_path, generated)
                 .with_context(|| format!("failed to write {}", reference_path.display()))?;
             anstream::println!("Updating: {filename}");
         }

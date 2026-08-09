@@ -132,7 +132,7 @@ pub(crate) async fn audit(
 
         let root = installed_tools.tool_dir(&name);
         let lock_path = root.join("uv.lock");
-        let contents = match fs_err::read_to_string(&lock_path) {
+        let contents = match uv_vfs::fs::read_to_string(&lock_path) {
             Ok(contents) => contents,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {
                 if explicit_tool {

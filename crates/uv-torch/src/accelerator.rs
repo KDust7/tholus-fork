@@ -98,7 +98,7 @@ impl Accelerator {
         }
 
         // Read from `/sys/module/nvidia/version`.
-        match fs_err::read_to_string("/sys/module/nvidia/version") {
+        match uv_vfs::fs::read_to_string("/sys/module/nvidia/version") {
             Ok(content) => {
                 return match parse_sys_module_nvidia_version(&content) {
                     Ok(driver_version) => {
@@ -115,7 +115,7 @@ impl Accelerator {
         }
 
         // Read from `/proc/driver/nvidia/version`
-        match fs_err::read_to_string("/proc/driver/nvidia/version") {
+        match uv_vfs::fs::read_to_string("/proc/driver/nvidia/version") {
             Ok(content) => match parse_proc_driver_nvidia_version(&content) {
                 Ok(Some(driver_version)) => {
                     debug!(
@@ -183,7 +183,7 @@ impl Accelerator {
         }
 
         // Read from `/sys/bus/pci/devices` to filter for Intel GPU via PCI.
-        match fs_err::read_dir("/sys/bus/pci/devices") {
+        match uv_vfs::fs::read_dir("/sys/bus/pci/devices") {
             Ok(entries) => {
                 for entry in entries.flatten() {
                     match parse_pci_device_ids(&entry.path()) {
@@ -250,10 +250,10 @@ fn parse_pci_device_ids(device_path: &Path) -> Result<(u32, u32), AcceleratorErr
     // - `class`: a hexadecimal string such as `0x030000`
     // - `vendor`: a hexadecimal string such as `0x8086`
     // ```
-    let class_content = fs_err::read_to_string(device_path.join("class"))?;
+    let class_content = uv_vfs::fs::read_to_string(device_path.join("class"))?;
     let pci_class = u32::from_str_radix(class_content.trim().trim_start_matches("0x"), 16)?;
 
-    let vendor_content = fs_err::read_to_string(device_path.join("vendor"))?;
+    let vendor_content = uv_vfs::fs::read_to_string(device_path.join("vendor"))?;
     let pci_vendor = u32::from_str_radix(vendor_content.trim().trim_start_matches("0x"), 16)?;
 
     Ok((pci_class, pci_vendor))

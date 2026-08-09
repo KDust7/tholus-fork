@@ -5,6 +5,8 @@ use url::Url;
 use uv_static::EnvVars;
 
 use uv_test::{capture_uv_snapshot, diff_uv_snapshot, uv_snapshot};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// Add shared arguments to a command.
 ///
@@ -1286,7 +1288,7 @@ fn resolve_pyproject_toml() -> anyhow::Result<()> {
     );
 
     // Remove the `uv.toml` file.
-    fs_err::remove_file(config.path())?;
+    uv_vfs::fs::remove_file(config.path())?;
 
     // Resolution should use the highest version, and omit hashes.
     diff_uv_snapshot!(context.filters(), &baseline, add_shared_args(context.pip_compile())
@@ -2746,7 +2748,7 @@ fn resolve_skip_empty() -> anyhow::Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let child = context.temp_dir.child("child");
-    fs_err::create_dir(&child)?;
+    uv_vfs::fs::create_dir(&child)?;
 
     let baseline = capture_uv_snapshot!(
         context.filters(),

@@ -249,7 +249,7 @@ mod test {
         let context = assert_fs::TempDir::new()?;
         let config = context.child("uv").child("uv.toml");
         config.write_str("")?;
-        fs_err::set_permissions(
+        uv_vfs::fs::set_permissions(
             &context,
             std::os::unix::fs::PermissionsExt::from_mode(0o000),
         )

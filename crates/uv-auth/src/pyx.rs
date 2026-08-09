@@ -306,11 +306,11 @@ impl PyxTokenStore {
 
     /// Write the tokens to the store.
     pub async fn write(&self, tokens: &PyxTokens) -> Result<(), TokenStoreError> {
-        fs_err::tokio::create_dir_all(&self.subdirectory).await?;
+        uv_vfs::fs::tokio::create_dir_all(&self.subdirectory).await?;
         match tokens {
             PyxTokens::OAuth(tokens) => {
                 // Write OAuth tokens to a generic `tokens.json` file.
-                fs_err::tokio::write(
+                uv_vfs::fs::tokio::write(
                     self.subdirectory.join("tokens.json"),
                     serde_json::to_vec(tokens)?,
                 )
@@ -319,7 +319,7 @@ impl PyxTokenStore {
             PyxTokens::ApiKey(tokens) => {
                 // Write API key tokens to a file based on the API key.
                 let digest = uv_cache_key::cache_digest(&tokens.api_key);
-                fs_err::tokio::write(
+                uv_vfs::fs::tokio::write(
                     self.subdirectory.join(format!("{digest}.json")),
                     &tokens.access_token,
                 )
@@ -354,7 +354,7 @@ impl PyxTokenStore {
         if let Some(api_key) = read_pyx_api_key() {
             // Read the API key tokens from a file based on the API key.
             let digest = uv_cache_key::cache_digest(&api_key);
-            match fs_err::tokio::read(self.subdirectory.join(format!("{digest}.json"))).await {
+            match uv_vfs::fs::tokio::read(self.subdirectory.join(format!("{digest}.json"))).await {
                 Ok(data) => {
                     let access_token =
                         AccessToken::from(String::from_utf8(data).expect("Invalid UTF-8"));
@@ -367,7 +367,7 @@ impl PyxTokenStore {
                 Err(err) => Err(err.into()),
             }
         } else {
-            match fs_err::tokio::read(self.subdirectory.join("tokens.json")).await {
+            match uv_vfs::fs::tokio::read(self.subdirectory.join("tokens.json")).await {
                 Ok(data) => {
                     let tokens: PyxOAuthTokens = serde_json::from_slice(&data)?;
                     Ok(Some(PyxTokens::OAuth(tokens)))
@@ -380,7 +380,7 @@ impl PyxTokenStore {
 
     /// Remove the tokens from the store.
     pub async fn delete(&self) -> Result<(), io::Error> {
-        fs_err::tokio::remove_dir_all(&self.subdirectory).await?;
+        uv_vfs::fs::tokio::remove_dir_all(&self.subdirectory).await?;
         Ok(())
     }
 
@@ -458,7 +458,7 @@ impl PyxTokenStore {
         debug!("Refreshing token due to {reason}");
 
         // Ensure the subdirectory exists before acquiring the lock
-        fs_err::tokio::create_dir_all(&self.subdirectory).await?;
+        uv_vfs::fs::tokio::create_dir_all(&self.subdirectory).await?;
 
         // Get the lock path for this specific token
         let lock_path = self.lock_path(&tokens);

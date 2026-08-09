@@ -36,6 +36,8 @@ use uv_settings::PythonInstallMirrors;
 use uv_static::EnvVars;
 use uv_torch::TorchMode;
 use uv_workspace::pyproject_mut::AddBoundsKind;
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 pub mod comma;
 pub mod compat;

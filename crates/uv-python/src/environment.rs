@@ -274,8 +274,8 @@ impl PythonEnvironment {
 
     /// Set a key-value pair in the `pyvenv.cfg` file.
     pub fn set_pyvenv_cfg(&self, key: &str, value: &str) -> Result<(), Error> {
-        let content = fs_err::read_to_string(self.0.root.join("pyvenv.cfg"))?;
-        fs_err::write(
+        let content = uv_vfs::fs::read_to_string(self.0.root.join("pyvenv.cfg"))?;
+        uv_vfs::fs::write(
             self.0.root.join("pyvenv.cfg"),
             PyVenvConfiguration::set(&content, key, value),
         )?;

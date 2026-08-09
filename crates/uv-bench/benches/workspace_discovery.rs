@@ -45,8 +45,8 @@ fn create_workspace(root: &Path, exclude_count: usize) -> Vec<PathBuf> {
         let member_root = root
             .join("packages")
             .join(format!("provider-{member_index:03}"));
-        fs_err::create_dir_all(&member_root).expect("Failed to create workspace member directory");
-        fs_err::write(
+        uv_vfs::fs::create_dir_all(&member_root).expect("Failed to create workspace member directory");
+        uv_vfs::fs::write(
             member_root.join("pyproject.toml"),
             member_pyproject(member_index),
         )
@@ -54,7 +54,7 @@ fn create_workspace(root: &Path, exclude_count: usize) -> Vec<PathBuf> {
         discovery_roots.push(member_root);
     }
 
-    fs_err::write(root.join("pyproject.toml"), root_pyproject(exclude_count))
+    uv_vfs::fs::write(root.join("pyproject.toml"), root_pyproject(exclude_count))
         .expect("Failed to write workspace root pyproject.toml");
 
     discovery_roots
@@ -279,7 +279,7 @@ fn discover_workspace_from_all_members_with_excludes(c: &mut Criterion<WallTime>
 }
 
 fn discover_workspace(c: &mut Criterion<WallTime>, name: &str, exclude_count: usize) {
-    let dir = tempfile::tempdir().expect("Failed to create temporary directory");
+    let dir = uv_vfs::temp::tempdir().expect("Failed to create temporary directory");
     let discovery_roots = create_workspace(dir.path(), exclude_count);
     let cache = Cache::from_path(dir.path().join(".uv-cache"));
     let options = DiscoveryOptions::default();
@@ -307,7 +307,7 @@ fn discover_workspace(c: &mut Criterion<WallTime>, name: &str, exclude_count: us
 }
 
 fn run_python_version_synthetic_workspace(c: &mut Criterion<WallTime>) {
-    let workspace_dir = tempfile::tempdir().expect("Failed to create temporary directory");
+    let workspace_dir = uv_vfs::temp::tempdir().expect("Failed to create temporary directory");
     create_workspace(workspace_dir.path(), 0);
 
     let cache_dir = workspace_dir.path().join(".uv-cache");

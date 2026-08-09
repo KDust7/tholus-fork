@@ -2,9 +2,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use std::time::SystemTime;
+use web_time::SystemTime;
 
-use fs_err as fs;
+use uv_vfs::fs as fs;
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
 use tracing::{debug, instrument};
@@ -124,7 +124,7 @@ impl InstallState {
             }
 
             // TODO(konsti): This assumes a path is either a file or a directory in all wheels.
-            let file_type = fs_err::metadata(&first_wheel.1)?.file_type();
+            let file_type = uv_vfs::fs::metadata(&first_wheel.1)?.file_type();
             if file_type.is_file() {
                 // Handle conflicts between files directly in site-packages without a module
                 // directory enclosing them.
@@ -169,7 +169,7 @@ impl InstallState {
 
         // Read the shared directory in each unpacked wheel.
         for (wheel, absolute) in wheels {
-            for dir_entry in fs_err::read_dir(absolute)? {
+            for dir_entry in uv_vfs::fs::read_dir(absolute)? {
                 let dir_entry = dir_entry?;
                 let relative = directory.join(dir_entry.file_name());
                 let file_type = dir_entry.file_type()?;

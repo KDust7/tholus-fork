@@ -15,7 +15,7 @@ use uv_configuration::initialize_rayon_once;
 /// Unzip a `.zip` archive into the target directory.
 ///
 /// Returns the list of unpacked files and their sizes.
-pub fn unzip(reader: fs_err::File, target: &Path) -> Result<Vec<(PathBuf, u64)>, Error> {
+pub fn unzip(reader: uv_vfs::fs::File, target: &Path) -> Result<Vec<(PathBuf, u64)>, Error> {
     let (reader, _) = reader.into_parts();
 
     // Parse the central directory once, then clone the archive reader per Rayon worker so
@@ -59,7 +59,7 @@ pub fn unzip(reader: fs_err::File, target: &Path) -> Result<Vec<(PathBuf, u64)>,
             if entry.dir()? {
                 let mut directories = directories.lock().unwrap();
                 if directories.insert(path.clone()) {
-                    fs_err::create_dir_all(path).map_err(Error::Io)?;
+                    uv_vfs::fs::create_dir_all(path).map_err(Error::Io)?;
                 }
                 return Ok(None);
             }
@@ -67,12 +67,12 @@ pub fn unzip(reader: fs_err::File, target: &Path) -> Result<Vec<(PathBuf, u64)>,
             if let Some(parent) = path.parent() {
                 let mut directories = directories.lock().unwrap();
                 if directories.insert(parent.to_path_buf()) {
-                    fs_err::create_dir_all(parent).map_err(Error::Io)?;
+                    uv_vfs::fs::create_dir_all(parent).map_err(Error::Io)?;
                 }
             }
 
             // Copy the file contents.
-            let outfile = fs_err::File::create(&path).map_err(Error::Io)?;
+            let outfile = uv_vfs::fs::File::create(&path).map_err(Error::Io)?;
             let size = entry.uncompressed_size();
             let writer = if let Ok(size) = usize::try_from(size) {
                 std::io::BufWriter::with_capacity(std::cmp::min(size, 1024 * 1024), outfile)
@@ -126,9 +126,9 @@ pub fn unzip(reader: fs_err::File, target: &Path) -> Result<Vec<(PathBuf, u64)>,
                     // https://github.com/pypa/pip/blob/3898741e29b7279e7bffe044ecfbe20f6a438b1e/src/pip/_internal/utils/unpacking.py#L88-L100
                     let has_any_executable_bit = mode & 0o111;
                     if has_any_executable_bit != 0 {
-                        let permissions = fs_err::metadata(&path).map_err(Error::Io)?.permissions();
+                        let permissions = uv_vfs::fs::metadata(&path).map_err(Error::Io)?.permissions();
                         if permissions.mode() & 0o111 != 0o111 {
-                            fs_err::set_permissions(
+                            uv_vfs::fs::set_permissions(
                                 &path,
                                 Permissions::from_mode(permissions.mode() | 0o111),
                             )
@@ -154,9 +154,9 @@ pub fn unzip(reader: fs_err::File, target: &Path) -> Result<Vec<(PathBuf, u64)>,
 /// This function returns the path to that top-level directory.
 pub fn strip_component(source: impl AsRef<Path>) -> Result<PathBuf, Error> {
     // TODO(konstin): Verify the name of the directory.
-    let top_level = fs_err::read_dir(source.as_ref())
+    let top_level = uv_vfs::fs::read_dir(source.as_ref())
         .map_err(Error::Io)?
-        .collect::<std::io::Result<Vec<fs_err::DirEntry>>>()
+        .collect::<std::io::Result<Vec<uv_vfs::fs::DirEntry>>>()
         .map_err(Error::Io)?;
     match top_level.as_slice() {
         [root] => Ok(root.path()),

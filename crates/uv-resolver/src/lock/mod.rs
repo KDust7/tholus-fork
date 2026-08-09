@@ -75,6 +75,8 @@ pub use crate::lock::tree::{TreeDisplay, TreeJsonTarget};
 use crate::resolution::{AnnotatedDist, ResolutionGraphNode};
 use crate::universal_marker::{ConflictMarker, UniversalMarker};
 use crate::{
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
     ExcludeNewer, ExcludeNewerOverride, ExcludeNewerPackage, ExcludeNewerSpan, ExcludeNewerValue,
     InMemoryIndex, MetadataResponse, Prerelease, PrereleaseMode, PrereleasePackage, ResolutionMode,
     ResolverOutput,
@@ -3246,7 +3248,7 @@ impl Lock {
     ) -> Result<Option<SourceTreeRequiresDist>, LockError> {
         let parent = root.join(source_tree);
         let path = parent.join("pyproject.toml");
-        match fs_err::tokio::read_to_string(&path).await {
+        match uv_vfs::fs::tokio::read_to_string(&path).await {
             Ok(contents) => {
                 let pyproject_toml = PyProjectToml::from_toml(&contents, path.user_display())
                     .map_err(|err| LockErrorKind::InvalidPyprojectToml {

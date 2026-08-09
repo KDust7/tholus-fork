@@ -171,7 +171,7 @@ impl Pep723Script {
     ///
     /// See: <https://peps.python.org/pep-0723/>
     pub async fn read(file: impl AsRef<Path>) -> Result<Option<Self>, Pep723Error> {
-        let contents = fs_err::tokio::read(&file).await?;
+        let contents = uv_vfs::fs::tokio::read(&file).await?;
 
         // Extract the `script` tag.
         let ScriptTag {
@@ -202,7 +202,7 @@ impl Pep723Script {
         file: impl AsRef<Path>,
         requires_python: &VersionSpecifiers,
     ) -> Result<Self, Pep723Error> {
-        let contents = fs_err::tokio::read(&file).await?;
+        let contents = uv_vfs::fs::tokio::read(&file).await?;
         let (prelude, metadata, postlude) = Self::init_metadata(&contents, requires_python)?;
         Ok(Self {
             path: std::path::absolute(file)?,
@@ -320,7 +320,7 @@ impl Pep723Script {
             }
         };
 
-        Ok(fs_err::tokio::write(file, script).await?)
+        Ok(uv_vfs::fs::tokio::write(file, script).await?)
     }
 
     /// Replace the existing metadata in the file with new metadata and write the updated content.
@@ -332,7 +332,7 @@ impl Pep723Script {
             self.postlude
         );
 
-        fs_err::write(&self.path, content)?;
+        uv_vfs::fs::write(&self.path, content)?;
 
         Ok(())
     }
@@ -384,7 +384,7 @@ impl Pep723Metadata {
     ///
     /// See: <https://peps.python.org/pep-0723/>
     pub async fn read(file: impl AsRef<Path>) -> Result<Option<Self>, Pep723Error> {
-        let contents = fs_err::tokio::read(&file).await?;
+        let contents = uv_vfs::fs::tokio::read(&file).await?;
 
         // Extract the `script` tag.
         let ScriptTag { metadata, .. } = match ScriptTag::parse(&contents) {

@@ -8,7 +8,7 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 
 use console::Term;
-use fs_err::File;
+use uv_vfs::fs::File;
 use itertools::Itertools;
 use owo_colors::OwoColorize;
 
@@ -188,7 +188,7 @@ pub(crate) fn create(
             )));
         }
         Err(err) if err.kind() == io::ErrorKind::NotFound => {
-            fs_err::create_dir_all(location)?;
+            uv_vfs::fs::create_dir_all(location)?;
         }
         Err(err) => return Err(Error::Io(err)),
     }
@@ -209,7 +209,7 @@ pub(crate) fn create(
     cachedir::ensure_tag(&location)?;
 
     // Create a `.gitignore` file to ignore all files in the venv.
-    fs_err::write(location.join(".gitignore"), "*")?;
+    uv_vfs::fs::write(location.join(".gitignore"), "*")?;
 
     let mut using_minor_version_link = false;
     let executable_target = if upgradeable {
@@ -257,7 +257,7 @@ pub(crate) fn create(
     let python_home = python_home.as_path();
 
     // Different names for the python interpreter
-    fs_err::create_dir_all(&scripts)?;
+    uv_vfs::fs::create_dir_all(&scripts)?;
     let executable = scripts.join(format!("python{EXE_SUFFIX}"));
 
     #[cfg(unix)]
@@ -518,7 +518,7 @@ pub(crate) fn create(
             .replace("{{ VIRTUAL_PROMPT }}", &virtual_prompt)
             .replace("{{ PATH_SEP }}", path_sep)
             .replace("{{ RELATIVE_SITE_PACKAGES }}", &relative_site_packages);
-        fs_err::write(scripts.join(name), activator)?;
+        uv_vfs::fs::write(scripts.join(name), activator)?;
     }
 
     let mut pyvenv_cfg_data: Vec<(String, String)> = vec![
@@ -581,7 +581,7 @@ pub(crate) fn create(
 
     // Construct the path to the `site-packages` directory.
     let site_packages = location.join(&interpreter.virtualenv().purelib);
-    fs_err::create_dir_all(&site_packages)?;
+    uv_vfs::fs::create_dir_all(&site_packages)?;
 
     // If necessary, create a symlink from `lib64` to `lib`.
     // See: https://github.com/python/cpython/blob/b228655c227b2ca298a8ffac44d14ce3d22f6faa/Lib/venv/__init__.py#L135C11-L135C16
@@ -590,7 +590,7 @@ pub(crate) fn create(
         && interpreter.markers().os_name() == "posix"
         && interpreter.markers().sys_platform() != "darwin"
     {
-        match fs_err::os::unix::fs::symlink("lib", location.join("lib64")) {
+        match uv_vfs::fs::os::unix::fs::symlink("lib", location.join("lib64")) {
             Ok(()) => {}
             Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {}
             Err(err) => {
@@ -600,8 +600,8 @@ pub(crate) fn create(
     }
 
     if install_distutils_patch(interpreter) {
-        fs_err::write(site_packages.join("_virtualenv.py"), VIRTUALENV_PATCH)?;
-        fs_err::write(site_packages.join("_virtualenv.pth"), "import _virtualenv")?;
+        uv_vfs::fs::write(site_packages.join("_virtualenv.py"), VIRTUALENV_PATCH)?;
+        uv_vfs::fs::write(site_packages.join("_virtualenv.pth"), "import _virtualenv")?;
     }
 
     Ok(VirtualEnvironment {
@@ -836,7 +836,7 @@ fn copy_launcher_windows(
         .join("scripts")
         .join("nt")
         .join(executable.exe(interpreter));
-    match fs_err::copy(shim, scripts.join(executable.exe(interpreter))) {
+    match uv_vfs::fs::copy(shim, scripts.join(executable.exe(interpreter))) {
         Ok(_) => return Ok(()),
         Err(err) if err.kind() == io::ErrorKind::NotFound => {}
         Err(err) => {
@@ -853,7 +853,7 @@ fn copy_launcher_windows(
         .join("scripts")
         .join("nt")
         .join(executable.launcher(interpreter));
-    match fs_err::copy(shim, scripts.join(executable.exe(interpreter))) {
+    match uv_vfs::fs::copy(shim, scripts.join(executable.exe(interpreter))) {
         Ok(_) => return Ok(()),
         Err(err) if err.kind() == io::ErrorKind::NotFound => {}
         Err(err) => {
@@ -864,7 +864,7 @@ fn copy_launcher_windows(
     // Third priority: on Conda at least, we can look for the launcher shim next to
     // the Python executable itself.
     let shim = base_python.with_file_name(executable.launcher(interpreter));
-    match fs_err::copy(shim, scripts.join(executable.exe(interpreter))) {
+    match uv_vfs::fs::copy(shim, scripts.join(executable.exe(interpreter))) {
         Ok(_) => return Ok(()),
         Err(err) if err.kind() == io::ErrorKind::NotFound => {}
         Err(err) => {
@@ -875,7 +875,7 @@ fn copy_launcher_windows(
     // Fourth priority: if the launcher shim doesn't exist, assume this is
     // an embedded Python. Copy the Python executable itself, along with
     // the DLLs, `.pyd` files, and `.zip` files in the same directory.
-    match fs_err::copy(
+    match uv_vfs::fs::copy(
         base_python.with_file_name(executable.exe(interpreter)),
         scripts.join(executable.exe(interpreter)),
     ) {
@@ -886,7 +886,7 @@ fn copy_launcher_windows(
                 python_home,
                 interpreter.sys_base_prefix().join("DLLs").as_path(),
             ] {
-                let entries = match fs_err::read_dir(directory) {
+                let entries = match uv_vfs::fs::read_dir(directory) {
                     Ok(read_dir) => read_dir,
                     Err(err) if err.kind() == io::ErrorKind::NotFound => {
                         continue;
@@ -902,14 +902,14 @@ fn copy_launcher_windows(
                         ext.eq_ignore_ascii_case("dll") || ext.eq_ignore_ascii_case("pyd")
                     }) {
                         if let Some(file_name) = path.file_name() {
-                            fs_err::copy(&path, scripts.join(file_name))?;
+                            uv_vfs::fs::copy(&path, scripts.join(file_name))?;
                         }
                     }
                 }
             }
 
             // Copy `.zip` files from the top-level.
-            match fs_err::read_dir(python_home) {
+            match uv_vfs::fs::read_dir(python_home) {
                 Ok(entries) => {
                     for entry in entries {
                         let entry = entry?;
@@ -919,7 +919,7 @@ fn copy_launcher_windows(
                             .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"))
                         {
                             if let Some(file_name) = path.file_name() {
-                                fs_err::copy(&path, scripts.join(file_name))?;
+                                uv_vfs::fs::copy(&path, scripts.join(file_name))?;
                             }
                         }
                     }

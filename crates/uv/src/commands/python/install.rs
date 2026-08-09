@@ -307,7 +307,7 @@ async fn perform_install(
     preview: Preview,
     printer: Printer,
 ) -> Result<ExitStatus> {
-    let start = std::time::Instant::now();
+    let start = web_time::Instant::now();
 
     // TODO(zanieb): We should consider marking the Python installation as the default when
     // `--default` is used. It's not clear how this overlaps with a global Python pin, but I'd be
@@ -1148,7 +1148,7 @@ fn create_bin_links(
                 }
 
                 // Replace the existing link
-                if let Err(err) = fs_err::remove_file(&target) {
+                if let Err(err) = uv_vfs::fs::remove_file(&target) {
                     errors.push((
                         InstallErrorKind::Bin,
                         installation.key().clone(),
@@ -1238,7 +1238,7 @@ async fn compile_stdlib_bytecode(
     concurrency: &Concurrency,
     cache: &Cache,
 ) -> Result<Option<(usize, std::time::Duration)>> {
-    let start = std::time::Instant::now();
+    let start = web_time::Instant::now();
 
     // Explicit matching so this heuristic is updated for future additions
     match installation.implementation() {
@@ -1347,7 +1347,7 @@ fn find_matching_bin_link<'a>(
         if !path.is_symlink() {
             return None;
         }
-        let target = fs_err::canonicalize(path).ok()?;
+        let target = uv_vfs::fs::canonicalize(path).ok()?;
 
         installations.find(|installation| installation.executable(false) == target)
     } else if cfg!(windows) {

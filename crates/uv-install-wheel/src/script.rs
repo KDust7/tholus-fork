@@ -76,7 +76,7 @@ impl EntryPoints {
         extras: Option<&[String]>,
         python_minor: u8,
     ) -> Result<Self, Error> {
-        let ini = match fs_err::read_to_string(path) {
+        let ini = match uv_vfs::fs::read_to_string(path) {
             Ok(ini) => ini,
             Err(err) if err.kind() == io::ErrorKind::NotFound => return Ok(Self::default()),
             Err(err) => return Err(err.into()),

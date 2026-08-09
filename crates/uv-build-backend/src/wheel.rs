@@ -1,7 +1,7 @@
 use async_zip::base::write::{EntrySeekableWriter, ZipFileWriter};
 use async_zip::{Compression, ZipEntryBuilder};
 use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD as base64};
-use fs_err::File;
+use uv_vfs::fs::File;
 use futures_lite::future::block_on;
 use futures_lite::io::{AsyncSeek, AsyncWrite, AsyncWriteExt};
 use globset::{GlobSet, GlobSetBuilder};
@@ -68,7 +68,7 @@ pub fn build_wheel(
     debug!("Writing wheel at {}", wheel_path.user_display());
 
     if wheel_path.exists() {
-        fs_err::remove_file(&wheel_path)?;
+        uv_vfs::fs::remove_file(&wheel_path)?;
     }
 
     let temp_file = uv_fs::tempfile_in(wheel_dir)?;
@@ -279,7 +279,7 @@ pub fn build_editable(
     debug!("Writing wheel at {}", wheel_path.user_display());
 
     if wheel_path.exists() {
-        fs_err::remove_file(&wheel_path)?;
+        uv_vfs::fs::remove_file(&wheel_path)?;
     }
 
     let temp_file = uv_fs::tempfile_in(wheel_dir)?;
@@ -918,7 +918,7 @@ impl<W: AsyncWrite + AsyncSeek + Unpin> DirectoryWriter for ZipDirectoryWriter<W
         };
 
         if metadata.len() <= WHOLE_FILE_ZIP_ENTRY_LIMIT {
-            let bytes = fs_err::read(file)?;
+            let bytes = uv_vfs::fs::read(file)?;
             let entry = Self::entry(path, self.compression, mode);
             block_on(self.writer.write_entry_whole(entry, &bytes))?;
 
@@ -999,7 +999,7 @@ impl DirectoryWriter for FilesystemWriter {
             size: bytes.len() as u64,
         });
 
-        Ok(fs_err::write(self.root.join(path), bytes)?)
+        Ok(uv_vfs::fs::write(self.root.join(path), bytes)?)
     }
     fn write_file(&mut self, path: &str, file: &Path) -> Result<(), Error> {
         trace!("Adding {} from {}", path, file.user_display());
@@ -1013,7 +1013,7 @@ impl DirectoryWriter for FilesystemWriter {
 
     fn write_directory(&mut self, directory: &str) -> Result<(), Error> {
         trace!("Adding directory {}", directory);
-        Ok(fs_err::create_dir(self.root.join(directory))?)
+        Ok(uv_vfs::fs::create_dir(self.root.join(directory))?)
     }
 
     /// Write the `RECORD` file.
@@ -1035,7 +1035,7 @@ mod test {
     use insta::assert_snapshot;
     use std::path::Path;
     use std::str::FromStr;
-    use tempfile::TempDir;
+    use uv_vfs::temp::TempDir;
     use uv_distribution_filename::WheelFilename;
     use uv_fs::Simplified;
     use uv_normalize::PackageName;
@@ -1114,7 +1114,7 @@ mod test {
         let metadata_file = metadata_dir
             .path()
             .join("built_by_uv-0.1.0.dist-info/METADATA");
-        assert_snapshot!(fs_err::read_to_string(metadata_file).unwrap(), @"
+        assert_snapshot!(uv_vfs::fs::read_to_string(metadata_file).unwrap(), @"
         Metadata-Version: 2.4
         Name: built-by-uv
         Version: 0.1.0
@@ -1134,7 +1134,7 @@ mod test {
         let record_file = metadata_dir
             .path()
             .join("built_by_uv-0.1.0.dist-info/RECORD");
-        assert_snapshot!(fs_err::read_to_string(record_file).unwrap(), @"
+        assert_snapshot!(uv_vfs::fs::read_to_string(record_file).unwrap(), @"
         built_by_uv-0.1.0.dist-info/WHEEL,sha256=JBpLtoa_WBz5WPGpRsAUTD4Dz6H0KkkdiKWCkfMSS1U,84
         built_by_uv-0.1.0.dist-info/entry_points.txt,sha256=-IO6yaq6x6HSl-zWH96rZmgYvfyHlH00L5WQoCpz-YI,50
         built_by_uv-0.1.0.dist-info/METADATA,sha256=m6EkVvKrGmqx43b_VR45LHD37IZxPYC0NI6Qx9_UXLE,474
@@ -1144,7 +1144,7 @@ mod test {
         let wheel_file = metadata_dir
             .path()
             .join("built_by_uv-0.1.0.dist-info/WHEEL");
-        assert_snapshot!(fs_err::read_to_string(wheel_file).unwrap(), @"
+        assert_snapshot!(uv_vfs::fs::read_to_string(wheel_file).unwrap(), @"
         Wheel-Version: 1.0
         Generator: uv 1.0.0+test
         Root-Is-Purelib: true

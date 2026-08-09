@@ -4,7 +4,7 @@
 //! which used the Apache 2.0 license (but not the MIT license)
 
 use crate::{Arch, cpuinfo::detect_hardware_floating_point_support};
-use fs_err as fs;
+use uv_vfs::fs as fs;
 use goblin::elf::Elf;
 use regex::regex;
 use std::fmt::Display;
@@ -463,7 +463,7 @@ fn find_ld_path_at(path: impl AsRef<Path>) -> Option<PathBuf> {
 mod tests {
     use super::*;
     use indoc::indoc;
-    use tempfile::tempdir;
+    use uv_vfs::temp::tempdir;
 
     #[test]
     fn parse_ld_so_output() {

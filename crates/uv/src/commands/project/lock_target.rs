@@ -352,7 +352,7 @@ impl<'lock> LockTarget<'lock> {
     /// Returns `Ok(None)` if the lockfile does not exist.
     pub(crate) async fn read_with_contents(self) -> Result<Option<(Lock, String)>, ProjectError> {
         let lock_path = self.lock_path();
-        match fs_err::tokio::read_to_string(&lock_path).await {
+        match uv_vfs::fs::tokio::read_to_string(&lock_path).await {
             Ok(encoded) => {
                 let lock = info_span!("parse uv lock", path = %lock_path.display())
                     .in_scope(|| Lock::from_toml(&encoded))?;
@@ -365,7 +365,7 @@ impl<'lock> LockTarget<'lock> {
 
     /// Read the lockfile from the workspace as bytes.
     pub(crate) async fn read_bytes(self) -> Result<Option<Vec<u8>>, std::io::Error> {
-        match fs_err::tokio::read(self.lock_path()).await {
+        match uv_vfs::fs::tokio::read(self.lock_path()).await {
             Ok(encoded) => Ok(Some(encoded)),
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
             Err(err) => Err(err),
@@ -375,7 +375,7 @@ impl<'lock> LockTarget<'lock> {
     /// Write the lockfile to disk.
     pub(crate) async fn commit(self, lock: &Lock) -> Result<(), ProjectError> {
         let encoded = lock.to_toml()?;
-        fs_err::tokio::write(self.lock_path(), encoded).await?;
+        uv_vfs::fs::tokio::write(self.lock_path(), encoded).await?;
         Ok(())
     }
 

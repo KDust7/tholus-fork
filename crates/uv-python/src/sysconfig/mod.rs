@@ -56,13 +56,13 @@ pub(crate) fn update_sysconfig(
     );
 
     // Update the `_sysconfigdata_` file in-memory.
-    let contents = fs_err::read_to_string(&sysconfigdata)?;
+    let contents = uv_vfs::fs::read_to_string(&sysconfigdata)?;
     let data = SysconfigData::from_str(&contents)?;
     let data = patch_sysconfigdata(data, &real_prefix);
     let contents = data.to_string_pretty()?;
 
     // Write the updated `_sysconfigdata_` file.
-    let mut file = fs_err::OpenOptions::new()
+    let mut file = uv_vfs::fs::OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
@@ -76,10 +76,10 @@ pub(crate) fn update_sysconfig(
         trace!("Discovered `pkgconfig` data at: {}", pkgconfig.display());
 
         // Update the `pkgconfig` file in-memory.
-        let contents = fs_err::read_to_string(&pkgconfig)?;
+        let contents = uv_vfs::fs::read_to_string(&pkgconfig)?;
         if let Some(new_contents) = patch_pkgconfig(&contents) {
             // Write the updated `pkgconfig` file.
-            let mut file = fs_err::OpenOptions::new()
+            let mut file = uv_vfs::fs::OpenOptions::new()
                 .write(true)
                 .truncate(true)
                 .create(true)

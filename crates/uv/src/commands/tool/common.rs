@@ -154,7 +154,7 @@ pub(crate) fn remove_entrypoints(tool: &Tool) {
 fn remove_entrypoint_paths<'a>(entrypoints: impl IntoIterator<Item = &'a Path>) {
     for executable in entrypoints {
         debug!("Removing executable: `{}`", executable.simplified_display());
-        if let Err(err) = fs_err::remove_file(executable) {
+        if let Err(err) = uv_vfs::fs::remove_file(executable) {
             warn!(
                 "Failed to remove executable: `{}`: {err}",
                 executable.simplified_display()
@@ -349,7 +349,7 @@ impl ToolLock {
     /// Read the lock for a tool, if one has been generated.
     pub(crate) fn read(directory: &Path) -> Option<Self> {
         let path = directory.join("uv.lock");
-        match fs_err::read_to_string(&path) {
+        match uv_vfs::fs::read_to_string(&path) {
             Ok(contents) => match Lock::from_toml(&contents) {
                 Ok(lock) => Some(Self {
                     root: directory.to_path_buf(),
@@ -380,7 +380,7 @@ impl ToolLock {
         if let Some(lock) = lock {
             uv_fs::write_atomic_sync(&path, lock.lock.to_toml()?)?;
         } else {
-            match fs_err::remove_file(path) {
+            match uv_vfs::fs::remove_file(path) {
                 Ok(()) => (),
                 Err(err) if err.kind() == io::ErrorKind::NotFound => (),
                 Err(err) => return Err(err.into()),
@@ -745,7 +745,7 @@ pub(crate) fn finalize_tool_install(
     printer: Printer,
 ) -> anyhow::Result<()> {
     let executable_directory = uv_tool::tool_executable_dir()?;
-    fs_err::create_dir_all(&executable_directory)
+    uv_vfs::fs::create_dir_all(&executable_directory)
         .context("Failed to create executable directory")?;
     debug!(
         "Installing tool executables into: {}",
@@ -906,7 +906,7 @@ pub(crate) fn finalize_tool_install(
             }) {
                 self_replace::self_replace(src).context("Failed to install entrypoint")?;
             } else {
-                fs_err::copy(src, &target).context("Failed to install entrypoint")?;
+                uv_vfs::fs::copy(src, &target).context("Failed to install entrypoint")?;
             }
 
             let tool_entry = ToolEntrypoint::new(&name, target, package.to_string());

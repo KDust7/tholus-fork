@@ -989,7 +989,7 @@ mod tests {
 
     use http::Method;
     use reqwest::Client;
-    use tempfile::NamedTempFile;
+    use uv_vfs::temp::NamedTempFile;
     use test_log::test;
 
     use url::Url;

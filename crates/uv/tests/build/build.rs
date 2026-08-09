@@ -18,7 +18,7 @@ use wiremock::{
 
 fn zip_file_names(path: &Path) -> Result<Vec<String>> {
     block_on(async {
-        let wheel = ZipFileReader::new(fs_err::read(path)?).await?;
+        let wheel = ZipFileReader::new(uv_vfs::fs::read(path)?).await?;
         let mut files: Vec<_> = wheel
             .file()
             .entries()
@@ -82,7 +82,7 @@ fn build_basic() -> Result<()> {
         .child("project-0.1.0-py3-none-any.whl")
         .assert(predicate::path::is_file());
 
-    fs_err::remove_dir_all(project.child("dist"))?;
+    uv_vfs::fs::remove_dir_all(project.child("dist"))?;
 
     // Build the current working directory.
     uv_snapshot!(&filters, context.build().current_dir(project.path()), @"
@@ -103,7 +103,7 @@ fn build_basic() -> Result<()> {
         .child("project-0.1.0-py3-none-any.whl")
         .assert(predicate::path::is_file());
 
-    fs_err::remove_dir_all(project.child("dist"))?;
+    uv_vfs::fs::remove_dir_all(project.child("dist"))?;
 
     // Error if there's nothing to build.
     uv_snapshot!(&filters, context.build(), @"
@@ -318,7 +318,7 @@ fn build_backend_path_symlink_outside_source_tree() -> Result<()> {
         .temp_dir
         .child("backend/backend.py")
         .write_str("raise RuntimeError('outside backend was executed')\n")?;
-    fs_err::os::unix::fs::symlink(context.temp_dir.child("backend"), project.child("backend"))?;
+    uv_vfs::fs::os::unix::fs::symlink(context.temp_dir.child("backend"), project.child("backend"))?;
 
     uv_snapshot!(context.filters(), context.build().arg("--wheel").arg(project.path()), @"
     exit_code: 2 (failure)
@@ -700,7 +700,7 @@ fn build_workspace() -> Result<()> {
     project.child("README").touch()?;
 
     let member = project.child("packages").child("member");
-    fs_err::create_dir_all(member.path())?;
+    uv_vfs::fs::create_dir_all(member.path())?;
 
     member.child("pyproject.toml").write_str(
         r#"
@@ -724,7 +724,7 @@ fn build_workspace() -> Result<()> {
     member.child("README").touch()?;
 
     let r#virtual = project.child("packages").child("virtual");
-    fs_err::create_dir_all(r#virtual.path())?;
+    uv_vfs::fs::create_dir_all(r#virtual.path())?;
 
     r#virtual.child("pyproject.toml").write_str(
         r#"
@@ -884,10 +884,10 @@ fn build_all_with_failure() -> Result<()> {
     project.child("README").touch()?;
 
     let member_a = project.child("packages").child("member_a");
-    fs_err::create_dir_all(member_a.path())?;
+    uv_vfs::fs::create_dir_all(member_a.path())?;
 
     let member_b = project.child("packages").child("member_b");
-    fs_err::create_dir_all(member_b.path())?;
+    uv_vfs::fs::create_dir_all(member_b.path())?;
 
     member_a.child("pyproject.toml").write_str(
         r#"
@@ -1083,7 +1083,7 @@ fn build_all_respects_workspace_build_constraint_dependencies() -> Result<()> {
     project.child("README").touch()?;
 
     let member = project.child("packages").child("member");
-    fs_err::create_dir_all(member.path())?;
+    uv_vfs::fs::create_dir_all(member.path())?;
 
     member.child("pyproject.toml").write_str(
         r#"
@@ -1183,7 +1183,7 @@ fn build_source_path_ignores_workspace_build_constraint_dependencies() -> Result
     project.child("README").touch()?;
 
     let member = project.child("packages").child("member");
-    fs_err::create_dir_all(member.path())?;
+    uv_vfs::fs::create_dir_all(member.path())?;
 
     member.child("pyproject.toml").write_str(
         r#"
@@ -1267,7 +1267,7 @@ fn build_workspace_transitive_build_dependency() -> Result<()> {
     project.child("README.md").touch()?;
 
     let my_util = project.child("my-util");
-    fs_err::create_dir_all(my_util.path())?;
+    uv_vfs::fs::create_dir_all(my_util.path())?;
     my_util.child("pyproject.toml").write_str(
         r#"
         [project]
@@ -1289,7 +1289,7 @@ fn build_workspace_transitive_build_dependency() -> Result<()> {
     my_util.child("README.md").touch()?;
 
     let my_backend = project.child("my-backend");
-    fs_err::create_dir_all(my_backend.path())?;
+    uv_vfs::fs::create_dir_all(my_backend.path())?;
     my_backend.child("pyproject.toml").write_str(
         r#"
         [project]
@@ -1311,7 +1311,7 @@ fn build_workspace_transitive_build_dependency() -> Result<()> {
     my_backend.child("README.md").touch()?;
 
     let my_tool = project.child("my-tool");
-    fs_err::create_dir_all(my_tool.path())?;
+    uv_vfs::fs::create_dir_all(my_tool.path())?;
     my_tool.child("pyproject.toml").write_str(
         r#"
         [project]
@@ -1443,7 +1443,7 @@ fn build_sha() -> Result<()> {
         .child("project-0.1.0-py3-none-any.whl")
         .assert(predicate::path::missing());
 
-    fs_err::remove_dir_all(project.child("dist"))?;
+    uv_vfs::fs::remove_dir_all(project.child("dist"))?;
 
     // Reject a missing hash with `--requires-hashes`.
     uv_snapshot!(&filters, context.build().arg("--build-constraint").arg("constraints.txt").arg("--require-hashes").current_dir(&project), @"
@@ -1472,7 +1472,7 @@ fn build_sha() -> Result<()> {
         .child("project-0.1.0-py3-none-any.whl")
         .assert(predicate::path::missing());
 
-    fs_err::remove_dir_all(project.child("dist"))?;
+    uv_vfs::fs::remove_dir_all(project.child("dist"))?;
 
     // Reject a missing hash.
     let constraints = project.child("constraints.txt");
@@ -1497,7 +1497,7 @@ fn build_sha() -> Result<()> {
         .child("project-0.1.0-py3-none-any.whl")
         .assert(predicate::path::missing());
 
-    fs_err::remove_dir_all(project.child("dist"))?;
+    uv_vfs::fs::remove_dir_all(project.child("dist"))?;
 
     // Accept a correct hash.
     let constraints = project.child("constraints.txt");
@@ -1569,12 +1569,12 @@ async fn build_transitive_url_build_requirement_hashes() -> Result<()> {
 
     Mock::given(method("GET"))
         .and(url_path("/ok-1.0.0-py3-none-any.whl"))
-        .respond_with(ResponseTemplate::new(200).set_body_bytes(fs_err::read(ok_wheel)?))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(uv_vfs::fs::read(ok_wheel)?))
         .mount(&server)
         .await;
     Mock::given(method("GET"))
         .and(url_path("/validation-1.0.0-py3-none-any.whl"))
-        .respond_with(ResponseTemplate::new(200).set_body_bytes(fs_err::read(validation_wheel)?))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(uv_vfs::fs::read(validation_wheel)?))
         .mount(&server)
         .await;
 
@@ -2031,7 +2031,7 @@ fn build_non_package() -> Result<()> {
     project.child("README").touch()?;
 
     let member = project.child("packages").child("member");
-    fs_err::create_dir_all(member.path())?;
+    uv_vfs::fs::create_dir_all(member.path())?;
 
     member.child("pyproject.toml").write_str(
         r#"
@@ -2531,7 +2531,7 @@ fn build_version_mismatch() -> Result<()> {
         .assert()
         .success();
     let wrong_source_dist = context.temp_dir.child("anyio-1.2.3.tar.gz");
-    fs_err::rename(
+    uv_vfs::fs::rename(
         context.temp_dir.child("anyio-4.3.0+foo.tar.gz"),
         &wrong_source_dist,
     )?;
@@ -2603,7 +2603,7 @@ fn build_with_symlink() -> Result<()> {
             requires = ["hatchling"]
             build-backend = "hatchling.build"
     "#})?;
-    fs_err::os::unix::fs::symlink(
+    uv_vfs::fs::os::unix::fs::symlink(
         "pyproject.toml.real",
         context.temp_dir.child("pyproject.toml"),
     )?;
@@ -2611,7 +2611,7 @@ fn build_with_symlink() -> Result<()> {
         .temp_dir
         .child("src/softlinked/__init__.py")
         .touch()?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
     uv_snapshot!(context.filters(), context.build(), @"
     exit_code: 0 (success)
     ----- stderr -----
@@ -2964,7 +2964,7 @@ fn build_clear() -> Result<()> {
         .assert(predicate::path::is_file());
 
     // Add a marker file to verify `--clear` removes it
-    fs_err::write(project.child("dist").child("marker.txt"), "marker")?;
+    uv_vfs::fs::write(project.child("dist").child("marker.txt"), "marker")?;
     project
         .child("dist")
         .child("marker.txt")
@@ -3020,7 +3020,7 @@ fn build_no_gitignore() -> Result<()> {
         .child(".gitignore")
         .assert(predicate::path::is_file());
 
-    fs_err::remove_dir_all(project.child("dist"))?;
+    uv_vfs::fs::remove_dir_all(project.child("dist"))?;
 
     // Build with `--no-create-gitignore` that does not create `.gitignore`
     uv_snapshot!(&context.filters(), context.build().arg("project").arg("--no-create-gitignore").arg("--no-build-logs"), @"

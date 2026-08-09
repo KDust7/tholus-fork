@@ -5,8 +5,8 @@ use std::io::{BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 
 use data_encoding::BASE64URL_NOPAD;
-use fs_err as fs;
-use fs_err::{DirEntry, File};
+use uv_vfs::fs as fs;
+use uv_vfs::fs::{DirEntry, File};
 use itertools::Itertools;
 use mailparse::parse_headers;
 use rustc_hash::FxHashMap;
@@ -669,13 +669,13 @@ fn install_script(
             // blocking the file, but we also need the copy fallback is the problem was trying to
             // move a file cross-drive.
             match uv_fs::with_retry_sync(&path, &script_absolute, "renaming", || {
-                fs_err::rename(&path, &script_absolute)
+                uv_vfs::fs::rename(&path, &script_absolute)
             }) {
                 Ok(()) => (),
                 Err(err) => {
                     debug!("Failed to rename, falling back to copy: {err}");
                     uv_fs::with_retry_sync(&path, &script_absolute, "copying", || {
-                        fs_err::copy(&path, &script_absolute)?;
+                        uv_vfs::fs::copy(&path, &script_absolute)?;
                         Ok(())
                     })?;
                 }
@@ -1201,16 +1201,16 @@ impl RenameOrCopy {
     /// have to copy. If renaming failed once, we switch to copy permanently.
     fn rename_or_copy(&mut self, from: impl AsRef<Path>, to: impl AsRef<Path>) -> io::Result<()> {
         match self {
-            Self::Rename => match fs_err::rename(from.as_ref(), to.as_ref()) {
+            Self::Rename => match uv_vfs::fs::rename(from.as_ref(), to.as_ref()) {
                 Ok(()) => {}
                 Err(err) => {
                     *self = Self::Copy;
                     debug!("Failed to rename, falling back to copy: {err}");
-                    fs_err::copy(from.as_ref(), to.as_ref())?;
+                    uv_vfs::fs::copy(from.as_ref(), to.as_ref())?;
                 }
             },
             Self::Copy => {
-                fs_err::copy(from.as_ref(), to.as_ref())?;
+                uv_vfs::fs::copy(from.as_ref(), to.as_ref())?;
             }
         }
         Ok(())

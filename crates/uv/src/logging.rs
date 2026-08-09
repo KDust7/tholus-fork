@@ -127,7 +127,7 @@ pub(crate) fn setup_durations(
 )> {
     if let Some(location) = tracing_durations_file {
         if let Some(parent) = location.parent() {
-            fs_err::create_dir_all(parent)
+            uv_vfs::fs::create_dir_all(parent)
                 .context("Failed to create parent of TRACING_DURATIONS_FILE")?;
         }
         let plot_config = PlotConfig {

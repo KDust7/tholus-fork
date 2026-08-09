@@ -258,7 +258,7 @@ pub fn check_direct_build(
     }
 
     let path = source_tree.join("pyproject.toml");
-    let pyproject_toml: PyProjectToml = match fs_err::read_to_string(&path)
+    let pyproject_toml: PyProjectToml = match uv_vfs::fs::read_to_string(&path)
         .map_err(|err| err.to_string())
         .and_then(|pyproject_toml| {
             tracing::info_span!("toml::from_str check direct build", path = %path.display())
@@ -378,7 +378,7 @@ impl PyProjectToml {
     }
 
     pub(crate) fn parse(path: &Path) -> Result<Self, Error> {
-        let contents = fs_err::read_to_string(path)?;
+        let contents = uv_vfs::fs::read_to_string(path)?;
         let pyproject_toml =
             tracing::info_span!("toml::from_str uv build backend", path = %path.display())
                 .in_scope(|| toml::from_str(&contents))
@@ -444,7 +444,7 @@ impl PyProjectToml {
         let supported_content_types = ["text/plain", "text/x-rst", "text/markdown"];
         let (description, description_content_type) = match &self.project.readme {
             Some(Readme::String(path)) => {
-                let content = fs_err::read_to_string(root.join(path))?;
+                let content = uv_vfs::fs::read_to_string(root.join(path))?;
                 let content_type = match path.extension().and_then(OsStr::to_str) {
                     Some("txt") => "text/plain",
                     Some("rst") => "text/x-rst",
@@ -462,7 +462,7 @@ impl PyProjectToml {
                 content_type,
                 charset,
             }) => {
-                let content = fs_err::read_to_string(root.join(file))?;
+                let content = uv_vfs::fs::read_to_string(root.join(file))?;
                 if !supported_content_types.contains(&content_type.as_str()) {
                     return Err(
                         ValidationError::UnsupportedContentType(content_type.clone()).into(),
@@ -811,7 +811,7 @@ impl PyProjectToml {
 
             for license_file in &license_files {
                 let file_path = root.join(license_file);
-                let bytes = fs_err::read(&file_path)?;
+                let bytes = uv_vfs::fs::read(&file_path)?;
                 if str::from_utf8(&bytes).is_err() {
                     return Err(ValidationError::LicenseFileNotUtf8(license_file.clone()).into());
                 }
@@ -829,7 +829,7 @@ impl PyProjectToml {
                 }
                 Some(License::Text { text }) => (Some(text.clone()), None, Vec::new()),
                 Some(License::File { file }) => {
-                    let text = fs_err::read_to_string(root.join(file))?;
+                    let text = uv_vfs::fs::read_to_string(root.join(file))?;
                     (Some(text), None, Vec::new())
                 }
             }
@@ -1251,7 +1251,7 @@ mod tests {
     use indoc::{formatdoc, indoc};
     use insta::assert_snapshot;
     use std::iter;
-    use tempfile::TempDir;
+    use uv_vfs::temp::TempDir;
 
     fn extend_project(payload: &str) -> String {
         formatdoc! {r#"
@@ -1301,7 +1301,7 @@ mod tests {
     fn valid() {
         let temp_dir = TempDir::new().unwrap();
 
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("Readme.md"),
             indoc! {r"
             # Foo
@@ -1311,7 +1311,7 @@ mod tests {
         )
         .unwrap();
 
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("License.txt"),
             indoc! {r#"
                 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
@@ -1533,7 +1533,7 @@ mod tests {
     fn readme() {
         let temp_dir = TempDir::new().unwrap();
 
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("Readme.md"),
             indoc! {r"
             # Foo
@@ -1543,7 +1543,7 @@ mod tests {
         )
         .unwrap();
 
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("License.txt"),
             indoc! {r#"
                 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
@@ -1592,7 +1592,7 @@ mod tests {
     fn self_extras() {
         let temp_dir = TempDir::new().unwrap();
 
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("Readme.md"),
             indoc! {r"
             # Foo
@@ -1602,7 +1602,7 @@ mod tests {
         )
         .unwrap();
 
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("License.txt"),
             indoc! {r#"
                 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
@@ -2042,7 +2042,7 @@ mod tests {
     #[test]
     fn check_direct_build_ok() {
         let temp_dir = TempDir::new().unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("pyproject.toml"),
             indoc! {r#"
                 [project]
@@ -2061,7 +2061,7 @@ mod tests {
     #[test]
     fn check_direct_build_parse_error() {
         let temp_dir = TempDir::new().unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("pyproject.toml"),
             "invalid toml >>>>>>>",
         )
@@ -2081,7 +2081,7 @@ mod tests {
     #[test]
     fn check_direct_build_wrong_backend() {
         let temp_dir = TempDir::new().unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("pyproject.toml"),
             indoc! {r#"
                 [project]
@@ -2103,7 +2103,7 @@ mod tests {
     #[test]
     fn check_direct_build_multiple_requires() {
         let temp_dir = TempDir::new().unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("pyproject.toml"),
             indoc! {r#"
                 [project]
@@ -2125,7 +2125,7 @@ mod tests {
     #[test]
     fn check_direct_build_wrong_package() {
         let temp_dir = TempDir::new().unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("pyproject.toml"),
             indoc! {r#"
                 [project]
@@ -2147,7 +2147,7 @@ mod tests {
     #[test]
     fn check_direct_build_url_requirement() {
         let temp_dir = TempDir::new().unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("pyproject.toml"),
             indoc! {r#"
                 [project]
@@ -2169,7 +2169,7 @@ mod tests {
     #[test]
     fn check_direct_build_incompatible_range() {
         let temp_dir = TempDir::new().unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(
             temp_dir.path().join("pyproject.toml"),
             indoc! {r#"
                 [project]

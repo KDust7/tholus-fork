@@ -614,8 +614,8 @@ async fn run_with_workspace_cache(
         std::env::var_os(EnvVars::UV_INTERNAL__BUILD_DIR).is_some_and(|build_dir| {
             std::path::absolute(build_dir).is_ok_and(|build_dir| {
                 project_dir.starts_with(&build_dir)
-                    || fs_err::canonicalize(&*project_dir).is_ok_and(|project_dir| {
-                        fs_err::canonicalize(build_dir)
+                    || uv_vfs::fs::canonicalize(&*project_dir).is_ok_and(|project_dir| {
+                        uv_vfs::fs::canonicalize(build_dir)
                             .is_ok_and(|build_dir| project_dir.starts_with(build_dir))
                     })
             })
@@ -628,8 +628,8 @@ async fn run_with_workspace_cache(
                 cache_dir.user_display()
             );
         }
-        if let Ok(cache_dir) = fs_err::canonicalize(&cache_dir)
-            && let Ok(project_dir) = fs_err::canonicalize(&*project_dir)
+        if let Ok(cache_dir) = uv_vfs::fs::canonicalize(&cache_dir)
+            && let Ok(project_dir) = uv_vfs::fs::canonicalize(&*project_dir)
             && project_dir.starts_with(&cache_dir)
         {
             bail!(

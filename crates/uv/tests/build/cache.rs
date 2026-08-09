@@ -319,7 +319,7 @@ fn cache_init_failure() -> Result<()> {
     // Create a read-only directory that will serve as the parent of the cache.
     // The guard sets it to read-only and restores original permissions on drop (including panic).
     let cache_parent = context.temp_dir.child("cache_parent");
-    fs_err::create_dir(&cache_parent)?;
+    uv_vfs::fs::create_dir(&cache_parent)?;
     let _guard = ReadOnlyDirectoryGuard::new(cache_parent.path())?;
 
     // Point the cache to a subdirectory within the read-only parent

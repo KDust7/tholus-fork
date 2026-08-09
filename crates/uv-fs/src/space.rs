@@ -148,7 +148,7 @@ fn linux_physical_space(path: &Path) -> io::Result<u64> {
     const FS_IOC_FIEMAP: rustix::ioctl::Opcode =
         rustix::ioctl::opcode::read_write::<Fiemap>(b'f', 11);
 
-    let file = fs_err::File::open(path)?;
+    let file = uv_vfs::fs::File::open(path)?;
     let mut physical = 0_u64;
     let mut start = 0_u64;
 

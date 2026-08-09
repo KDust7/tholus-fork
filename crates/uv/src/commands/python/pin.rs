@@ -79,7 +79,7 @@ pub(crate) async fn pin(
             bail!("No Python version file found; use `--rm --global` to remove the global pin");
         }
 
-        fs_err::tokio::remove_file(file.path()).await?;
+        uv_vfs::fs::tokio::remove_file(file.path()).await?;
         writeln!(
             printer.stdout(),
             "Removed {} at `{}`",

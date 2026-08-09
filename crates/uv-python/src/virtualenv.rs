@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use fs_err as fs;
+use uv_vfs::fs as fs;
 use thiserror::Error;
 
 use uv_pypi_types::Scheme;
@@ -336,7 +336,7 @@ mod tests {
 
     use indoc::indoc;
     use temp_env::with_vars;
-    use tempfile::tempdir;
+    use uv_vfs::temp::tempdir;
 
     use super::*;
 

@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
 use anyhow::Result;
-use fs_err::File;
+use uv_vfs::fs::File;
 use itertools::{Either, Itertools};
 use owo_colors::OwoColorize;
 use rustc_hash::FxHashMap;
@@ -20,6 +20,8 @@ use uv_python::{
 use crate::commands::ExitStatus;
 use crate::commands::pip::operations::report_target_environment;
 use crate::printer::Printer;
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// Show information about one or more installed packages.
 pub(crate) fn pip_show(

@@ -259,7 +259,7 @@ pub(crate) async fn venv(
             on_existing
         }
         OnExisting::Allow
-            if fs_err::symlink_metadata(&path).is_ok_and(|metadata| metadata.is_file())
+            if uv_vfs::fs::symlink_metadata(&path).is_ok_and(|metadata| metadata.is_file())
                 && is_centralized_environment_reference(&path, cache) =>
         {
             // TODO(tk): Revisit after PEP 832.

@@ -24,7 +24,7 @@ impl ToolReceipt {
 
     ///  Read a [`ToolReceipt`] from the given path.
     pub(crate) fn from_path(path: &Path) -> Result<Self, crate::Error> {
-        match fs_err::read_to_string(path) {
+        match uv_vfs::fs::read_to_string(path) {
             Ok(contents) => Ok(Self::from_string(contents)
                 .map_err(|err| crate::Error::ReceiptRead(path.to_owned(), Box::new(err)))?),
             Err(err) => Err(err.into()),

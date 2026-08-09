@@ -55,7 +55,7 @@ pub struct Scenario {
 impl Scenario {
     /// Parse a single scenario from a TOML file path.
     pub fn from_path(path: &Path) -> Result<Self> {
-        let contents = fs_err::read_to_string(path)
+        let contents = uv_vfs::fs::read_to_string(path)
             .with_context(|| format!("failed to read scenario file `{}`", path.display()))?;
         toml::from_str(&contents)
             .with_context(|| format!("failed to parse scenario file `{}`", path.display()))
@@ -452,9 +452,9 @@ wheel_tags = ["1-py3-none-any"]
     #[test]
     fn path_is_included_in_parse_errors() {
         let temporary_directory =
-            tempfile::tempdir().expect("temporary directory should be created");
+            uv_vfs::temp::tempdir().expect("temporary directory should be created");
         let path = temporary_directory.path().join("invalid.toml");
-        fs_err::write(&path, "not valid TOML = [").expect("invalid scenario should be written");
+        uv_vfs::fs::write(&path, "not valid TOML = [").expect("invalid scenario should be written");
 
         let error = Scenario::from_path(&path).expect_err("scenario should fail to parse");
         insta::assert_snapshot!(

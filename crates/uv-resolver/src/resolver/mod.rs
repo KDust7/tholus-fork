@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::ops::Bound;
 use std::sync::Arc;
-use std::time::Instant;
+use web_time::Instant;
 use std::{iter, slice, thread};
 
 use either::Either;

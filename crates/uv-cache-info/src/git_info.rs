@@ -37,7 +37,7 @@ impl Commit {
         if !git_head_path.exists() {
             return Err(GitInfoError::MissingHead(repository.git_dir));
         }
-        let git_head_contents = fs_err::read_to_string(git_head_path)?;
+        let git_head_contents = uv_vfs::fs::read_to_string(git_head_path)?;
 
         // The contents are either a commit or a reference in the following formats
         // - "<commit>" when the head is detached
@@ -152,7 +152,7 @@ fn read_git_dir(dot_git_path: &Path) -> Option<PathBuf> {
         return None;
     }
 
-    let contents = fs_err::read_to_string(dot_git_path).ok()?;
+    let contents = uv_vfs::fs::read_to_string(dot_git_path).ok()?;
     let git_dir = contents.strip_prefix("gitdir:")?.trim();
     Some(resolve_relative_path(dot_git_path.parent()?, git_dir))
 }
@@ -160,7 +160,7 @@ fn read_git_dir(dot_git_path: &Path) -> Option<PathBuf> {
 /// Return the common Git directory, following a linked worktree's `commondir` file.
 fn read_common_dir(git_dir: &Path) -> Result<PathBuf, GitInfoError> {
     let commondir_path = git_dir.join("commondir");
-    let contents = match fs_err::read_to_string(commondir_path) {
+    let contents = match uv_vfs::fs::read_to_string(commondir_path) {
         Ok(contents) => contents,
         Err(err) if err.kind() == ErrorKind::NotFound => return Ok(git_dir.to_path_buf()),
         Err(err) => return Err(err.into()),
@@ -170,7 +170,7 @@ fn read_common_dir(git_dir: &Path) -> Result<PathBuf, GitInfoError> {
 
 /// Read and validate a loose ref, returning [`None`] when it does not exist.
 fn read_ref_file(path: &Path) -> Result<Option<String>, GitInfoError> {
-    let contents = match fs_err::read_to_string(path) {
+    let contents = match uv_vfs::fs::read_to_string(path) {
         Ok(contents) => contents,
         Err(err) if err.kind() == ErrorKind::NotFound => return Ok(None),
         Err(err) => return Err(err.into()),
@@ -183,7 +183,7 @@ fn read_ref_file(path: &Path) -> Result<Option<String>, GitInfoError> {
 /// Read the direct refs from `packed-refs`, ignoring comments and peeled tag lines.
 fn read_packed_refs(git_dir: &Path) -> Result<BTreeMap<String, String>, GitInfoError> {
     let path = git_dir.join("packed-refs");
-    let contents = match fs_err::read_to_string(&path) {
+    let contents = match uv_vfs::fs::read_to_string(&path) {
         Ok(contents) => contents,
         Err(err) if err.kind() == ErrorKind::NotFound => return Ok(BTreeMap::new()),
         Err(err) => return Err(err.into()),
@@ -239,20 +239,20 @@ mod tests {
 
     #[test]
     fn commit_and_tags_from_linked_worktree() -> Result<()> {
-        let temp_dir = tempfile::tempdir()?;
+        let temp_dir = uv_vfs::temp::tempdir()?;
         let worktree = temp_dir.path().join("worktree");
         let common_git_dir = temp_dir.path().join("common.git");
         let worktree_git_dir = common_git_dir.join("worktrees").join("worktree");
 
-        fs_err::create_dir_all(&worktree)?;
-        fs_err::create_dir_all(&worktree_git_dir)?;
-        fs_err::write(
+        uv_vfs::fs::create_dir_all(&worktree)?;
+        uv_vfs::fs::create_dir_all(&worktree_git_dir)?;
+        uv_vfs::fs::write(
             worktree.join(".git"),
             format!("gitdir: {}\n", worktree_git_dir.display()),
         )?;
-        fs_err::write(worktree_git_dir.join("HEAD"), "ref: refs/heads/main\n")?;
-        fs_err::write(worktree_git_dir.join("commondir"), "../..\n")?;
-        fs_err::write(
+        uv_vfs::fs::write(worktree_git_dir.join("HEAD"), "ref: refs/heads/main\n")?;
+        uv_vfs::fs::write(worktree_git_dir.join("commondir"), "../..\n")?;
+        uv_vfs::fs::write(
             common_git_dir.join("packed-refs"),
             format!(
                 "\
@@ -279,10 +279,10 @@ mod tests {
         let refs_dir = common_git_dir.join("refs");
         let heads_dir = refs_dir.join("heads");
         let tags_dir = refs_dir.join("tags");
-        fs_err::create_dir_all(&heads_dir)?;
-        fs_err::create_dir_all(&tags_dir)?;
-        fs_err::write(heads_dir.join("main"), COMMIT_2)?;
-        fs_err::write(tags_dir.join("v0.1.0"), COMMIT_1)?;
+        uv_vfs::fs::create_dir_all(&heads_dir)?;
+        uv_vfs::fs::create_dir_all(&tags_dir)?;
+        uv_vfs::fs::write(heads_dir.join("main"), COMMIT_2)?;
+        uv_vfs::fs::write(tags_dir.join("v0.1.0"), COMMIT_1)?;
 
         expected_tags.insert("v0.1.0".to_string(), COMMIT_1.to_string());
 

@@ -10,7 +10,7 @@ use axoupdater::{
 };
 use owo_colors::OwoColorize;
 use serde::Deserialize;
-use tempfile::TempDir;
+use uv_vfs::temp::TempDir;
 use thiserror::Error;
 use tokio::process::Command;
 use tracing::{debug, warn};
@@ -473,7 +473,7 @@ async fn download_installer_from_urls(
                 source: source.into(),
             })?;
 
-        fs_err::tokio::write(installer_path, &bytes)
+        uv_vfs::fs::tokio::write(installer_path, &bytes)
             .await
             .map_err(|source| InstallerDownloadError::Write {
                 path: installer_path.to_path_buf(),
@@ -489,7 +489,7 @@ async fn download_installer_from_urls(
         use std::fs::Permissions;
         use std::os::unix::fs::PermissionsExt;
 
-        fs_err::tokio::set_permissions(installer_path, Permissions::from_mode(0o744)).await?;
+        uv_vfs::fs::tokio::set_permissions(installer_path, Permissions::from_mode(0o744)).await?;
     }
 
     Ok(())
@@ -532,7 +532,7 @@ async fn execute_official_installer(
         let mut previous_path = old_path.as_os_str().to_os_string();
         previous_path.push(".previous.exe");
         let previous_path = PathBuf::from(previous_path);
-        fs_err::rename(&old_path, &previous_path)?;
+        uv_vfs::fs::rename(&old_path, &previous_path)?;
         Some((previous_path, old_path))
     } else {
         None
@@ -556,7 +556,7 @@ async fn execute_official_installer(
 
     if let Some((previous_path, old_path)) = to_restore.as_ref() {
         if failed {
-            fs_err::rename(previous_path, old_path)?;
+            uv_vfs::fs::rename(previous_path, old_path)?;
         } else {
             #[cfg(windows)]
             self_replace::self_delete_at(previous_path)
@@ -589,7 +589,7 @@ fn load_receipt_modify_path(app_name: &str) -> Result<bool> {
     };
 
     // Axoupdater does not expose `modify_path`, so we re-read the already-validated receipt.
-    let receipt = fs_err::read(&receipt_path).with_context(|| {
+    let receipt = uv_vfs::fs::read(&receipt_path).with_context(|| {
         format!(
             "Failed to read install receipt at `{}`",
             receipt_path.display()
@@ -1103,7 +1103,7 @@ mod tests {
         assert_eq!(mirror_requests.load(Ordering::SeqCst), 1);
         assert_eq!(canonical_requests.load(Ordering::SeqCst), 1);
         assert_eq!(
-            fs_err::read_to_string(&installer_path).unwrap(),
+            uv_vfs::fs::read_to_string(&installer_path).unwrap(),
             "echo canonical installer\n"
         );
     }
@@ -1136,7 +1136,7 @@ mod tests {
         let _ = shutdown_tx.send(());
         handle.join().unwrap();
 
-        let mode = fs_err::metadata(&installer_path)
+        let mode = uv_vfs::fs::metadata(&installer_path)
             .unwrap()
             .permissions()
             .mode();
@@ -1152,12 +1152,12 @@ mod tests {
         let installer_path = temp_dir.path().join("installer.sh");
         let install_prefix = temp_dir.path().join("install-prefix");
 
-        fs_err::write(
+        uv_vfs::fs::write(
             &installer_path,
             "#!/bin/sh\nprintf 'hello from stdout\\n'\nprintf 'hello from stderr\\n' >&2\nexit 23\n",
         )
         .unwrap();
-        fs_err::set_permissions(&installer_path, std::fs::Permissions::from_mode(0o744)).unwrap();
+        uv_vfs::fs::set_permissions(&installer_path, std::fs::Permissions::from_mode(0o744)).unwrap();
 
         let err = execute_official_installer(
             &installer_path,
@@ -1192,7 +1192,7 @@ mod tests {
         let installer_path = temp_dir.path().join("installer.sh");
         let install_prefix = temp_dir.path().join("install-prefix");
 
-        fs_err::write(
+        uv_vfs::fs::write(
             &installer_path,
             format!(
                 "#!/bin/sh\nset -eu\n{{\nprintf 'CARGO_DIST_FORCE_INSTALL_DIR=%s\\n' \"$CARGO_DIST_FORCE_INSTALL_DIR\"\nprintf 'UV_INSTALL_DIR=%s\\n' \"$UV_INSTALL_DIR\"\nprintf 'UV_NO_MODIFY_PATH=%s\\n' \"${{UV_NO_MODIFY_PATH-}}\"\n}} > \"{}\"\n",
@@ -1200,7 +1200,7 @@ mod tests {
             ),
         )
         .unwrap();
-        fs_err::set_permissions(&installer_path, std::fs::Permissions::from_mode(0o744)).unwrap();
+        uv_vfs::fs::set_permissions(&installer_path, std::fs::Permissions::from_mode(0o744)).unwrap();
 
         execute_official_installer(
             &installer_path,
@@ -1213,7 +1213,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            fs_err::read_to_string(&output_path).unwrap(),
+            uv_vfs::fs::read_to_string(&output_path).unwrap(),
             format!(
                 "CARGO_DIST_FORCE_INSTALL_DIR={}\nUV_INSTALL_DIR={}\nUV_NO_MODIFY_PATH=1\n",
                 install_prefix.display(),
@@ -1232,7 +1232,7 @@ mod tests {
         let installer_path = temp_dir.path().join("installer.sh");
         let install_prefix = temp_dir.path().join("install-prefix");
 
-        fs_err::write(
+        uv_vfs::fs::write(
             &installer_path,
             format!(
                 "#!/bin/sh\nset -eu\n{{\nprintf 'UV_DOWNLOAD_URL=%s\\n' \"${{UV_DOWNLOAD_URL-}}\"\n}} > \"{}\"\n",
@@ -1240,7 +1240,7 @@ mod tests {
             ),
         )
         .unwrap();
-        fs_err::set_permissions(&installer_path, std::fs::Permissions::from_mode(0o744)).unwrap();
+        uv_vfs::fs::set_permissions(&installer_path, std::fs::Permissions::from_mode(0o744)).unwrap();
 
         execute_official_installer(
             &installer_path,
@@ -1253,7 +1253,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            fs_err::read_to_string(&output_path).unwrap(),
+            uv_vfs::fs::read_to_string(&output_path).unwrap(),
             "UV_DOWNLOAD_URL=https://nexus.example.com/repository/releases.astral.sh/github/uv/releases/download/1.2.3\n"
         );
     }
@@ -1268,7 +1268,7 @@ mod tests {
         let installer_path = temp_dir.path().join("installer.sh");
         let install_prefix = temp_dir.path().join("install-prefix");
 
-        fs_err::write(
+        uv_vfs::fs::write(
             &installer_path,
             format!(
                 "#!/bin/sh\nset -eu\n{{\nprintf 'UV_NO_MODIFY_PATH=%s\\n' \"${{UV_NO_MODIFY_PATH-}}\"\n}} > \"{}\"\n",
@@ -1276,7 +1276,7 @@ mod tests {
             ),
         )
         .unwrap();
-        fs_err::set_permissions(&installer_path, std::fs::Permissions::from_mode(0o744)).unwrap();
+        uv_vfs::fs::set_permissions(&installer_path, std::fs::Permissions::from_mode(0o744)).unwrap();
 
         execute_official_installer(
             &installer_path,
@@ -1289,7 +1289,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            fs_err::read_to_string(&output_path).unwrap(),
+            uv_vfs::fs::read_to_string(&output_path).unwrap(),
             "UV_NO_MODIFY_PATH=\n"
         );
     }

@@ -6,7 +6,7 @@ use crate::{
 };
 use flate2::Compression;
 use flate2::write::GzEncoder;
-use fs_err::File;
+use uv_vfs::fs::File;
 use futures_lite::future::block_on;
 use globset::{Glob, GlobSet};
 use rustc_hash::FxHashSet;
@@ -40,7 +40,7 @@ pub fn build_source_dist(
     let source_dist_path = source_dist_directory.join(filename.to_string());
 
     if source_dist_path.exists() {
-        fs_err::remove_file(&source_dist_path)?;
+        uv_vfs::fs::remove_file(&source_dist_path)?;
     }
 
     let temp_file = uv_fs::tempfile_in(source_dist_directory)?;
@@ -241,7 +241,7 @@ fn write_source_dist(
     // To work around this, we do a best-effort rewrite of `pyproject.toml` to TOML 1.0. We also
     // add the original `pyproject.toml` as `pyproject.toml.orig` for reference.
     let pyproject_path = source_tree.join("pyproject.toml");
-    let pyproject_contents = fs_err::read_to_string(&pyproject_path)?;
+    let pyproject_contents = uv_vfs::fs::read_to_string(&pyproject_path)?;
     let mut pyproject_value: toml::Value = toml::from_str(&pyproject_contents)
         .map_err(|err| Error::Toml(pyproject_path.clone(), err))?;
     // See https://github.com/toml-rs/toml/issues/1088 for `to_string_pretty`.
@@ -460,7 +460,7 @@ impl<W: Write + Unpin + Send> DirectoryWriter for TarGzWriter<W> {
     }
 
     fn write_file(&mut self, path: &str, file: &Path) -> Result<(), Error> {
-        let metadata = fs_err::metadata(file)?;
+        let metadata = uv_vfs::fs::metadata(file)?;
         let mut header = Header::new_gnu();
         // Work around bug in Python's std tar module
         // https://github.com/python/cpython/issues/141707

@@ -39,18 +39,18 @@ pub(crate) async fn uninstall(
 
     // Clean up any empty directories.
     if uv_fs::directories(installations.root())?.all(|path| uv_fs::is_temporary(&path)) {
-        fs_err::tokio::remove_dir_all(&installations.root()).await?;
+        uv_vfs::fs::tokio::remove_dir_all(&installations.root()).await?;
 
         if let Some(top_level) = installations.root().parent() {
             // Remove the `toolchains` symlink.
-            match fs_err::tokio::remove_file(top_level.join("toolchains")).await {
+            match uv_vfs::fs::tokio::remove_file(top_level.join("toolchains")).await {
                 Ok(()) => {}
                 Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
                 Err(err) => return Err(err.into()),
             }
 
             if uv_fs::directories(top_level)?.all(|path| uv_fs::is_temporary(&path)) {
-                fs_err::tokio::remove_dir_all(top_level).await?;
+                uv_vfs::fs::tokio::remove_dir_all(top_level).await?;
             }
         }
     }
@@ -65,7 +65,7 @@ async fn do_uninstall(
     all: bool,
     printer: Printer,
 ) -> Result<ExitStatus> {
-    let start = std::time::Instant::now();
+    let start = web_time::Instant::now();
 
     let requests = if all {
         vec![PythonRequest::Default]
@@ -186,7 +186,7 @@ async fn do_uninstall(
             continue;
         };
 
-        fs_err::remove_file(&executable)?;
+        uv_vfs::fs::remove_file(&executable)?;
         debug!(
             "Removed `{}` for `{}`",
             executable.simplified_display(),
@@ -203,7 +203,7 @@ async fn do_uninstall(
         tasks.push(async {
             (
                 installation.key(),
-                fs_err::tokio::remove_dir_all(installation.path()).await,
+                uv_vfs::fs::tokio::remove_dir_all(installation.path()).await,
             )
         });
     }

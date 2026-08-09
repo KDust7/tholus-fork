@@ -6,6 +6,8 @@ use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use thiserror::Error;
 use url::Url;
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 const SENSITIVE_QUERY_PARAMETERS: &[&str] = &[
     "X-Amz-Credential",

@@ -492,7 +492,7 @@ pub(crate) fn read_identity(
     ssl_client_cert: &std::ffi::OsStr,
 ) -> Result<Identity, CertificateError> {
     let mut buf = Vec::new();
-    fs_err::File::open(ssl_client_cert)?.read_to_end(&mut buf)?;
+    uv_vfs::fs::File::open(ssl_client_cert)?.read_to_end(&mut buf)?;
     Identity::from_pem(&buf).map_err(|tls_err| {
         debug_assert!(tls_err.is_builder(), "must be a rustls::Error internally");
         CertificateError::Reqwest(tls_err)
@@ -512,7 +512,7 @@ mod tests {
 
     #[test]
     fn test_from_ssl_cert_file_nonexistent_returns_none() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = uv_vfs::temp::tempdir().unwrap();
         let missing_file = dir.path().join("missing.pem");
 
         let certs = Certificates::from_ssl_cert_file(missing_file.as_os_str());
@@ -521,7 +521,7 @@ mod tests {
 
     #[test]
     fn test_from_env_missing_ssl_cert_file_returns_empty_roots() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = uv_vfs::temp::tempdir().unwrap();
         let missing_file = dir.path().join("missing.pem");
 
         temp_env::with_vars(
@@ -544,9 +544,9 @@ mod tests {
 
     #[test]
     fn test_from_ssl_cert_file_no_valid_certs_returns_none() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = uv_vfs::temp::tempdir().unwrap();
         let cert_path = dir.path().join("empty.pem");
-        fs_err::write(&cert_path, "not a certificate").unwrap();
+        uv_vfs::fs::write(&cert_path, "not a certificate").unwrap();
 
         let certs = Certificates::from_ssl_cert_file(cert_path.as_os_str());
         assert!(certs.is_none());
@@ -560,7 +560,7 @@ mod tests {
 
     #[test]
     fn test_from_ssl_cert_dir_nonexistent_returns_none() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = uv_vfs::temp::tempdir().unwrap();
         let missing_dir = dir.path().join("missing-dir");
         let cert_dirs = std::env::join_paths([&missing_dir]).unwrap();
 
@@ -570,7 +570,7 @@ mod tests {
 
     #[test]
     fn test_from_ssl_cert_dir_empty_existing_returns_none() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = uv_vfs::temp::tempdir().unwrap();
         let cert_dirs = std::env::join_paths([dir.path()]).unwrap();
 
         let certs = Certificates::from_ssl_cert_dir(cert_dirs.as_os_str());
@@ -579,7 +579,7 @@ mod tests {
 
     #[test]
     fn test_from_env_empty_ssl_cert_dir_returns_empty_roots() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = uv_vfs::temp::tempdir().unwrap();
 
         temp_env::with_vars(
             [
@@ -596,9 +596,9 @@ mod tests {
 
     #[test]
     fn test_merge_deduplicates() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = uv_vfs::temp::tempdir().unwrap();
         let cert_path = dir.path().join("cert.pem");
-        fs_err::write(&cert_path, generate_cert_pem()).unwrap();
+        uv_vfs::fs::write(&cert_path, generate_cert_pem()).unwrap();
 
         let first = Certificates::from(Certificates::from_paths(Some(&cert_path), None));
         let second = Certificates::from(Certificates::from_paths(Some(&cert_path), None));

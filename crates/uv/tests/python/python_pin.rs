@@ -703,7 +703,7 @@ fn python_pin_with_comments() -> Result<()> {
     3.12
     3.10
     ");
-    fs_err::remove_file(version_file)?;
+    uv_vfs::fs::remove_file(version_file)?;
 
     let versions_file = context.temp_dir.child(PYTHON_VERSIONS_FILENAME);
     versions_file.write_str(content)?;

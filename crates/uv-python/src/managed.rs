@@ -8,7 +8,7 @@ use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use fs_err as fs;
+use uv_vfs::fs as fs;
 use itertools::Itertools;
 use thiserror::Error;
 use tracing::{debug, warn};
@@ -200,7 +200,7 @@ impl ManagedPythonInstallations {
     pub fn find_all(
         &self,
     ) -> Result<impl DoubleEndedIterator<Item = ManagedPythonInstallation> + use<>, Error> {
-        let dirs = match fs_err::read_dir(&self.root) {
+        let dirs = match uv_vfs::fs::read_dir(&self.root) {
             Ok(installation_dirs) => {
                 // Collect sorted directory paths; `read_dir` is not stable across platforms
                 let directories: Vec<_> = installation_dirs
@@ -567,7 +567,7 @@ impl ManagedPythonInstallation {
         };
 
         let file = stdlib.join("EXTERNALLY-MANAGED");
-        fs_err::write(file, EXTERNALLY_MANAGED)?;
+        uv_vfs::fs::write(file, EXTERNALLY_MANAGED)?;
 
         Ok(())
     }
@@ -826,7 +826,7 @@ impl PythonMinorVersionLink {
     /// case we should not use the link for the current installation.
     pub fn exists(&self) -> bool {
         let points_to_target = || {
-            fs_err::read_link(&self.symlink_directory)
+            uv_vfs::fs::read_link(&self.symlink_directory)
                 .is_ok_and(|target| verbatim_path(&target) == verbatim_path(&self.target_directory))
         };
 
@@ -888,7 +888,7 @@ fn executable_path_from_base(
 /// If the file already exists at the link path, an error will be returned.
 pub fn create_link_to_executable(link: &Path, executable: &Path) -> Result<(), Error> {
     let link_parent = link.parent().ok_or(Error::NoExecutableDirectory)?;
-    fs_err::create_dir_all(link_parent).map_err(Error::ExecutableDirectory)?;
+    uv_vfs::fs::create_dir_all(link_parent).map_err(Error::ExecutableDirectory)?;
 
     if cfg!(unix) {
         // Note this will never copy on Unix — we use it here to allow compilation on Windows
@@ -905,7 +905,7 @@ pub fn create_link_to_executable(link: &Path, executable: &Path) -> Result<(), E
         // TODO(zanieb): Install GUI launchers as well
         let launcher = windows_python_launcher(executable, false)?;
 
-        // OK to use `std::fs` here, `fs_err` does not support `File::create_new` and we attach
+        // OK to use `std::fs` here, `uv_vfs::fs` does not support `File::create_new` and we attach
         // error context anyway
         #[expect(clippy::disallowed_types)]
         {
@@ -925,7 +925,7 @@ pub fn create_link_to_executable(link: &Path, executable: &Path) -> Result<(), E
 /// See [`create_link_to_executable`] for a variant that errors if the link already exists.
 pub fn replace_link_to_executable(link: &Path, executable: &Path) -> Result<(), Error> {
     let link_parent = link.parent().ok_or(Error::NoExecutableDirectory)?;
-    fs_err::create_dir_all(link_parent).map_err(Error::ExecutableDirectory)?;
+    uv_vfs::fs::create_dir_all(link_parent).map_err(Error::ExecutableDirectory)?;
 
     if cfg!(unix) {
         replace_symlink(executable, link).map_err(Error::LinkExecutable)
@@ -1310,7 +1310,7 @@ mod tests {
         use crate::PythonVersion;
 
         let platform = Platform::from_env().unwrap();
-        let temp_dir = tempfile::tempdir().unwrap();
+        let temp_dir = uv_vfs::temp::tempdir().unwrap();
 
         // Create mock installation directories
         fs::create_dir(temp_dir.path().join(format!("cpython-3.10.0-{platform}"))).unwrap();
@@ -1336,7 +1336,7 @@ mod tests {
 
     #[test]
     fn test_relative_install_dir_resolves_against_pwd() {
-        let temp_dir = tempfile::tempdir().unwrap();
+        let temp_dir = uv_vfs::temp::tempdir().unwrap();
         let workdir = temp_dir.path().join("workdir");
         fs::create_dir(&workdir).unwrap();
 

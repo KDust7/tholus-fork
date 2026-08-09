@@ -11,7 +11,7 @@ use uv_python::{PYTHON_VERSION_FILENAME, PYTHON_VERSIONS_FILENAME};
 use uv_static::EnvVars;
 
 #[cfg(unix)]
-use fs_err::os::unix::fs::symlink;
+use uv_vfs::fs::os::unix::fs::symlink;
 #[cfg(unix)]
 use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
 #[cfg(windows)]
@@ -136,9 +136,9 @@ fn create_centralized_project_environment_bypasses() -> Result<()> {
     "
     );
     context.venv.assert(predicates::path::is_dir());
-    assert!(fs_err::read_link(context.venv.path()).is_err());
+    assert!(uv_vfs::fs::read_link(context.venv.path()).is_err());
 
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
     context
         .temp_dir
         .child("pyproject.toml")
@@ -162,7 +162,7 @@ fn create_centralized_project_environment_bypasses() -> Result<()> {
     );
     let explicit = context.temp_dir.child("explicit");
     explicit.assert(predicates::path::is_dir());
-    assert!(fs_err::read_link(explicit.path()).is_err());
+    assert!(uv_vfs::fs::read_link(explicit.path()).is_err());
 
     // Pathless invocations outside the project root are not centralized.
     let child = context.temp_dir.child("child");
@@ -176,7 +176,7 @@ fn create_centralized_project_environment_bypasses() -> Result<()> {
         .success();
     let environment = child.child(".venv");
     environment.assert(predicates::path::is_dir());
-    assert!(fs_err::read_link(environment.path()).is_err());
+    assert!(uv_vfs::fs::read_link(environment.path()).is_err());
     Ok(())
 }
 
@@ -384,7 +384,7 @@ fn create_centralized_project_environment() -> Result<()> {
     Activate with: source .venv/[BIN]/activate
     "#);
 
-    let target = fs_err::read_link(context.temp_dir.child(".venv").path())?;
+    let target = uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?;
     assert_eq!(
         target.parent(),
         Some(context.cache_dir.child("environments-v2").path())
@@ -405,7 +405,7 @@ fn create_centralized_project_environment() -> Result<()> {
         .success();
     assert_eq!(
         target,
-        fs_err::read_link(context.temp_dir.child(".venv").path())?
+        uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?
     );
     assert!(marker.exists());
 
@@ -426,7 +426,7 @@ fn create_centralized_project_environment() -> Result<()> {
 
     assert_eq!(
         target,
-        fs_err::read_link(context.temp_dir.child(".venv").path())?
+        uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?
     );
     assert!(marker.exists());
 
@@ -436,13 +436,13 @@ fn create_centralized_project_environment() -> Result<()> {
 
     // Without the preview, `--allow-existing` operates on the environment through the link.
     context.venv().arg("--allow-existing").assert().success();
-    assert_eq!(target, fs_err::read_link(environment.path())?);
+    assert_eq!(target, uv_vfs::fs::read_link(environment.path())?);
     assert!(cache_marker.is_file());
 
     // Without the preview, `.venv` is replaced locally without clearing its cached target.
     context.venv().assert().success();
 
-    assert!(fs_err::read_link(environment.path()).is_err());
+    assert!(uv_vfs::fs::read_link(environment.path()).is_err());
     assert!(cache_marker.is_file());
     let local_marker = environment.child("local-marker");
     local_marker.touch()?;
@@ -456,7 +456,7 @@ fn create_centralized_project_environment() -> Result<()> {
         .assert()
         .success();
 
-    assert_eq!(target, fs_err::read_link(environment.path())?);
+    assert_eq!(target, uv_vfs::fs::read_link(environment.path())?);
     assert!(!local_marker.exists());
     assert!(cache_marker.is_file());
 
@@ -471,7 +471,7 @@ fn create_centralized_project_environment() -> Result<()> {
     Activate with: source .venv/[BIN]/activate
     "#);
 
-    assert_eq!(target, fs_err::read_link(environment.path())?);
+    assert_eq!(target, uv_vfs::fs::read_link(environment.path())?);
     assert!(!cache_marker.exists());
     Ok(())
 }
@@ -501,9 +501,9 @@ fn create_centralized_project_environment_path_file() -> Result<()> {
         .success();
 
     let environment = context.temp_dir.child(".venv");
-    let target = fs_err::read_link(environment.path())?;
+    let target = uv_vfs::fs::read_link(environment.path())?;
     let marker = target.join("marker");
-    fs_err::write(&marker, "")?;
+    uv_vfs::fs::write(&marker, "")?;
 
     uv_fs::remove_virtualenv(environment.path())?;
     environment.write_str(&target.to_string_lossy())?;
@@ -521,7 +521,7 @@ fn create_centralized_project_environment_path_file() -> Result<()> {
     Creating virtual environment `project-cp3.12.[X]-[HASH]`
     Activate with: source .venv/[BIN]/activate
     "#);
-    assert_ne!(target, fs_err::read_link(environment.path())?);
+    assert_ne!(target, uv_vfs::fs::read_link(environment.path())?);
     assert!(marker.is_file());
 
     uv_fs::remove_virtualenv(environment.path())?;
@@ -610,7 +610,7 @@ fn create_centralized_project_environment_no_cache() -> Result<()> {
     "#);
 
     assert!(context.temp_dir.child(".venv").is_dir());
-    assert!(fs_err::read_link(context.temp_dir.child(".venv").path()).is_err());
+    assert!(uv_vfs::fs::read_link(context.temp_dir.child(".venv").path()).is_err());
     Ok(())
 }
 
@@ -642,12 +642,12 @@ fn create_centralized_project_environment_with_seed_packages() -> Result<()> {
     Activate with: source .venv/[BIN]/activate
     "#);
 
-    let target = fs_err::read_link(context.temp_dir.child(".venv").path())?;
+    let target = uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?;
     assert!(target.join("pyvenv.cfg").is_file());
 
     // Seed the existing environment without clearing its contents.
     let marker = target.join("marker");
-    fs_err::write(&marker, "")?;
+    uv_vfs::fs::write(&marker, "")?;
     context
         .venv()
         .arg("--seed")
@@ -659,7 +659,7 @@ fn create_centralized_project_environment_with_seed_packages() -> Result<()> {
 
     assert_eq!(
         target,
-        fs_err::read_link(context.temp_dir.child(".venv").path())?
+        uv_vfs::fs::read_link(context.temp_dir.child(".venv").path())?
     );
     assert!(marker.is_file());
     Ok(())
@@ -1616,8 +1616,8 @@ fn windows_shims() -> Result<()> {
     assert!(py39.0.to_string().contains("3.9"));
 
     // Write the shim script that forwards the arguments to the python3.9 installation.
-    fs_err::create_dir(&shim_path)?;
-    fs_err::write(
+    uv_vfs::fs::create_dir(&shim_path)?;
+    uv_vfs::fs::write(
         shim_path.child("python.bat"),
         format!(
             "@echo off\r\n{}/python.exe %*",
@@ -1854,7 +1854,7 @@ fn verify_nested_pyvenv_cfg() -> Result<()> {
     pyvenv_cfg.assert(predicates::path::is_file());
 
     // Extract the "home" line from the pyvenv.cfg file.
-    let contents = fs_err::read_to_string(pyvenv_cfg.path())?;
+    let contents = uv_vfs::fs::read_to_string(pyvenv_cfg.path())?;
     let venv_home = contents
         .lines()
         .find(|line| line.starts_with("home"))
@@ -1874,7 +1874,7 @@ fn verify_nested_pyvenv_cfg() -> Result<()> {
     let sub_pyvenv_cfg = subvenv.child("pyvenv.cfg");
 
     // Extract the "home" line from the pyvenv.cfg file.
-    let contents = fs_err::read_to_string(sub_pyvenv_cfg.path())?;
+    let contents = uv_vfs::fs::read_to_string(sub_pyvenv_cfg.path())?;
     let sub_venv_home = contents
         .lines()
         .find(|line| line.starts_with("home"))

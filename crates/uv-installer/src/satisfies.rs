@@ -20,6 +20,8 @@ use uv_platform_tags::{AbiTag, IncompatibleTag, TagCompatibility, Tags};
 use uv_pypi_types::{DirInfo, DirectUrl, VcsInfo, VcsKind};
 
 use crate::InstallationStrategy;
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum RequirementSatisfaction {

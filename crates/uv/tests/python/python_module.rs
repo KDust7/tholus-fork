@@ -341,7 +341,7 @@ fn find_uv_bin_user_bin() {
     );
 
     // Remove the virtual environment one for some reason
-    fs_err::remove_file(if cfg!(unix) {
+    uv_vfs::fs::remove_file(if cfg!(unix) {
         context.venv.child("bin").child("uv")
     } else {
         context.venv.child("Scripts").child("uv.exe")
@@ -406,7 +406,7 @@ fn find_uv_bin_error_message() {
     );
 
     // Remove the virtual environment executable for some reason
-    fs_err::remove_file(if cfg!(unix) {
+    uv_vfs::fs::remove_file(if cfg!(unix) {
         context.venv.child("bin").child("uv")
     } else {
         context.venv.child("Scripts").child("uv.exe")

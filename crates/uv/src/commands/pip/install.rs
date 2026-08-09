@@ -133,7 +133,7 @@ pub(crate) async fn pip_install(
     printer: Printer,
     preview: Preview,
 ) -> anyhow::Result<ExitStatus> {
-    let start = std::time::Instant::now();
+    let start = web_time::Instant::now();
 
     let client_builder = client_builder.clone().keyring(keyring_provider);
 

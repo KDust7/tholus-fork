@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use anyhow::{Context, Result};
-use fs_err as fs;
+use uv_vfs::fs as fs;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use uv_configuration::{ExcludeDependency, Excludes, Override, Overrides};
@@ -816,14 +816,14 @@ mod tests {
 
     #[test]
     fn sorted_dist_like_paths_filters_and_sorts() -> Result<()> {
-        let site_packages = tempfile::tempdir()?;
-        fs_err::create_dir(site_packages.path().join("z_package-1.0.0.dist-info"))?;
-        fs_err::create_dir(site_packages.path().join("a_package"))?;
-        fs_err::write(site_packages.path().join("editable.egg-link"), "")?;
-        fs_err::write(site_packages.path().join("module.py"), "")?;
-        fs_err::write(site_packages.path().join("metadata.egg-info"), "")?;
+        let site_packages = uv_vfs::temp::tempdir()?;
+        uv_vfs::fs::create_dir(site_packages.path().join("z_package-1.0.0.dist-info"))?;
+        uv_vfs::fs::create_dir(site_packages.path().join("a_package"))?;
+        uv_vfs::fs::write(site_packages.path().join("editable.egg-link"), "")?;
+        uv_vfs::fs::write(site_packages.path().join("module.py"), "")?;
+        uv_vfs::fs::write(site_packages.path().join("metadata.egg-info"), "")?;
 
-        let paths = sorted_dist_like_paths(fs_err::read_dir(site_packages.path())?)?;
+        let paths = sorted_dist_like_paths(uv_vfs::fs::read_dir(site_packages.path())?)?;
         let names = paths
             .iter()
             .filter_map(|path| path.file_name())
@@ -847,12 +847,12 @@ mod tests {
     #[cfg(unix)]
     #[tokio::test]
     async fn site_packages_scans_platlib_when_purelib_is_missing() -> Result<()> {
-        let temp_dir = tempfile::tempdir()?;
+        let temp_dir = uv_vfs::temp::tempdir()?;
         let purelib = temp_dir.path().join("purelib");
         let platlib = temp_dir.path().join("platlib");
         let dist_info = platlib.join("demo-1.0.dist-info");
-        fs_err::create_dir_all(&dist_info)?;
-        fs_err::write(
+        uv_vfs::fs::create_dir_all(&dist_info)?;
+        uv_vfs::fs::write(
             dist_info.join("METADATA"),
             "Metadata-Version: 2.1\nName: demo\nVersion: 1.0\n",
         )?;
@@ -905,8 +905,8 @@ mod tests {
         .replace("{EXECUTABLE}", &executable.to_string_lossy())
         .replace("{PLATLIB}", &platlib.to_string_lossy())
         .replace("{PURELIB}", &purelib.to_string_lossy());
-        fs_err::write(&executable, format!("#!/bin/sh\necho '{json}'\n"))?;
-        fs_err::set_permissions(&executable, PermissionsExt::from_mode(0o770))?;
+        uv_vfs::fs::write(&executable, format!("#!/bin/sh\necho '{json}'\n"))?;
+        uv_vfs::fs::set_permissions(&executable, PermissionsExt::from_mode(0o770))?;
 
         let cache = Cache::temp()?.init().await?;
         let interpreter = Interpreter::query(&executable, &cache)?;

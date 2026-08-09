@@ -18,6 +18,8 @@ use uv_redacted::DisplaySafeUrl;
 use crate::lock::export::{ExportableRequirement, ExportableRequirements};
 use crate::lock::{Package, PackageId, Source};
 use crate::{Installable, LockError};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// An export of a [`Lock`] that renders in `requirements.txt` format.
 #[derive(Debug)]

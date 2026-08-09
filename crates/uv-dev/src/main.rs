@@ -2,7 +2,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::str::FromStr;
-use std::time::Instant;
+use web_time::Instant;
 
 use tracing::{debug, trace};
 use tracing_durations_export::DurationsLayerBuilder;
@@ -20,7 +20,7 @@ async fn main() -> ExitCode {
     let (duration_layer, _guard) = if let Ok(location) = env::var(EnvVars::TRACING_DURATIONS_FILE) {
         let location = PathBuf::from(location);
         if let Some(parent) = location.parent() {
-            fs_err::tokio::create_dir_all(&parent)
+            uv_vfs::fs::tokio::create_dir_all(&parent)
                 .await
                 .expect("Failed to create parent of TRACING_DURATIONS_FILE");
         }

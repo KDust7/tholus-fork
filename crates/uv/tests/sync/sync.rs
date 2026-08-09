@@ -7,7 +7,7 @@ use predicates::prelude::predicate;
 use serde_json::json;
 #[cfg(feature = "test-git")]
 use std::process::Command;
-use tempfile::tempdir_in;
+use uv_vfs::temp::tempdir_in;
 use url::Url;
 use wiremock::matchers::{basic_auth, body_string_contains, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -17,6 +17,8 @@ use uv_static::EnvVars;
 use uv_test::packse::PackseServer;
 
 use uv_test::{TestContext, download_to_disk, uv_snapshot, venv_bin_path};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 #[test]
 fn sync() -> Result<()> {
@@ -89,7 +91,7 @@ fn sync_relocatable_envs_default() -> Result<()> {
         .assert(predicate::str::contains("relocatable = true"));
 
     let relocated_dir = context.temp_dir.child("relocated");
-    fs_err::rename(project_dir.path(), relocated_dir.path())?;
+    uv_vfs::fs::rename(project_dir.path(), relocated_dir.path())?;
 
     uv_snapshot!(context.filters(), context.run()
         .current_dir(relocated_dir.path())
@@ -129,7 +131,7 @@ fn sync_reuses_pip_install_wheel_cache() -> Result<()> {
         .arg("iniconfig==2.0.0")
         .assert()
         .success();
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(context.filters(), context.sync().arg("--offline"), @"
     exit_code: 0 (success)
@@ -170,7 +172,7 @@ fn sync_reuses_pip_install_sdist_cache() -> Result<()> {
         .arg("iniconfig")
         .assert()
         .success();
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(context.filters(), context
         .sync()
@@ -382,7 +384,7 @@ fn package() -> Result<()> {
     init.touch()?;
 
     let child = context.temp_dir.child("child");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
 
     let pyproject_toml = child.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -2053,7 +2055,7 @@ fn sync_build_isolation_extra() -> Result<()> {
     context.venv().arg("--clear").assert().success();
 
     // Clear the cache.
-    fs_err::remove_dir_all(&context.cache_dir)?;
+    uv_vfs::fs::remove_dir_all(&context.cache_dir)?;
 
     // Install the build dependencies.
     uv_snapshot!(context.filters(), context.sync().arg("--extra").arg("build"), @"
@@ -3026,7 +3028,7 @@ fn sync_relative_wheel() -> Result<()> {
         .write_str(requirements)?;
 
     context.temp_dir.child("wheels").create_dir_all()?;
-    fs_err::copy(
+    uv_vfs::fs::copy(
         "../../test/links/ok-1.0.0-py3-none-any.whl",
         context.temp_dir.join("wheels/ok-1.0.0-py3-none-any.whl"),
     )?;
@@ -5397,7 +5399,7 @@ fn no_install_project_singular_interval_requires_dist() -> Result<()> {
     context.lock().assert().success();
 
     let lock_path = context.temp_dir.join("uv.lock");
-    let lock = fs_err::read_to_string(&lock_path)?;
+    let lock = uv_vfs::fs::read_to_string(&lock_path)?;
     let lock = lock.replacen(
         r#"requires-dist = [{ name = "iniconfig", specifier = ">=2.0.0,<=2.0.0" }]"#,
         r#"requires-dist = [{ name = "iniconfig", specifier = "<=2.0.0,>=2.0.0" }]"#,
@@ -5407,10 +5409,10 @@ fn no_install_project_singular_interval_requires_dist() -> Result<()> {
         lock.contains(r#"requires-dist = [{ name = "iniconfig", specifier = "<=2.0.0,>=2.0.0" }]"#),
         "expected to rewrite the dynamic package metadata in `uv.lock`"
     );
-    fs_err::write(&lock_path, lock)?;
+    uv_vfs::fs::write(&lock_path, lock)?;
 
-    fs_err::remove_dir_all(&context.cache_dir)?;
-    fs_err::remove_file(context.temp_dir.join("src").join("__about__.py"))?;
+    uv_vfs::fs::remove_dir_all(&context.cache_dir)?;
+    uv_vfs::fs::remove_file(context.temp_dir.join("src").join("__about__.py"))?;
 
     uv_snapshot!(context.filters(), context.sync().arg("--locked").arg("--no-install-project"), @"
     exit_code: 0 (success)
@@ -5465,7 +5467,7 @@ fn no_install_project() -> Result<()> {
      + sniffio==1.3.1
     ");
 
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(context.filters(), context.sync().env(EnvVars::UV_NO_INSTALL_PROJECT, "1"), @"
     exit_code: 0 (success)
@@ -5493,7 +5495,7 @@ fn no_install_project() -> Result<()> {
     ");
 
     // However, we do require the `pyproject.toml`.
-    fs_err::remove_file(pyproject_toml)?;
+    uv_vfs::fs::remove_file(pyproject_toml)?;
 
     uv_snapshot!(context.filters(), context.sync().arg("--no-install-project"), @"
     exit_code: 2 (failure)
@@ -5576,7 +5578,7 @@ fn no_install_workspace() -> Result<()> {
     ");
 
     // Remove the virtual environment.
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(context.filters(), context.sync().arg("--frozen").env(EnvVars::UV_NO_INSTALL_WORKSPACE, "1"), @"
     exit_code: 0 (success)
@@ -5590,12 +5592,12 @@ fn no_install_workspace() -> Result<()> {
      + sniffio==1.3.1
     ");
 
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     // We don't require the `pyproject.toml` for non-root members, if `--frozen` is provided. The
     // failed complete discovery while resolving settings must not prevent a fresh partial
     // discovery from ignoring the missing member.
-    fs_err::remove_file(child.join("pyproject.toml"))?;
+    uv_vfs::fs::remove_file(child.join("pyproject.toml"))?;
 
     uv_snapshot!(context.filters(), context.sync()
         .arg("--no-install-workspace")
@@ -5650,7 +5652,7 @@ fn no_install_workspace() -> Result<()> {
     ");
 
     // But we do require the root `pyproject.toml`.
-    fs_err::remove_file(context.temp_dir.join("pyproject.toml"))?;
+    uv_vfs::fs::remove_file(context.temp_dir.join("pyproject.toml"))?;
 
     uv_snapshot!(context.filters(), context.sync().arg("--no-install-workspace").arg("--frozen"), @"
     exit_code: 2 (failure)
@@ -5745,7 +5747,7 @@ fn no_install_local() -> Result<()> {
      + sniffio==1.3.1
     ");
 
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(context.filters(), context.sync().arg("--frozen").env(EnvVars::UV_NO_INSTALL_LOCAL, "1"), @"
     exit_code: 0 (success)
@@ -5935,8 +5937,8 @@ fn no_install_project_no_build_locked_dynamic_metadata() -> Result<()> {
 
     let marker = context.temp_dir.child("validation-hook-called");
     assert!(marker.exists());
-    fs_err::remove_file(marker.path())?;
-    fs_err::remove_dir_all(&context.cache_dir)?;
+    uv_vfs::fs::remove_file(marker.path())?;
+    uv_vfs::fs::remove_dir_all(&context.cache_dir)?;
 
     uv_snapshot!(context.filters(), context.sync()
         .arg("--no-install-project")
@@ -6144,7 +6146,7 @@ fn virtual_no_build() -> Result<()> {
     context.lock().assert().success();
 
     // Clear the cache.
-    fs_err::remove_dir_all(&context.cache_dir)?;
+    uv_vfs::fs::remove_dir_all(&context.cache_dir)?;
 
     // `--no-build` should not raise an error, since we don't install virtual projects.
     uv_snapshot!(context.filters(), context.sync().arg("--no-build"), @"
@@ -6307,7 +6309,7 @@ fn virtual_no_build_dynamic_no_cache() -> Result<()> {
     context.lock().assert().success();
 
     // Clear the cache.
-    fs_err::remove_dir_all(&context.cache_dir)?;
+    uv_vfs::fs::remove_dir_all(&context.cache_dir)?;
 
     // `--no-build` should raise an error, since we need to build the project.
     uv_snapshot!(context.filters(), context.sync().arg("--no-build"), @"
@@ -6700,9 +6702,9 @@ fn sync_custom_environment_path() -> Result<()> {
         .assert(predicate::path::is_dir());
 
     // If the directory already exists and is not a virtual environment we should fail with an error
-    fs_err::remove_dir_all(context.temp_dir.join("foo"))?;
-    fs_err::create_dir(context.temp_dir.join("foo"))?;
-    fs_err::write(context.temp_dir.join("foo").join("file"), b"")?;
+    uv_vfs::fs::remove_dir_all(context.temp_dir.join("foo"))?;
+    uv_vfs::fs::create_dir(context.temp_dir.join("foo"))?;
+    uv_vfs::fs::write(context.temp_dir.join("foo").join("file"), b"")?;
     uv_snapshot!(context.filters(), context.sync().env(EnvVars::UV_PROJECT_ENVIRONMENT, "foo"), @"
     exit_code: 2 (failure)
     ----- stderr -----
@@ -6710,7 +6712,7 @@ fn sync_custom_environment_path() -> Result<()> {
     ");
 
     // But if it's just an incompatible virtual environment...
-    fs_err::remove_dir_all(context.temp_dir.join("foo"))?;
+    uv_vfs::fs::remove_dir_all(context.temp_dir.join("foo"))?;
     uv_snapshot!(context.filters(), context.venv().arg("foo").arg("--python").arg("3.11"), @"
     exit_code: 0 (success)
     ----- stderr -----
@@ -6721,7 +6723,7 @@ fn sync_custom_environment_path() -> Result<()> {
     ");
 
     // Even with some extraneous content...
-    fs_err::write(context.temp_dir.join("foo").join("file"), b"")?;
+    uv_vfs::fs::write(context.temp_dir.join("foo").join("file"), b"")?;
 
     // We can delete and use it
     uv_snapshot!(context.filters(), context.sync().env(EnvVars::UV_PROJECT_ENVIRONMENT, "foo"), @"
@@ -7400,7 +7402,7 @@ fn sync_virtual_env_warning() -> Result<()> {
     // Or, if it's a link that resolves to the same path
     #[cfg(unix)]
     {
-        use fs_err::os::unix::fs::symlink;
+        use uv_vfs::fs::os::unix::fs::symlink;
 
         let link = context.temp_dir.join("link");
         symlink(context.temp_dir.join(".venv"), &link)?;
@@ -8152,7 +8154,7 @@ fn transitive_dev() -> Result<()> {
     init.touch()?;
 
     let child = context.temp_dir.child("child");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
 
     let pyproject_toml = child.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -8239,7 +8241,7 @@ fn sync_no_editable() -> Result<()> {
         .touch()?;
 
     let child = context.temp_dir.child("child");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
 
     let pyproject_toml = child.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -8279,7 +8281,7 @@ fn sync_no_editable() -> Result<()> {
     ");
 
     // Remove the project.
-    fs_err::remove_dir_all(&child)?;
+    uv_vfs::fs::remove_dir_all(&child)?;
 
     // Ensure that we can still import it.
     uv_snapshot!(context.filters(), context.run().arg("--no-sync").arg("python").arg("-c").arg("import child"), @"
@@ -8395,7 +8397,7 @@ fn sync_scripts_workspace_member_not_packaged() -> Result<()> {
     )?;
 
     let member = context.temp_dir.child("member");
-    fs_err::create_dir_all(&member)?;
+    uv_vfs::fs::create_dir_all(&member)?;
 
     let member_pyproject_toml = member.child("pyproject.toml");
     member_pyproject_toml.write_str(
@@ -8442,7 +8444,7 @@ fn sync_scripts_workspace_member_not_packaged_not_synced() -> Result<()> {
     )?;
 
     let member = context.temp_dir.child("member");
-    fs_err::create_dir_all(&member)?;
+    uv_vfs::fs::create_dir_all(&member)?;
 
     let member_pyproject_toml = member.child("pyproject.toml");
     member_pyproject_toml.write_str(
@@ -8752,8 +8754,8 @@ fn sync_invalid_environment() -> Result<()> {
     )?;
 
     // If the directory already exists and is not a virtual environment we should fail with an error
-    fs_err::create_dir(context.temp_dir.join(".venv"))?;
-    fs_err::write(context.temp_dir.join(".venv").join("file"), b"")?;
+    uv_vfs::fs::create_dir(context.temp_dir.join(".venv"))?;
+    uv_vfs::fs::write(context.temp_dir.join(".venv").join("file"), b"")?;
     uv_snapshot!(context.filters(), context.sync(), @"
     exit_code: 2 (failure)
     ----- stderr -----
@@ -8761,7 +8763,7 @@ fn sync_invalid_environment() -> Result<()> {
     ");
 
     // But if it's just an incompatible virtual environment...
-    fs_err::remove_dir_all(context.temp_dir.join(".venv"))?;
+    uv_vfs::fs::remove_dir_all(context.temp_dir.join(".venv"))?;
     uv_snapshot!(context.filters(), context.venv().arg("--python").arg("3.11"), @"
     exit_code: 0 (success)
     ----- stderr -----
@@ -8772,7 +8774,7 @@ fn sync_invalid_environment() -> Result<()> {
     ");
 
     // Even with some extraneous content...
-    fs_err::write(context.temp_dir.join(".venv").join("file"), b"")?;
+    uv_vfs::fs::write(context.temp_dir.join(".venv").join("file"), b"")?;
 
     // We can delete and use it
     uv_snapshot!(context.filters(), context.sync(), @"
@@ -8792,8 +8794,8 @@ fn sync_invalid_environment() -> Result<()> {
     // If there's just a broken symlink, we should warn
     #[cfg(unix)]
     {
-        fs_err::remove_file(bin.join("python"))?;
-        fs_err::os::unix::fs::symlink(context.temp_dir.join("does-not-exist"), bin.join("python"))?;
+        uv_vfs::fs::remove_file(bin.join("python"))?;
+        uv_vfs::fs::os::unix::fs::symlink(context.temp_dir.join("does-not-exist"), bin.join("python"))?;
         uv_snapshot!(context.filters(), context.sync(), @"
         exit_code: 0 (success)
         ----- stderr -----
@@ -8808,7 +8810,7 @@ fn sync_invalid_environment() -> Result<()> {
     }
 
     // If the Python executable is missing entirely, we'll delete and use it
-    fs_err::remove_dir_all(&bin)?;
+    uv_vfs::fs::remove_dir_all(&bin)?;
     uv_snapshot!(context.filters(), context.sync(), @"
     exit_code: 0 (success)
     ----- stderr -----
@@ -8821,7 +8823,7 @@ fn sync_invalid_environment() -> Result<()> {
     ");
 
     // But if it's not a virtual environment...
-    fs_err::remove_dir_all(context.temp_dir.join(".venv"))?;
+    uv_vfs::fs::remove_dir_all(context.temp_dir.join(".venv"))?;
     uv_snapshot!(context.filters(), context.venv().arg("--python").arg("3.11"), @"
     exit_code: 0 (success)
     ----- stderr -----
@@ -8832,10 +8834,10 @@ fn sync_invalid_environment() -> Result<()> {
     ");
 
     // Which we detect by the presence of a `pyvenv.cfg` file
-    fs_err::remove_file(context.temp_dir.join(".venv").join("pyvenv.cfg"))?;
+    uv_vfs::fs::remove_file(context.temp_dir.join(".venv").join("pyvenv.cfg"))?;
 
     // Let's make sure some extraneous content isn't removed
-    fs_err::write(context.temp_dir.join(".venv").join("file"), b"")?;
+    uv_vfs::fs::write(context.temp_dir.join(".venv").join("file"), b"")?;
 
     // We should never delete it
     uv_snapshot!(context.filters(), context.sync(), @"
@@ -8846,7 +8848,7 @@ fn sync_invalid_environment() -> Result<()> {
     ");
 
     // Even if there's no Python executable
-    fs_err::remove_dir_all(&bin)?;
+    uv_vfs::fs::remove_dir_all(&bin)?;
     uv_snapshot!(context.filters(), context.sync(), @"
     exit_code: 2 (failure)
     ----- stderr -----
@@ -8890,9 +8892,9 @@ fn sync_partial_environment_delete() -> Result<()> {
     // This relies on our implementation listing directory entries before deleting them — which is a
     // bit of a hack but accomplishes the goal here.
     let unreadable2 = context.temp_dir.child(".venv/z2.txt");
-    fs_err::create_dir(&unreadable2)?;
+    uv_vfs::fs::create_dir(&unreadable2)?;
     let perms = std::fs::Permissions::from_mode(0o000);
-    fs_err::set_permissions(&unreadable2, perms)?;
+    uv_vfs::fs::set_permissions(&unreadable2, perms)?;
 
     uv_snapshot!(context.filters(), context.sync().arg("-p").arg("3.12"), @"
     exit_code: 2 (failure)
@@ -8909,7 +8911,7 @@ fn sync_partial_environment_delete() -> Result<()> {
     ");
 
     // Remove the unreadable directory
-    fs_err::remove_dir(unreadable2)?;
+    uv_vfs::fs::remove_dir(unreadable2)?;
 
     // We should be able to remove the venv now
     uv_snapshot!(context.filters(), context.sync().arg("-p").arg("3.12"), @"
@@ -9189,7 +9191,7 @@ fn sync_explicit() -> Result<()> {
     ");
 
     // Clear the environment.
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     // The package should be drawn from the cache.
     uv_snapshot!(context.filters(), context.sync(), @"
@@ -10761,7 +10763,7 @@ fn lock_git_metadata_archive_dependency() -> Result<()> {
     repository.child("root").create_dir_all()?;
     repository.child("root/root.py").touch()?;
     repository.child("root/archives").create_dir_all()?;
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context
             .workspace_root
             .join("test/links/basic_package-0.1.0-py3-none-any.whl"),
@@ -10891,9 +10893,9 @@ fn sync_build_tag() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     // Populate the `--find-links` entries.
-    fs_err::create_dir_all(context.temp_dir.join("links"))?;
+    uv_vfs::fs::create_dir_all(context.temp_dir.join("links"))?;
 
-    for entry in fs_err::read_dir(context.workspace_root.join("test/links"))? {
+    for entry in uv_vfs::fs::read_dir(context.workspace_root.join("test/links"))? {
         let entry = entry?;
         let path = entry.path();
         if path
@@ -10905,7 +10907,7 @@ fn sync_build_tag() -> Result<()> {
                 .temp_dir
                 .join("links")
                 .join(path.file_name().unwrap());
-            fs_err::copy(&path, &dest)?;
+            uv_vfs::fs::copy(&path, &dest)?;
         }
     }
 
@@ -10931,7 +10933,7 @@ fn sync_build_tag() -> Result<()> {
     Resolved 2 packages in [TIME]
     ");
 
-    let lock = fs_err::read_to_string(context.temp_dir.child("uv.lock")).unwrap();
+    let lock = uv_vfs::fs::read_to_string(context.temp_dir.child("uv.lock")).unwrap();
 
     insta::with_settings!({
         filters => context.filters(),
@@ -11154,7 +11156,7 @@ fn find_links_relative_in_config_works_from_subdir() -> Result<()> {
         .workspace_root
         .join("test/links/ok-1.0.0-py3-none-any.whl");
     let wheel_dst = packages.child("ok-1.0.0-py3-none-any.whl");
-    fs_err::copy(&wheel_src, &wheel_dst)?;
+    uv_vfs::fs::copy(&wheel_src, &wheel_dst)?;
 
     // Create a separate subdir, which will become our working directory
     let subdir = context.temp_dir.child("subdir");
@@ -12452,8 +12454,8 @@ fn sync_build_constraints() -> Result<()> {
         }
     );
 
-    fs_err::remove_dir_all(&context.cache_dir)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.cache_dir)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     // We should also be able to read from the lockfile.
     uv_snapshot!(context.filters(), context.sync().arg("--locked"), @"
@@ -12575,8 +12577,8 @@ fn sync_workspace_member_build_constraints() -> Result<()> {
         "expected workspace build constraints to be recorded in the lockfile:\n{lock}"
     );
 
-    fs_err::remove_dir_all(&context.cache_dir)?;
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.cache_dir)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     uv_snapshot!(context.filters(), context.sync().arg("--index-url").arg(server.index_url()).arg("--package").arg("child").arg("--locked").arg("--no-binary-package").arg("a"), @"
     exit_code: 0 (success)
@@ -12623,7 +12625,7 @@ fn sync_when_virtual_environment_incompatible_with_interpreter() -> Result<()> {
     // Simulate an incompatible `pyvenv.cfg:version` value created
     // by the venv module.
     let pyvenv_cfg = context.venv.child("pyvenv.cfg");
-    let contents = fs_err::read_to_string(&pyvenv_cfg)
+    let contents = uv_vfs::fs::read_to_string(&pyvenv_cfg)
         .unwrap()
         .lines()
         .map(|line| {
@@ -12635,7 +12637,7 @@ fn sync_when_virtual_environment_incompatible_with_interpreter() -> Result<()> {
         })
         .collect::<Vec<_>>()
         .join("\n");
-    fs_err::write(&pyvenv_cfg, contents)?;
+    uv_vfs::fs::write(&pyvenv_cfg, contents)?;
 
     // We should also be able to read from the lockfile.
     uv_snapshot!(context.filters(), context.sync(), @"
@@ -12651,7 +12653,7 @@ fn sync_when_virtual_environment_incompatible_with_interpreter() -> Result<()> {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        let contents = fs_err::read_to_string(&pyvenv_cfg).unwrap();
+        let contents = uv_vfs::fs::read_to_string(&pyvenv_cfg).unwrap();
         let lines: Vec<&str> = contents.split('\n').collect();
         assert_snapshot!(lines[3], @"version_info = 3.12.[X]");
     });
@@ -12659,7 +12661,7 @@ fn sync_when_virtual_environment_incompatible_with_interpreter() -> Result<()> {
     // Simulate an incompatible `pyvenv.cfg:version_info` value created
     // by uv or virtualenv.
     let pyvenv_cfg = context.venv.child("pyvenv.cfg");
-    let contents = fs_err::read_to_string(&pyvenv_cfg)
+    let contents = uv_vfs::fs::read_to_string(&pyvenv_cfg)
         .unwrap()
         .lines()
         .map(|line| {
@@ -12671,7 +12673,7 @@ fn sync_when_virtual_environment_incompatible_with_interpreter() -> Result<()> {
         })
         .collect::<Vec<_>>()
         .join("\n");
-    fs_err::write(&pyvenv_cfg, contents)?;
+    uv_vfs::fs::write(&pyvenv_cfg, contents)?;
 
     // We should also be able to read from the lockfile.
     uv_snapshot!(context.filters(), context.sync(), @"
@@ -12687,7 +12689,7 @@ fn sync_when_virtual_environment_incompatible_with_interpreter() -> Result<()> {
     insta::with_settings!({
         filters => context.filters(),
     }, {
-        let contents = fs_err::read_to_string(&pyvenv_cfg).unwrap();
+        let contents = uv_vfs::fs::read_to_string(&pyvenv_cfg).unwrap();
         let lines: Vec<&str> = contents.split('\n').collect();
         assert_snapshot!(lines[3], @"version_info = 3.12.[X]");
     });
@@ -12829,7 +12831,7 @@ fn repeated_dev_member_all_packages() -> Result<()> {
     init.touch()?;
 
     let child = context.temp_dir.child("second");
-    fs_err::create_dir_all(&child)?;
+    uv_vfs::fs::create_dir_all(&child)?;
 
     let pyproject_toml = child.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -13154,10 +13156,10 @@ fn read_only() -> Result<()> {
     assert!(context.temp_dir.child("uv.lock").exists());
 
     // Remove the flock.
-    fs_err::remove_file(context.venv.child(".lock"))?;
+    uv_vfs::fs::remove_file(context.venv.child(".lock"))?;
 
     // Make the virtual environment read and execute (but not write).
-    fs_err::set_permissions(&context.venv, std::fs::Permissions::from_mode(0o555))?;
+    uv_vfs::fs::set_permissions(&context.venv, std::fs::Permissions::from_mode(0o555))?;
 
     uv_snapshot!(context.filters(), context.sync(), @"
     exit_code: 0 (success)
@@ -13711,7 +13713,7 @@ fn sync_config_settings_package() -> Result<()> {
     assert!(finder.exists());
 
     // Remove the virtual environment.
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     // Install the `dependency` with `editable_mode=compat` scoped to the package.
     let pyproject_toml = context.temp_dir.child("pyproject.toml");
@@ -13749,7 +13751,7 @@ fn sync_config_settings_package() -> Result<()> {
     assert!(!finder.exists());
 
     // Remove the virtual environment.
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
 
     // Install the `dependency` with `editable_mode=compat` scoped to another package.
     let pyproject_toml = context.temp_dir.child("pyproject.toml");
@@ -13798,7 +13800,7 @@ fn sync_does_not_remove_empty_virtual_environment_directory() -> Result<()> {
     let context = uv_test::test_context_with_versions!(&["3.12"]);
 
     let project_dir = context.temp_dir.child("project");
-    fs_err::create_dir(&project_dir)?;
+    uv_vfs::fs::create_dir(&project_dir)?;
 
     let pyproject_toml = project_dir.child("pyproject.toml");
     pyproject_toml.write_str(
@@ -13812,10 +13814,10 @@ fn sync_does_not_remove_empty_virtual_environment_directory() -> Result<()> {
     )?;
 
     let venv_dir = project_dir.child(".venv");
-    fs_err::create_dir(&venv_dir)?;
+    uv_vfs::fs::create_dir(&venv_dir)?;
 
     // Ensure the parent is read-only, to prevent deletion of the virtual environment
-    fs_err::set_permissions(&project_dir, std::fs::Permissions::from_mode(0o555))?;
+    uv_vfs::fs::set_permissions(&project_dir, std::fs::Permissions::from_mode(0o555))?;
 
     // Note we do _not_ fail to create the virtual environment — we fail later when writing to the
     // project directory
@@ -14827,7 +14829,7 @@ async fn sync_zstd_wheel() -> Result<()> {
     let wheel_path = context
         .temp_dir
         .child("basic_package-0.1.0-py3-none-any.whl");
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context
             .workspace_root
             .join("test/links/basic_package-0.1.0-py3-none-any.whl"),
@@ -14837,7 +14839,7 @@ async fn sync_zstd_wheel() -> Result<()> {
     let zstd_wheel_path = context
         .temp_dir
         .child("basic_package-0.1.0-py3-none-any.whl.tar.zst");
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context
             .workspace_root
             .join("test/links/basic_package-0.1.0-py3-none-any.whl.tar.zst"),
@@ -14852,14 +14854,14 @@ async fn sync_zstd_wheel() -> Result<()> {
     // Serve the uncompressed wheel file
     Mock::given(method("GET"))
         .and(path("/files/basic_package-0.1.0-py3-none-any.whl"))
-        .respond_with(ResponseTemplate::new(200).set_body_bytes(fs_err::read(&wheel_path)?))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(uv_vfs::fs::read(&wheel_path)?))
         .mount(&server)
         .await;
 
     // Serve the zstd-compressed wheel file
     Mock::given(method("GET"))
         .and(path("/files/basic_package-0.1.0-py3-none-any.whl.tar.zst"))
-        .respond_with(ResponseTemplate::new(200).set_body_bytes(fs_err::read(&zstd_wheel_path)?))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(uv_vfs::fs::read(&zstd_wheel_path)?))
         .mount(&server)
         .await;
 
@@ -15013,7 +15015,7 @@ async fn sync_non_pep625_sdist_with_compatible_wheel() -> Result<()> {
     let wheel_path = context
         .temp_dir
         .child("basic_package-0.1.0-py3-none-any.whl");
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context
             .workspace_root
             .join("test/links/basic_package-0.1.0-py3-none-any.whl"),
@@ -15028,7 +15030,7 @@ async fn sync_non_pep625_sdist_with_compatible_wheel() -> Result<()> {
 
     Mock::given(method("GET"))
         .and(path("/files/basic_package-0.1.0-py3-none-any.whl"))
-        .respond_with(ResponseTemplate::new(200).set_body_bytes(fs_err::read(&wheel_path)?))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(uv_vfs::fs::read(&wheel_path)?))
         .mount(&server)
         .await;
 
@@ -15103,7 +15105,7 @@ fn sync_non_pep625_sdist_from_lockfile() -> Result<()> {
 
     // Stage the `.tar.bz2` sdist alongside the project.
     let archive = context.temp_dir.child("bz2-1.0.0.tar.bz2");
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context.workspace_root.join("test/links/bz2-1.0.0.tar.bz2"),
         &archive,
     )?;

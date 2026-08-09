@@ -1284,7 +1284,7 @@ fn requirements_txt_frozen() -> Result<()> {
     context.lock().assert().success();
 
     // Remove the child `pyproject.toml`.
-    fs_err::remove_dir_all(child.path())?;
+    uv_vfs::fs::remove_dir_all(child.path())?;
 
     uv_snapshot!(context.filters(), context.export().arg("--all-packages"), @"
     exit_code: 1 (failure)
@@ -1372,7 +1372,7 @@ fn requirements_txt_create_missing_dir() -> Result<()> {
     //
     // Read the file contents.
     let contents = apply_filters(
-        fs_err::read_to_string(
+        uv_vfs::fs::read_to_string(
             context
                 .temp_dir
                 .child("requirements")
@@ -1591,7 +1591,7 @@ fn reduce_ssh_key_file_permissions(key_file: &Path) -> Result<()> {
         use std::fs::Permissions;
         use std::os::unix::fs::PermissionsExt;
 
-        fs_err::set_permissions(key_file, Permissions::from_mode(0o400))?;
+        uv_vfs::fs::set_permissions(key_file, Permissions::from_mode(0o400))?;
     }
     if cfg!(windows) {
         use std::process::Command;
@@ -2148,7 +2148,7 @@ fn requirements_txt_relative_path() -> Result<()> {
 
     // Read the file contents.
     let contents = apply_filters(
-        fs_err::read_to_string(project.child("requirements.txt")).unwrap(),
+        uv_vfs::fs::read_to_string(project.child("requirements.txt")).unwrap(),
         context.filters(),
     );
     insta::assert_snapshot!(contents, @r"
@@ -5141,7 +5141,7 @@ fn pep_751_infer_output_format() -> Result<()> {
 #[test]
 fn pep_751_filename() -> Result<()> {
     let context = uv_test::test_context!("3.12");
-    fs_err::copy(
+    uv_vfs::fs::copy(
         context
             .workspace_root
             .join("test/links/ok-1.0.0-py3-none-any.whl"),
@@ -6772,7 +6772,7 @@ fn cyclonedx_export_workspace_frozen() -> Result<()> {
     context.lock().assert().success();
 
     // Remove the child `pyproject.toml`.
-    fs_err::remove_dir_all(child.path())?;
+    uv_vfs::fs::remove_dir_all(child.path())?;
 
     uv_snapshot!(context.filters(), context.export().arg("--format").arg("cyclonedx1.5").arg("--all-packages"), @"
     exit_code: 1 (failure)

@@ -28,7 +28,7 @@ fn version_get() -> Result<()> {
     myproject 1.10.31
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -68,7 +68,7 @@ fn version_get_json() -> Result<()> {
     }
     "#);
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -104,7 +104,7 @@ fn version_get_short() -> Result<()> {
     1.10.31
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -145,7 +145,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -187,7 +187,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -228,7 +228,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -267,7 +267,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -306,7 +306,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -345,7 +345,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -386,7 +386,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -421,7 +421,7 @@ requires-python = ">=3.12"
     error: 0.0.12 => 0.0.11 didn't increase the version; provide the exact version to force an update
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -462,7 +462,7 @@ fn version_bump_preserves_preceding_comments() -> Result<()> {
         .success();
 
     // Ensure comments are preserved around the version entry
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
         @r#"
@@ -506,7 +506,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -546,7 +546,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -586,7 +586,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -626,7 +626,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -666,7 +666,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -706,7 +706,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -746,7 +746,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -792,7 +792,7 @@ requires-python = ">=3.12"
     error: `--bump post` cannot be used with another `--bump` value, got: major, patch, alpha, minor, dev, minor, post, post
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -832,7 +832,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -872,7 +872,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -912,7 +912,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -951,7 +951,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -991,7 +991,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1031,7 +1031,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1071,7 +1071,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1110,7 +1110,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1150,7 +1150,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1189,7 +1189,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1229,7 +1229,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1269,7 +1269,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1309,7 +1309,7 @@ requires-python = ">=3.12"
     Checked in [TIME]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1747,7 +1747,7 @@ requires-python = ">=3.12"
     myproject 1.10.31 => 1.2.3
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1784,7 +1784,7 @@ requires-python = ">=3.12"
     myproject 1.10.31 => 2.0.0
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1820,7 +1820,7 @@ requires-python = ">=3.12"
     error: expected version to start with a number, but no leading ASCII digits were found
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1856,7 +1856,7 @@ requires-python = ">=3.12"
     error: Invalid version `minor`, did you mean to pass `--bump minor`?
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1891,7 +1891,7 @@ fn version_get_dynamic() -> Result<()> {
     error: We cannot get or set dynamic project versions in: pyproject.toml
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -1986,7 +1986,7 @@ fn version_set_dynamic() -> Result<()> {
     error: We cannot get or set dynamic project versions in: pyproject.toml
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -2024,7 +2024,7 @@ fn version_get_fallback_unmanaged() -> Result<()> {
     error: The project is marked as unmanaged: [TEMP_DIR]/
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -2072,7 +2072,7 @@ fn version_get_fallback_unmanaged_short() -> Result<()> {
     error: The project is marked as unmanaged: [TEMP_DIR]/
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -2129,7 +2129,7 @@ fn version_get_fallback_unmanaged_strict() -> Result<()> {
     error: The project is marked as unmanaged: [TEMP_DIR]/
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -2198,7 +2198,7 @@ fn self_version() -> Result<()> {
     uv [VERSION] ([COMMIT] DATE)
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -2238,7 +2238,7 @@ fn self_version_short() -> Result<()> {
     [VERSION]
     ");
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"
@@ -2321,7 +2321,7 @@ fn self_version_json() -> Result<()> {
       "#);
     }
 
-    let pyproject = fs_err::read_to_string(&pyproject_toml)?;
+    let pyproject = uv_vfs::fs::read_to_string(&pyproject_toml)?;
     assert_snapshot!(
         pyproject,
     @r#"

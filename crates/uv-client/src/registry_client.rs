@@ -45,6 +45,8 @@ use crate::html::SimpleDetailHTML;
 use crate::remote_metadata::wheel_metadata_from_remote_zip;
 use crate::rkyvutil::OwnedArchive;
 use crate::{
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
     BaseClient, CachedClient, Error, ErrorKind, FlatIndexClient, RedirectClientWithMiddleware,
 };
 
@@ -734,7 +736,7 @@ impl RegistryClient {
             .to_file_path()
             .map_err(|()| ErrorKind::NonFileUrl(url.clone()))?
             .join("index.html");
-        let text = match fs_err::tokio::read_to_string(&path).await {
+        let text = match uv_vfs::fs::tokio::read_to_string(&path).await {
             Ok(text) => text,
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
                 return Err(Error::from(ErrorKind::LocalPackageNotFound(
@@ -919,7 +921,7 @@ impl RegistryClient {
             .to_file_path()
             .map_err(|()| ErrorKind::NonFileUrl(url.clone()))?
             .join("index.html");
-        let text = match fs_err::tokio::read_to_string(&path).await {
+        let text = match uv_vfs::fs::tokio::read_to_string(&path).await {
             Ok(text) => text,
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
                 return Err(Error::from(ErrorKind::LocalIndexNotFound(path)));
@@ -970,7 +972,7 @@ impl RegistryClient {
 
                 match location {
                     WheelLocation::Path(path) => {
-                        let file = fs_err::tokio::File::open(&path)
+                        let file = uv_vfs::fs::tokio::File::open(&path)
                             .await
                             .map_err(ErrorKind::Io)?;
                         let reader = tokio::io::BufReader::new(file);
@@ -1004,7 +1006,7 @@ impl RegistryClient {
                 .await?
             }
             BuiltDist::Path(wheel) => {
-                let file = fs_err::tokio::File::open(wheel.install_path.as_ref())
+                let file = uv_vfs::fs::tokio::File::open(wheel.install_path.as_ref())
                     .await
                     .map_err(ErrorKind::Io)?;
                 let reader = tokio::io::BufReader::new(file);
@@ -1049,7 +1051,7 @@ impl RegistryClient {
                 }
 
                 // Read the metadata.
-                let file = fs_err::tokio::File::open(fetch.path().join(&wheel.install_path))
+                let file = uv_vfs::fs::tokio::File::open(fetch.path().join(&wheel.install_path))
                     .await
                     .map_err(ErrorKind::Io)?;
                 let reader = tokio::io::BufReader::new(file);
@@ -2054,7 +2056,7 @@ mod tests {
 
     #[tokio::test]
     async fn no_index_disables_torch_simple_index() -> Result<(), Error> {
-        let flat_index_dir = tempfile::tempdir()?;
+        let flat_index_dir = uv_vfs::temp::tempdir()?;
         let flat_index = Index::from_find_links(IndexUrl::parse(
             flat_index_dir.path().to_string_lossy().as_ref(),
             None,

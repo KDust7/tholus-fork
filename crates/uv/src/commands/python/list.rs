@@ -243,7 +243,7 @@ pub(crate) async fn list(
                         Either::Left(path) => {
                             path_or_none = Some(path.user_display().to_string());
 
-                            let is_symlink = fs_err::symlink_metadata(path)?.is_symlink();
+                            let is_symlink = uv_vfs::fs::symlink_metadata(path)?.is_symlink();
                             if is_symlink {
                                 symlink_or_none =
                                     Some(path.read_link()?.user_display().to_string());
@@ -288,7 +288,7 @@ pub(crate) async fn list(
                 let key = key.to_string();
                 match uri {
                     Either::Left(path) => {
-                        let is_symlink = fs_err::symlink_metadata(path)?.is_symlink();
+                        let is_symlink = uv_vfs::fs::symlink_metadata(path)?.is_symlink();
                         if is_symlink {
                             writeln!(
                                 printer.stdout(),

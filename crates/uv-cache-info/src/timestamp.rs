@@ -10,12 +10,12 @@ use std::path::Path;
 /// See: <https://github.com/restic/restic/issues/2179>
 /// See: <https://apenwarr.ca/log/20181113>
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
-pub struct Timestamp(std::time::SystemTime);
+pub struct Timestamp(web_time::SystemTime);
 
 impl Timestamp {
     /// Return the [`Timestamp`] for the given path.
     pub fn from_path(path: impl AsRef<Path>) -> std::io::Result<Self> {
-        let metadata = fs_err::metadata(path.as_ref())?;
+        let metadata = uv_vfs::fs::metadata(path.as_ref())?;
         Ok(Self::from_metadata(&metadata))
     }
 
@@ -41,12 +41,12 @@ impl Timestamp {
 
     /// Return the current [`Timestamp`].
     pub fn now() -> Self {
-        Self(std::time::SystemTime::now())
+        Self(web_time::SystemTime::now())
     }
 }
 
-impl From<std::time::SystemTime> for Timestamp {
-    fn from(system_time: std::time::SystemTime) -> Self {
+impl From<web_time::SystemTime> for Timestamp {
+    fn from(system_time: web_time::SystemTime) -> Self {
         Self(system_time)
     }
 }

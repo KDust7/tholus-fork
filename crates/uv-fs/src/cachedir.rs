@@ -1,4 +1,4 @@
-//! Vendored from cachedir 0.3.1 to replace `std::fs` with `fs_err`.
+//! Vendored from cachedir 0.3.1 to replace `std::fs` with `uv_vfs::fs`.
 
 use std::io::Write;
 use std::{io, path};
@@ -15,7 +15,7 @@ const HEADER: &[u8; 43] = b"Signature: 8a477f597d28d172789f06886806bc55";
 ///   can't write to the file etc.)
 fn add_tag<P: AsRef<path::Path>>(directory: P) -> io::Result<()> {
     let directory = directory.as_ref();
-    match fs_err::OpenOptions::new()
+    match uv_vfs::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(directory.join("CACHEDIR.TAG"))

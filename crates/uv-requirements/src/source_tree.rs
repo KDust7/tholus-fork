@@ -19,6 +19,8 @@ use uv_pypi_types::PyProjectToml;
 use uv_redacted::DisplaySafeUrl;
 use uv_resolver::{InMemoryIndex, MetadataResponse};
 use uv_types::{BuildContext, HashStrategy};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 #[derive(Debug, Clone)]
 pub enum SourceTree {
@@ -170,7 +172,7 @@ impl<'a, Context: BuildContext> SourceTreeResolver<'a, Context> {
     /// dependencies.
     async fn resolve_requires_dist(&self, source_tree: &SourceTree) -> Result<RequiresDist> {
         // Convert to a buildable source.
-        let path = fs_err::canonicalize(source_tree.path()).with_context(|| {
+        let path = uv_vfs::fs::canonicalize(source_tree.path()).with_context(|| {
             format!(
                 "Failed to canonicalize path to source tree: {}",
                 source_tree.path().user_display()

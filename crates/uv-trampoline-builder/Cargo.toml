@@ -24,6 +24,7 @@ workspace = true
 name = "normalize-pe-timestamps"
 
 [dependencies]
+uv-vfs = { workspace = true }
 uv-fs = { workspace = true }
 
 anyhow = {workspace = true }

@@ -107,10 +107,10 @@ fn python_list_ignores_noncritical_explicit_path_errors() -> Result<()> {
     exit 1";
 
     let python = context.temp_dir.join("python");
-    fs_err::write(&python, contents)?;
-    let mut permissions = fs_err::metadata(&python)?.permissions();
+    uv_vfs::fs::write(&python, contents)?;
+    let mut permissions = uv_vfs::fs::metadata(&python)?.permissions();
     permissions.set_mode(0o755);
-    fs_err::set_permissions(&python, permissions)?;
+    uv_vfs::fs::set_permissions(&python, permissions)?;
 
     uv_snapshot!(context.filters(), context.python_list()
         .arg(&python)
@@ -121,8 +121,8 @@ fn python_list_ignores_noncritical_explicit_path_errors() -> Result<()> {
     let environment = context.temp_dir.join("environment");
     let environment_bin = environment.join("bin");
     let environment_python = environment_bin.join("python");
-    fs_err::create_dir_all(&environment_bin)?;
-    fs_err::copy(&python, &environment_python)?;
+    uv_vfs::fs::create_dir_all(&environment_bin)?;
+    uv_vfs::fs::copy(&python, &environment_python)?;
 
     uv_snapshot!(context.filters(), context.python_list()
         .arg(&environment)
@@ -276,7 +276,7 @@ fn python_list_duplicate_path_entries() {
         let path = std::env::join_paths(std::env::split_paths(&context.python_path()).chain(
             std::env::split_paths(&context.python_path()).map(|path| {
                 let dst = format!("{}-link", path.display());
-                fs_err::os::unix::fs::symlink(&path, &dst).unwrap();
+                uv_vfs::fs::os::unix::fs::symlink(&path, &dst).unwrap();
                 std::path::PathBuf::from(dst)
             }),
         ))

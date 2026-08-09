@@ -113,7 +113,7 @@ impl Removal {
     ) -> io::Result<()> {
         let path = uv_fs::verbatim_path(path);
 
-        let metadata = match fs_err::symlink_metadata(&path) {
+        let metadata = match uv_vfs::fs::symlink_metadata(&path) {
             Ok(metadata) => metadata,
             Err(err) if err.kind() == io::ErrorKind::NotFound => return Ok(()),
             Err(err) => return Err(err),
@@ -243,10 +243,10 @@ fn set_readable(path: &Path) -> io::Result<bool> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs_err::metadata(path)?.permissions();
+        let mut perms = uv_vfs::fs::metadata(path)?.permissions();
         if perms.mode() & 0o500 == 0 {
             perms.set_mode(perms.mode() | 0o500);
-            fs_err::set_permissions(path, perms)?;
+            uv_vfs::fs::set_permissions(path, perms)?;
             return Ok(true);
         }
     }
@@ -255,7 +255,7 @@ fn set_readable(path: &Path) -> io::Result<bool> {
 
 /// If the file is readonly, change the permissions to make it _not_ readonly.
 fn set_not_readonly(path: &Path) -> io::Result<bool> {
-    let mut perms = fs_err::metadata(path)?.permissions();
+    let mut perms = uv_vfs::fs::metadata(path)?.permissions();
     if !perms.readonly() {
         return Ok(false);
     }
@@ -264,51 +264,51 @@ fn set_not_readonly(path: &Path) -> io::Result<bool> {
     #[expect(clippy::permissions_set_readonly_false)]
     perms.set_readonly(false);
 
-    fs_err::set_permissions(path, perms)?;
+    uv_vfs::fs::set_permissions(path, perms)?;
 
     Ok(true)
 }
 
-/// Like [`fs_err::remove_file`], but attempts to change the permissions to force the file to be
+/// Like [`uv_vfs::fs::remove_file`], but attempts to change the permissions to force the file to be
 /// deleted (if it is readonly).
 fn remove_file(path: &Path) -> io::Result<()> {
-    match fs_err::remove_file(path) {
+    match uv_vfs::fs::remove_file(path) {
         Ok(()) => Ok(()),
         Err(err)
             if err.kind() == io::ErrorKind::PermissionDenied
                 && set_not_readonly(path).unwrap_or(false) =>
         {
-            fs_err::remove_file(path)
+            uv_vfs::fs::remove_file(path)
         }
         Err(err) => Err(err),
     }
 }
 
-/// Like [`fs_err::remove_dir`], but attempts to change the permissions to force the directory to
+/// Like [`uv_vfs::fs::remove_dir`], but attempts to change the permissions to force the directory to
 /// be deleted (if it is readonly).
 fn remove_dir(path: &Path) -> io::Result<()> {
-    match fs_err::remove_dir(path) {
+    match uv_vfs::fs::remove_dir(path) {
         Ok(()) => Ok(()),
         Err(err)
             if err.kind() == io::ErrorKind::PermissionDenied
                 && set_readable(path).unwrap_or(false) =>
         {
-            fs_err::remove_dir(path)
+            uv_vfs::fs::remove_dir(path)
         }
         Err(err) => Err(err),
     }
 }
 
-/// Like [`fs_err::remove_dir_all`], but attempts to change the permissions to force the directory
+/// Like [`uv_vfs::fs::remove_dir_all`], but attempts to change the permissions to force the directory
 /// to be deleted (if it is readonly).
 fn remove_dir_all(path: &Path) -> io::Result<()> {
-    match fs_err::remove_dir_all(path) {
+    match uv_vfs::fs::remove_dir_all(path) {
         Ok(()) => Ok(()),
         Err(err)
             if err.kind() == io::ErrorKind::PermissionDenied
                 && set_readable(path).unwrap_or(false) =>
         {
-            fs_err::remove_dir_all(path)
+            uv_vfs::fs::remove_dir_all(path)
         }
         Err(err) => Err(err),
     }

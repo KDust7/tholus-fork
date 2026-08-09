@@ -2,14 +2,14 @@ use anyhow::Result;
 use assert_cmd::assert::OutputAssertExt;
 use assert_fs::fixture::{FileTouch, FileWriteBin, FileWriteStr, PathChild, PathCreateDir};
 use flate2::bufread::GzDecoder;
-use fs_err::File;
+use uv_vfs::fs::File;
 use futures::io::AllowStdIo;
 use indoc::{formatdoc, indoc};
 use insta::{allow_duplicates, assert_json_snapshot, assert_snapshot};
 use std::io::BufReader;
 use std::path::Path;
 use std::process::Command;
-use tempfile::TempDir;
+use uv_vfs::temp::TempDir;
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use uv_static::EnvVars;
 use uv_test::{uv_snapshot, venv_bin_path};
@@ -235,7 +235,7 @@ fn preserve_executable_bit() -> Result<()> {
         .assert()
         .success();
 
-    fs_err::OpenOptions::new()
+    uv_vfs::fs::OpenOptions::new()
         .write(true)
         .append(true)
         .open(project_dir.join("pyproject.toml"))?
@@ -247,8 +247,8 @@ fn preserve_executable_bit() -> Result<()> {
             .as_bytes(),
         )?;
 
-    fs_err::create_dir(project_dir.join("scripts"))?;
-    fs_err::write(
+    uv_vfs::fs::create_dir(project_dir.join("scripts"))?;
+    uv_vfs::fs::write(
         project_dir.join("scripts").join("greet.sh"),
         indoc! {r#"
         echo "Hi from the shell"
@@ -414,7 +414,7 @@ fn build_module_name_normalization() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let wheel_dir = context.temp_dir.path().join("dist");
-    fs_err::create_dir(&wheel_dir)?;
+    uv_vfs::fs::create_dir(&wheel_dir)?;
 
     context
         .temp_dir
@@ -431,7 +431,7 @@ fn build_module_name_normalization() -> Result<()> {
         [tool.uv.build-backend]
         module-name = "Django_plugin"
     "#})?;
-    fs_err::create_dir_all(context.temp_dir.join("src"))?;
+    uv_vfs::fs::create_dir_all(context.temp_dir.join("src"))?;
 
     // Error case 1: No matching module.
     uv_snapshot!(context
@@ -443,7 +443,7 @@ fn build_module_name_normalization() -> Result<()> {
     error: Expected a Python module at: src/Django_plugin/__init__.py
     ");
 
-    fs_err::create_dir_all(context.temp_dir.join("src/Django_plugin"))?;
+    uv_vfs::fs::create_dir_all(context.temp_dir.join("src/Django_plugin"))?;
     // Error case 2: A matching module, but no `__init__.py`.
     uv_snapshot!(context
         .build_backend()
@@ -575,7 +575,7 @@ fn sdist_error_without_module() -> Result<()> {
     error: Expected a Python module at: src/foo/__init__.py
     ");
 
-    fs_err::create_dir(context.temp_dir.join("src"))?;
+    uv_vfs::fs::create_dir(context.temp_dir.join("src"))?;
 
     uv_snapshot!(context
         .build_backend()
@@ -827,7 +827,7 @@ fn symlinked_file() -> Result<()> {
 
     let license_text = "Project license";
     license_file.write_str(license_text)?;
-    fs_err::os::unix::fs::symlink(license_file.path(), license_symlink.path())?;
+    uv_vfs::fs::os::unix::fs::symlink(license_file.path(), license_symlink.path())?;
 
     uv_snapshot!(context
         .build_backend()
@@ -865,11 +865,11 @@ fn symlinked_file() -> Result<()> {
         .join("licenses")
         .join("LICENSE");
     assert!(
-        fs_err::symlink_metadata(&installed_license)?
+        uv_vfs::fs::symlink_metadata(&installed_license)?
             .file_type()
             .is_file()
     );
-    let license = fs_err::read_to_string(&installed_license)?;
+    let license = uv_vfs::fs::read_to_string(&installed_license)?;
     assert_eq!(license, license_text);
 
     Ok(())
@@ -1089,7 +1089,7 @@ fn wheel_data_symlink_containment() -> Result<()> {
         .temp_dir
         .child("outside/secret.txt")
         .write_str("not for distribution")?;
-    fs_err::os::unix::fs::symlink(
+    uv_vfs::fs::os::unix::fs::symlink(
         context.temp_dir.child("outside").path(),
         project.child("external-assets").path(),
     )?;
@@ -1117,7 +1117,7 @@ fn wheel_data_symlink_containment() -> Result<()> {
 
     project.child("assets/public.txt").touch()?;
     project.child("assets/private.secret").touch()?;
-    fs_err::os::unix::fs::symlink(
+    uv_vfs::fs::os::unix::fs::symlink(
         project.child("assets").path(),
         project.child("internal-assets").path(),
     )?;
@@ -1378,7 +1378,7 @@ fn build_with_all_metadata() -> Result<()> {
         .assert()
         .success();
 
-    let metadata = fs_err::read_to_string(
+    let metadata = uv_vfs::fs::read_to_string(
         context
             .site_packages()
             .join("foo-1.0.0.dist-info")
@@ -1410,7 +1410,7 @@ fn build_with_all_metadata() -> Result<()> {
 
     Hello World!
     ");
-    let metadata_json = fs_err::read_to_string(
+    let metadata_json = uv_vfs::fs::read_to_string(
         context
             .site_packages()
             .join("foo-1.0.0.dist-info")
@@ -1469,7 +1469,7 @@ fn build_with_all_metadata() -> Result<()> {
       "version": "1.0.0"
     }
     "#);
-    let wheel = fs_err::read_to_string(
+    let wheel = uv_vfs::fs::read_to_string(
         context
             .site_packages()
             .join("foo-1.0.0.dist-info")
@@ -1482,7 +1482,7 @@ fn build_with_all_metadata() -> Result<()> {
     Root-Is-Purelib: true
     Tag: py3-none-any
     ");
-    let wheel_json = fs_err::read_to_string(
+    let wheel_json = uv_vfs::fs::read_to_string(
         context
             .site_packages()
             .join("foo-1.0.0.dist-info")

@@ -100,11 +100,11 @@ fn main() -> Result<()> {
         bail!("Usage: {} <file.exe> [...]", args[0]);
     }
     for path in &args[1..] {
-        let mut data = fs_err::read(path)?;
+        let mut data = uv_vfs::fs::read(path)?;
         let (coff_timestamp_offset, debug_entries) = parse_debug_entries(&mut data)
             .with_context(|| format!("Failed to normalize: {}", path.user_display()))?;
         clear_debug_entries(&mut data, coff_timestamp_offset, &debug_entries);
-        fs_err::write(path, &data)?;
+        uv_vfs::fs::write(path, &data)?;
     }
     Ok(())
 }

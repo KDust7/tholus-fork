@@ -293,7 +293,7 @@ pub(super) async fn compile_bytecode(
     cache: &Cache,
     printer: Printer,
 ) -> anyhow::Result<()> {
-    let start = std::time::Instant::now();
+    let start = web_time::Instant::now();
     let mut files = 0;
     for site_packages in venv.site_packages() {
         let site_packages = CWD.join(site_packages);
@@ -330,7 +330,7 @@ pub(super) async fn compile_bytecode_files(
     cache: &Cache,
     printer: Printer,
 ) -> anyhow::Result<()> {
-    let start = std::time::Instant::now();
+    let start = web_time::Instant::now();
     let files = compile_files(files, venv.python_executable(), concurrency, cache.root())
         .await
         .context("Failed to bytecode-compile installed packages")?;
@@ -344,7 +344,7 @@ pub(super) async fn compile_bytecode_files(
 
 fn write_bytecode_summary(
     files: usize,
-    start: std::time::Instant,
+    start: web_time::Instant,
     printer: Printer,
 ) -> std::fmt::Result {
     let s = if files == 1 { "" } else { "s" };
@@ -382,11 +382,11 @@ impl<'a> OutputWriter<'a> {
     async fn commit(self) -> std::io::Result<()> {
         if let Some(output_file) = self.output_file {
             if let Some(parent_dir) = output_file.parent() {
-                fs_err::create_dir_all(parent_dir)?;
+                uv_vfs::fs::create_dir_all(parent_dir)?;
             }
 
             // If the output file is an existing symlink, write to the destination instead.
-            let output_file = fs_err::read_link(output_file)
+            let output_file = uv_vfs::fs::read_link(output_file)
                 .map(Cow::Owned)
                 .unwrap_or(Cow::Borrowed(output_file));
             let stream = anstream::adapter::strip_bytes(&self.buffer).into_vec();

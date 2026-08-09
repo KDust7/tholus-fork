@@ -47,7 +47,7 @@ pub(crate) fn main(args: &Args) -> Result<()> {
         Mode::DryRun => {
             println!("{reference_string}");
         }
-        Mode::Check => match fs_err::read_to_string(reference_path) {
+        Mode::Check => match uv_vfs::fs::read_to_string(reference_path) {
             Ok(current) => {
                 if current == reference_string {
                     println!("Up-to-date: {filename}");
@@ -65,18 +65,18 @@ pub(crate) fn main(args: &Args) -> Result<()> {
                 bail!("{filename} changed, please run `cargo dev generate-cli-reference`:\n{err}");
             }
         },
-        Mode::Write => match fs_err::read_to_string(&reference_path) {
+        Mode::Write => match uv_vfs::fs::read_to_string(&reference_path) {
             Ok(current) => {
                 if current == reference_string {
                     println!("Up-to-date: {filename}");
                 } else {
                     println!("Updating: {filename}");
-                    fs_err::write(reference_path, reference_string.as_bytes())?;
+                    uv_vfs::fs::write(reference_path, reference_string.as_bytes())?;
                 }
             }
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
                 println!("Updating: {filename}");
-                fs_err::write(reference_path, reference_string.as_bytes())?;
+                uv_vfs::fs::write(reference_path, reference_string.as_bytes())?;
             }
             Err(err) => {
                 bail!("{filename} changed, please run `cargo dev generate-cli-reference`:\n{err}");

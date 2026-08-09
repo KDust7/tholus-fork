@@ -16,6 +16,8 @@ use uv_small_str::SmallString;
 use crate::cached_client::{CacheControl, CachedClientError};
 use crate::html::SimpleDetailHTML;
 use crate::{CachedClient, Connectivity, Error, ErrorKind, OwnedArchive};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FlatIndexError {
@@ -262,7 +264,7 @@ impl<'a> FlatIndexClient<'a> {
         path: &Path,
         flat_index: &IndexUrl,
     ) -> Result<FlatIndexEntries, Error> {
-        let text = fs_err::tokio::read_to_string(path)
+        let text = uv_vfs::fs::tokio::read_to_string(path)
             .await
             .map_err(ErrorKind::Io)?;
         let files = Self::parse_html(&text, flat_index.url())
@@ -392,9 +394,9 @@ impl<'a> FlatIndexClient<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fs_err::File;
+    use uv_vfs::fs::File;
     use std::io::Write;
-    use tempfile::tempdir;
+    use uv_vfs::temp::tempdir;
 
     #[test]
     fn read_from_directory_sorts_distributions() {

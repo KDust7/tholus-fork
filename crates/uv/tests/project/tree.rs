@@ -12,6 +12,8 @@ use uv_static::EnvVars;
 #[cfg(feature = "test-universal")]
 use uv_test::TestContext;
 use uv_test::uv_snapshot;
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// The workspace discovered while resolving settings is reused by `uv tree`.
 #[test]
@@ -61,7 +63,7 @@ fn tree_reuses_settings_workspace_discovery() -> Result<()> {
 #[test]
 fn tree_centralized_environment_no_cache() -> Result<()> {
     let context = uv_test::test_context!("3.12");
-    fs_err::remove_dir_all(&context.venv)?;
+    uv_vfs::fs::remove_dir_all(&context.venv)?;
     context
         .temp_dir
         .child("pyproject.toml")
@@ -1203,7 +1205,7 @@ fn json_output_frozen_missing_members() -> Result<()> {
     )?;
 
     context.lock().assert().success();
-    fs_err::remove_dir_all(generated.path())?;
+    uv_vfs::fs::remove_dir_all(generated.path())?;
 
     uv_snapshot!(context.filters(), context.tree()
         .arg("--frozen")
@@ -2029,7 +2031,7 @@ fn repeated_version() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let v1 = context.temp_dir.child("v1");
-    fs_err::create_dir_all(&v1)?;
+    uv_vfs::fs::create_dir_all(&v1)?;
     let pyproject_toml = v1.child("pyproject.toml");
     pyproject_toml.write_str(
         r#"
@@ -2042,7 +2044,7 @@ fn repeated_version() -> Result<()> {
     )?;
 
     let v2 = context.temp_dir.child("v2");
-    fs_err::create_dir_all(&v2)?;
+    uv_vfs::fs::create_dir_all(&v2)?;
     let pyproject_toml = v2.child("pyproject.toml");
     pyproject_toml.write_str(
         r#"
@@ -2405,7 +2407,7 @@ fn dep_and_group_extras_with_extra_only_dependency() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let leaf = context.temp_dir.child("leaf");
-    fs_err::create_dir_all(leaf.path())?;
+    uv_vfs::fs::create_dir_all(leaf.path())?;
     leaf.child("pyproject.toml").write_str(
         r#"
         [project]
@@ -2418,7 +2420,7 @@ fn dep_and_group_extras_with_extra_only_dependency() -> Result<()> {
         .map_err(|()| anyhow::anyhow!("failed to convert leaf path to URL"))?;
 
     let child = context.temp_dir.child("child");
-    fs_err::create_dir_all(child.path())?;
+    uv_vfs::fs::create_dir_all(child.path())?;
     child.child("pyproject.toml").write_str(&formatdoc! {
         r#"
         [project]
@@ -2470,7 +2472,7 @@ fn dep_and_group_extras_with_different_extras_in_path() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
     let leaf = context.temp_dir.child("leaf");
-    fs_err::create_dir_all(leaf.path())?;
+    uv_vfs::fs::create_dir_all(leaf.path())?;
     leaf.child("pyproject.toml").write_str(
         r#"
         [project]
@@ -2483,9 +2485,9 @@ fn dep_and_group_extras_with_different_extras_in_path() -> Result<()> {
         .map_err(|()| anyhow::anyhow!("failed to convert leaf path to URL"))?;
 
     let a = context.temp_dir.child("a");
-    fs_err::create_dir_all(a.path())?;
+    uv_vfs::fs::create_dir_all(a.path())?;
     let b = context.temp_dir.child("b");
-    fs_err::create_dir_all(b.path())?;
+    uv_vfs::fs::create_dir_all(b.path())?;
     let b_url = Url::from_file_path(b.path())
         .map_err(|()| anyhow::anyhow!("failed to convert b path to URL"))?;
     a.child("pyproject.toml").write_str(&formatdoc! {

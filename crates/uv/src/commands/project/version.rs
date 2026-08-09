@@ -449,7 +449,7 @@ fn update_project(
     // Save to disk
     toml.set_version(new_version)?;
     let content = toml.to_string();
-    fs_err::write(pyproject_path, &content)?;
+    uv_vfs::fs::write(pyproject_path, &content)?;
 
     // Update the `pyproject.toml` in-memory.
     let project = project

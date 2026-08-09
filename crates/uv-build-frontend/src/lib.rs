@@ -16,13 +16,13 @@ use std::str::FromStr;
 use std::sync::{Arc, LazyLock};
 use std::{env, iter};
 
-use fs_err as fs;
+use uv_vfs::fs as fs;
 use indoc::formatdoc;
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
 use serde::de::{self, IntoDeserializer, SeqAccess, Visitor, value};
 use serde::{Deserialize, Deserializer};
-use tempfile::TempDir;
+use uv_vfs::temp::TempDir;
 use tokio::io::AsyncBufReadExt;
 use tokio::process::Command;
 use tokio::sync::{Mutex, Semaphore};
@@ -617,7 +617,7 @@ impl SourceBuild {
             .and_then(|build_system| build_system.backend_path.as_ref());
 
         if let Some(backend_path) = backend_path {
-            let source_tree = fs_err::canonicalize(source_tree).map_err(Error::Io)?;
+            let source_tree = uv_vfs::fs::canonicalize(source_tree).map_err(Error::Io)?;
             for path in backend_path.iter() {
                 if Path::new(path).is_absolute() {
                     return Err(Box::new(Error::BackendPathOutsideSourceTree(
@@ -628,7 +628,7 @@ impl SourceBuild {
                 if !backend_path.is_dir() {
                     return Err(Box::new(Error::InvalidBackendPath(path.to_string())));
                 }
-                if !fs_err::canonicalize(backend_path)
+                if !uv_vfs::fs::canonicalize(backend_path)
                     .map_err(Error::Io)?
                     .starts_with(&source_tree)
                 {
@@ -1095,7 +1095,7 @@ async fn create_pep517_build_environment(
     }
 
     // Read and deserialize the requirements from the output file.
-    let read_requires_result = fs_err::read(&outfile)
+    let read_requires_result = uv_vfs::fs::read(&outfile)
         .map_err(|err| err.to_string())
         .and_then(|contents| serde_json::from_slice(&contents).map_err(|err| err.to_string()));
     let extra_requires: Vec<uv_pep508::Requirement<VerbatimParsedUrl>> = match read_requires_result

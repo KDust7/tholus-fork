@@ -197,10 +197,10 @@ pub(crate) fn find_scripts(
 /// Extensionless candidates are only read past their prefix when they begin with a shebang.
 fn read_script_candidate(path: &Path) -> io::Result<Option<Vec<u8>>> {
     if path.extension().is_some() {
-        return fs_err::read(path).map(Some);
+        return uv_vfs::fs::read(path).map(Some);
     }
 
-    ValidatedReader::new(fs_err::File::open(path)?)
+    ValidatedReader::new(uv_vfs::fs::File::open(path)?)
         .require_prefix("#!")
         .require_utf8()
         .read()

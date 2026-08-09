@@ -569,7 +569,7 @@ fn run_pep723_script_requires_python() -> Result<()> {
     ");
 
     // Deleting the `.python-version` file should not change the behavior.
-    fs_err::remove_file(&python_version)?;
+    uv_vfs::fs::remove_file(&python_version)?;
 
     uv_snapshot!(context.filters(), context.run().arg("main.py"), @"
     exit_code: 0 (success)
@@ -825,7 +825,7 @@ fn run_pep723_script_no_sources_package() -> Result<()> {
      + a==2.0.0
     ");
 
-    fs_err::remove_dir_all(&context.cache_dir)?;
+    uv_vfs::fs::remove_dir_all(&context.cache_dir)?;
 
     uv_snapshot!(context.filters(), context.run().arg("--default-index").arg(default.index_url()).arg("--no-sources-package").arg("a").arg("main.py"), @"
     exit_code: 0 (success)
@@ -1479,7 +1479,7 @@ fn run_with_local_wheel_refreshes_rebuilt_wheel() -> Result<()> {
             return "Updated code!"
         "#
     })?;
-    fs_err::remove_file(wheel.path())?;
+    uv_vfs::fs::remove_file(wheel.path())?;
 
     context
         .build()
@@ -1779,9 +1779,9 @@ fn run_with_overlay_interpreter() -> Result<()> {
         .success();
 
     // Cleanup previous shutil
-    fs_err::remove_file(context.temp_dir.child("main"))?;
+    uv_vfs::fs::remove_file(context.temp_dir.child("main"))?;
     #[cfg(windows)]
-    fs_err::remove_file(context.temp_dir.child("main_gui"))?;
+    uv_vfs::fs::remove_file(context.temp_dir.child("main_gui"))?;
 
     // The project's entrypoint should be rewritten to use the overlay interpreter.
     uv_snapshot!(context.filters(), context.run().arg("--with").arg("iniconfig").arg("main").arg(context.temp_dir.child("main").as_os_str()), @"
@@ -3151,7 +3151,7 @@ fn run_from_directory() -> Result<()> {
      + foo==1.0.0 (from file://[TEMP_DIR]/project)
     ");
 
-    fs_err::remove_dir_all(context.temp_dir.join("project").join(".venv"))?;
+    uv_vfs::fs::remove_dir_all(context.temp_dir.join("project").join(".venv"))?;
     uv_snapshot!(filters.clone(), context.run().arg("--project").arg("project").arg("./project/main.py"), @"
     exit_code: 0 (success)
     ----- stderr -----
@@ -3164,7 +3164,7 @@ fn run_from_directory() -> Result<()> {
     ");
 
     // Use `--directory`, which switches to the provided directory entirely.
-    fs_err::remove_dir_all(context.temp_dir.join("project").join(".venv"))?;
+    uv_vfs::fs::remove_dir_all(context.temp_dir.join("project").join(".venv"))?;
     uv_snapshot!(filters.clone(), context.run().arg("--directory").arg("project").arg("main"), @"
     exit_code: 0 (success)
     ----- stdout -----
@@ -3179,7 +3179,7 @@ fn run_from_directory() -> Result<()> {
      + foo==1.0.0 (from file://[TEMP_DIR]/project)
     ");
 
-    fs_err::remove_dir_all(context.temp_dir.join("project").join(".venv"))?;
+    uv_vfs::fs::remove_dir_all(context.temp_dir.join("project").join(".venv"))?;
     uv_snapshot!(filters.clone(), context.run().arg("--directory").arg("project").arg("./main.py"), @"
     exit_code: 0 (success)
     ----- stderr -----
@@ -3191,7 +3191,7 @@ fn run_from_directory() -> Result<()> {
      + foo==1.0.0 (from file://[TEMP_DIR]/project)
     ");
 
-    fs_err::remove_dir_all(context.temp_dir.join("project").join(".venv"))?;
+    uv_vfs::fs::remove_dir_all(context.temp_dir.join("project").join(".venv"))?;
     uv_snapshot!(filters.clone(), context.run().arg("--directory").arg("project").arg("./project/main.py"), @"
     exit_code: 2 (failure)
     ----- stderr -----
@@ -3216,7 +3216,7 @@ fn run_from_directory() -> Result<()> {
         .child(PYTHON_VERSION_FILENAME)
         .write_str("3.10")?;
 
-    fs_err::remove_dir_all(context.temp_dir.join("project").join(".venv"))?;
+    uv_vfs::fs::remove_dir_all(context.temp_dir.join("project").join(".venv"))?;
     uv_snapshot!(filters.clone(), context.run().arg("--project").arg("project").arg("main"), @"
     exit_code: 0 (success)
     ----- stdout -----
@@ -3231,7 +3231,7 @@ fn run_from_directory() -> Result<()> {
      + foo==1.0.0 (from file://[TEMP_DIR]/project)
     ");
 
-    fs_err::remove_dir_all(context.temp_dir.join("project").join(".venv"))?;
+    uv_vfs::fs::remove_dir_all(context.temp_dir.join("project").join(".venv"))?;
     uv_snapshot!(filters.clone(), context.run().arg("--directory").arg("project").arg("main"), @"
     exit_code: 0 (success)
     ----- stdout -----
@@ -4209,7 +4209,7 @@ fn run_script_explicit_no_file() {
 fn run_script_explicit_directory() -> Result<()> {
     let context = uv_test::test_context!("3.12");
 
-    fs_err::create_dir(context.temp_dir.child("script"))?;
+    uv_vfs::fs::create_dir(context.temp_dir.child("script"))?;
 
     uv_snapshot!(context.filters(), context.run().arg("--script").arg("script"), @"
     exit_code: 2 (failure)
@@ -4331,7 +4331,7 @@ fn run_linked_environment_path() -> Result<()> {
     )?;
 
     // Create a link from `target` -> virtual environment
-    fs_err::os::unix::fs::symlink(&context.venv, context.temp_dir.child("target"))?;
+    uv_vfs::fs::os::unix::fs::symlink(&context.venv, context.temp_dir.child("target"))?;
 
     // Running `uv sync` should use the environment at `target``
     uv_snapshot!(context.filters(), context.sync()
@@ -5712,7 +5712,7 @@ fn detect_infinite_recursion() -> Result<()> {
         print("Hello, world!")
     "#, uv = get_bin!().display() })?;
 
-    fs_err::set_permissions(test_script.path(), PermissionsExt::from_mode(0o0744))?;
+    uv_vfs::fs::set_permissions(test_script.path(), PermissionsExt::from_mode(0o0744))?;
 
     let mut cmd = std::process::Command::new(test_script.as_os_str());
     context.add_shared_env(&mut cmd, false);

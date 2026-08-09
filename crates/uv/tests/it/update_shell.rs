@@ -45,8 +45,8 @@ fn update_shell_tool_and_python() -> Result<()> {
         "
     );
 
-    let bash_profile = fs_err::read_to_string(context.home_dir.child(".bash_profile"))?;
-    let bashrc = fs_err::read_to_string(context.home_dir.child(".bashrc"))?;
+    let bash_profile = uv_vfs::fs::read_to_string(context.home_dir.child(".bash_profile"))?;
+    let bashrc = uv_vfs::fs::read_to_string(context.home_dir.child(".bashrc"))?;
     assert_eq!(bash_profile, bashrc);
 
     // Both startup files retain the separate tool and Python executable directories.

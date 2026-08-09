@@ -111,9 +111,9 @@ fn migrate_windows_cache(source: &Path, destination: &Path) -> Result<(), io::Er
                 destination.display()
             );
             if let Some(parent) = destination.parent() {
-                fs_err::create_dir_all(parent)?;
+                uv_vfs::fs::create_dir_all(parent)?;
             }
-            fs_err::rename(&source, &destination)?;
+            uv_vfs::fs::rename(&source, &destination)?;
         }
     }
 
@@ -130,9 +130,9 @@ fn migrate_windows_cache(source: &Path, destination: &Path) -> Result<(), io::Er
                 destination.display()
             );
             if let Some(parent) = destination.parent() {
-                fs_err::create_dir_all(parent)?;
+                uv_vfs::fs::create_dir_all(parent)?;
             }
-            fs_err::rename(&source, &destination)?;
+            uv_vfs::fs::rename(&source, &destination)?;
         }
     }
 

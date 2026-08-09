@@ -45,7 +45,7 @@ pub(crate) async fn validate_zip(
         .map_err(std::io::Error::other)
         .into_async_read();
 
-    let target = tempfile::TempDir::new()?;
+    let target = uv_vfs::temp::TempDir::new()?;
 
     uv_extract::stream::unzip(reader.compat(), target.path()).await?;
 

@@ -122,7 +122,7 @@ impl CopyLocks {
         let _dir_guard = dir_lock.lock().unwrap();
 
         // Copy the file, which will also set its permissions.
-        fs_err::copy(from, to)?;
+        uv_vfs::fs::copy(from, to)?;
 
         Ok(())
     }
@@ -210,7 +210,7 @@ impl<'a, F> LinkOptions<'a, F> {
         if let Some(copy_locks) = self.copy_locks {
             copy_locks.synchronized_copy(from, to)
         } else {
-            fs_err::copy(from, to)?;
+            uv_vfs::fs::copy(from, to)?;
             Ok(())
         }
     }
@@ -373,7 +373,7 @@ where
         let target = dst.join(relative);
 
         if entry.file_type().is_dir() {
-            fs_err::create_dir_all(&target).map_err(|err| LinkError::CreateDir {
+            uv_vfs::fs::create_dir_all(&target).map_err(|err| LinkError::CreateDir {
                 path: target.clone(),
                 err,
             })?;
@@ -424,15 +424,15 @@ where
 /// See: <https://github.com/astral-sh/uv/issues/18181>
 #[cfg(target_os = "linux")]
 fn reflink_with_permissions(from: &Path, to: &Path) -> io::Result<()> {
-    use fs_err::os::unix::fs::OpenOptionsExt;
+    use uv_vfs::fs::os::unix::fs::OpenOptionsExt;
     use std::os::unix::fs::PermissionsExt;
 
     // Open source and read permissions from the file descriptor.
-    let src = fs_err::File::open(from)?;
+    let src = uv_vfs::fs::File::open(from)?;
     let mode = src.metadata()?.permissions().mode();
 
     // Create destination exclusively with the source's permissions.
-    let dest = fs_err::OpenOptions::new()
+    let dest = uv_vfs::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .mode(mode)
@@ -441,7 +441,7 @@ fn reflink_with_permissions(from: &Path, to: &Path) -> io::Result<()> {
     // Clone data blocks from source to destination.
     if let Err(err) = rustix::fs::ioctl_ficlone(&dest, &src) {
         // Clean up the destination file on failure.
-        let _ = fs_err::remove_file(to);
+        let _ = uv_vfs::fs::remove_file(to);
         return Err(err.into());
     }
 
@@ -473,10 +473,10 @@ where
                 if options.on_existing_directory == OnExistingDirectory::Merge {
                     // File exists, overwrite atomically via temp file
                     let parent = target.parent().unwrap();
-                    let tempdir = tempfile::tempdir_in(parent)?;
+                    let tempdir = uv_vfs::temp::tempdir_in(parent)?;
                     let tempfile = tempdir.path().join(target.file_name().unwrap());
                     if reflink_with_permissions(path, &tempfile).is_ok() {
-                        fs_err::rename(&tempfile, target)?;
+                        uv_vfs::fs::rename(&tempfile, target)?;
                         Ok(state.mode_working())
                     } else {
                         debug!(
@@ -508,7 +508,7 @@ where
             Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
                 if options.on_existing_directory == OnExistingDirectory::Merge {
                     let parent = target.parent().unwrap();
-                    let tempdir = tempfile::tempdir_in(parent)?;
+                    let tempdir = uv_vfs::temp::tempdir_in(parent)?;
                     let tempfile = tempdir.path().join(target.file_name().unwrap());
                     reflink_with_permissions(path, &tempfile).map_err(|err| {
                         LinkError::Reflink {
@@ -517,7 +517,7 @@ where
                             err,
                         }
                     })?;
-                    fs_err::rename(&tempfile, target)?;
+                    uv_vfs::fs::rename(&tempfile, target)?;
                     Ok(state)
                 } else {
                     Err(LinkError::Reflink {
@@ -580,7 +580,7 @@ fn clone_dir_merge<F>(
 where
     F: Fn(&Path) -> bool,
 {
-    for entry in fs_err::read_dir(src)? {
+    for entry in uv_vfs::fs::read_dir(src)? {
         let entry = entry?;
         let src_path = entry.path();
         let dst_path = dst.join(entry.file_name());
@@ -606,7 +606,7 @@ where
                 Ok(()) => {}
                 Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
                     // File exists, overwrite atomically via temp file
-                    let tempdir = tempfile::tempdir_in(dst)?;
+                    let tempdir = uv_vfs::temp::tempdir_in(dst)?;
                     let tempfile = tempdir.path().join(entry.file_name());
                     reflink_copy::reflink(&src_path, &tempfile).map_err(|err| {
                         LinkError::Reflink {
@@ -615,7 +615,7 @@ where
                             err,
                         }
                     })?;
-                    fs_err::rename(&tempfile, &dst_path)?;
+                    uv_vfs::fs::rename(&tempfile, &dst_path)?;
                 }
                 Err(err) => {
                     return Err(LinkError::Reflink {
@@ -768,7 +768,7 @@ where
 /// Try to create a hard link, handling `TooManyLinks` (EMLINK/`ERROR_TOO_MANY_LINKS`)
 /// by copying the source to a fresh inode and retrying.
 fn try_hardlink_file(src: &Path, dst: &Path) -> io::Result<()> {
-    match fs_err::hard_link(src, dst) {
+    match uv_vfs::fs::hard_link(src, dst) {
         Ok(()) => Ok(()),
         Err(err) if err.kind() == io::ErrorKind::TooManyLinks => {
             debug!(
@@ -779,14 +779,14 @@ fn try_hardlink_file(src: &Path, dst: &Path) -> io::Result<()> {
             if parent.as_os_str().is_empty() {
                 parent = Path::new(".");
             }
-            let temp = tempfile::NamedTempFile::new_in(parent)?;
+            let temp = uv_vfs::temp::NamedTempFile::new_in(parent)?;
             // This is a benign race. It can effectively lead to the destination being an
             // independent copy.
-            fs_err::copy(src, temp.path())?;
+            uv_vfs::fs::copy(src, temp.path())?;
             // Linking a copy before renaming avoids the unlikely race where another process could
             // exhaust the fresh inode's links between the rename and our link.
-            fs_err::hard_link(temp.path(), dst)?;
-            fs_err::rename(temp.path(), src)?;
+            uv_vfs::fs::hard_link(temp.path(), dst)?;
+            uv_vfs::fs::rename(temp.path(), src)?;
             Ok(())
         }
         Err(err) => Err(err),
@@ -806,11 +806,11 @@ where
     // TODO(zanieb): These unwraps were copied from `uv-install-wheel`; consider propagating errors
     // instead of panicking if `dst` has no parent or file name.
     let parent = dst.parent().unwrap();
-    let tempdir = tempfile::tempdir_in(parent)?;
+    let tempdir = uv_vfs::temp::tempdir_in(parent)?;
     let tempfile = tempdir.path().join(dst.file_name().unwrap());
 
     if try_hardlink_file(src, &tempfile).is_ok() {
-        fs_err::rename(&tempfile, dst)?;
+        uv_vfs::fs::rename(&tempfile, dst)?;
         Ok(state.mode_working())
     } else {
         debug!(
@@ -840,7 +840,7 @@ where
     // TODO(zanieb): These unwraps were copied from `uv-install-wheel`; consider propagating errors
     // instead of panicking if `dst` has no parent or file name.
     let parent = dst.parent().unwrap();
-    let tempdir = tempfile::tempdir_in(parent)?;
+    let tempdir = uv_vfs::temp::tempdir_in(parent)?;
     let tempfile = tempdir.path().join(dst.file_name().unwrap());
 
     options
@@ -849,7 +849,7 @@ where
             to: tempfile.clone(),
             err,
         })?;
-    fs_err::rename(&tempfile, dst)?;
+    uv_vfs::fs::rename(&tempfile, dst)?;
     Ok(())
 }
 
@@ -866,11 +866,11 @@ where
     // TODO(zanieb): These unwraps were copied from `uv-install-wheel`; consider propagating errors
     // instead of panicking if `dst` has no parent or file name.
     let parent = dst.parent().unwrap();
-    let tempdir = tempfile::tempdir_in(parent)?;
+    let tempdir = uv_vfs::temp::tempdir_in(parent)?;
     let tempfile = tempdir.path().join(dst.file_name().unwrap());
 
     if create_symlink(src, &tempfile).is_ok() {
-        fs_err::rename(&tempfile, dst)?;
+        uv_vfs::fs::rename(&tempfile, dst)?;
         Ok(state.mode_working())
     } else {
         debug!(
@@ -891,16 +891,16 @@ where
 /// Create a symbolic link.
 #[cfg(unix)]
 fn create_symlink(original: &Path, link: &Path) -> io::Result<()> {
-    fs_err::os::unix::fs::symlink(original, link)
+    uv_vfs::fs::os::unix::fs::symlink(original, link)
 }
 
 /// Create a symbolic link.
 #[cfg(windows)]
 fn create_symlink(original: &Path, link: &Path) -> io::Result<()> {
     if original.is_dir() {
-        fs_err::os::windows::fs::symlink_dir(original, link)
+        uv_vfs::fs::os::windows::fs::symlink_dir(original, link)
     } else {
-        fs_err::os::windows::fs::symlink_file(original, link)
+        uv_vfs::fs::os::windows::fs::symlink_file(original, link)
     }
 }
 
@@ -908,7 +908,7 @@ fn create_symlink(original: &Path, link: &Path) -> io::Result<()> {
 #[expect(clippy::print_stderr)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
+    use uv_vfs::temp::TempDir;
 
     /// Create a temporary directory on the default filesystem.
     fn test_tempdir() -> TempDir {
@@ -920,7 +920,7 @@ mod tests {
     /// Returns `None` if `UV_INTERNAL__TEST_COW_FS` is not set.
     fn cow_tempdir() -> Option<TempDir> {
         let dir = std::env::var(uv_static::EnvVars::UV_INTERNAL__TEST_COW_FS).ok()?;
-        fs_err::create_dir_all(&dir).unwrap();
+        uv_vfs::fs::create_dir_all(&dir).unwrap();
         Some(TempDir::new_in(dir).unwrap())
     }
 
@@ -929,7 +929,7 @@ mod tests {
     /// Returns `None` if `UV_INTERNAL__TEST_NOCOW_FS` is not set.
     fn nocow_tempdir() -> Option<TempDir> {
         let dir = std::env::var(uv_static::EnvVars::UV_INTERNAL__TEST_NOCOW_FS).ok()?;
-        fs_err::create_dir_all(&dir).unwrap();
+        uv_vfs::fs::create_dir_all(&dir).unwrap();
         Some(TempDir::new_in(dir).unwrap())
     }
 
@@ -938,16 +938,16 @@ mod tests {
     /// Returns `None` if `UV_INTERNAL__TEST_ALT_FS` is not set.
     fn alt_tempdir() -> Option<TempDir> {
         let dir = std::env::var(uv_static::EnvVars::UV_INTERNAL__TEST_ALT_FS).ok()?;
-        fs_err::create_dir_all(&dir).unwrap();
+        uv_vfs::fs::create_dir_all(&dir).unwrap();
         Some(TempDir::new_in(dir).unwrap())
     }
 
     /// Create a test directory structure with some files.
     fn create_test_tree(root: &Path) {
-        fs_err::create_dir_all(root.join("subdir")).unwrap();
-        fs_err::write(root.join("file1.txt"), "content1").unwrap();
-        fs_err::write(root.join("file2.txt"), "content2").unwrap();
-        fs_err::write(root.join("subdir/nested.txt"), "nested content").unwrap();
+        uv_vfs::fs::create_dir_all(root.join("subdir")).unwrap();
+        uv_vfs::fs::write(root.join("file1.txt"), "content1").unwrap();
+        uv_vfs::fs::write(root.join("file2.txt"), "content2").unwrap();
+        uv_vfs::fs::write(root.join("subdir/nested.txt"), "nested content").unwrap();
     }
 
     /// Verify the destination has the expected structure and content.
@@ -956,15 +956,15 @@ mod tests {
         assert!(root.join("file2.txt").exists());
         assert!(root.join("subdir/nested.txt").exists());
         assert_eq!(
-            fs_err::read_to_string(root.join("file1.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(root.join("file1.txt")).unwrap(),
             "content1"
         );
         assert_eq!(
-            fs_err::read_to_string(root.join("file2.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(root.join("file2.txt")).unwrap(),
             "content2"
         );
         assert_eq!(
-            fs_err::read_to_string(root.join("subdir/nested.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(root.join("subdir/nested.txt")).unwrap(),
             "nested content"
         );
     }
@@ -1001,8 +1001,8 @@ mod tests {
         #[cfg(unix)]
         if result == LinkMode::Hardlink {
             use std::os::unix::fs::MetadataExt;
-            let src_meta = fs_err::metadata(src_dir.path().join("file1.txt")).unwrap();
-            let dst_meta = fs_err::metadata(dst_dir.path().join("file1.txt")).unwrap();
+            let src_meta = uv_vfs::fs::metadata(src_dir.path().join("file1.txt")).unwrap();
+            let dst_meta = uv_vfs::fs::metadata(dst_dir.path().join("file1.txt")).unwrap();
             assert_eq!(src_meta.ino(), dst_meta.ino());
         }
     }
@@ -1050,10 +1050,10 @@ mod tests {
     fn reflink_supported(dir: &Path) -> bool {
         let src = dir.join("reflink_test_src");
         let dst = dir.join("reflink_test_dst");
-        fs_err::write(&src, "test").unwrap();
+        uv_vfs::fs::write(&src, "test").unwrap();
         let supported = reflink_copy::reflink(&src, &dst).is_ok();
-        let _ = fs_err::remove_file(&src);
-        let _ = fs_err::remove_file(&dst);
+        let _ = uv_vfs::fs::remove_file(&src);
+        let _ = uv_vfs::fs::remove_file(&dst);
         supported
     }
 
@@ -1071,16 +1071,16 @@ mod tests {
 
         let src = tmp_dir.path().join("src.txt");
         let dst = tmp_dir.path().join("dst.txt");
-        fs_err::write(&src, "reflink content").unwrap();
+        uv_vfs::fs::write(&src, "reflink content").unwrap();
 
         reflink_copy::reflink(&src, &dst).unwrap();
 
-        assert_eq!(fs_err::read_to_string(&dst).unwrap(), "reflink content");
+        assert_eq!(uv_vfs::fs::read_to_string(&dst).unwrap(), "reflink content");
 
         // Modifying dst should not affect src (copy-on-write)
-        fs_err::write(&dst, "modified").unwrap();
-        assert_eq!(fs_err::read_to_string(&src).unwrap(), "reflink content");
-        assert_eq!(fs_err::read_to_string(&dst).unwrap(), "modified");
+        uv_vfs::fs::write(&dst, "modified").unwrap();
+        assert_eq!(uv_vfs::fs::read_to_string(&src).unwrap(), "reflink content");
+        assert_eq!(uv_vfs::fs::read_to_string(&dst).unwrap(), "modified");
     }
 
     #[test]
@@ -1107,9 +1107,9 @@ mod tests {
         verify_test_tree(dst_dir.path());
 
         // Verify copy-on-write: modifying dst should not affect src
-        fs_err::write(dst_dir.path().join("file1.txt"), "modified").unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file1.txt"), "modified").unwrap();
         assert_eq!(
-            fs_err::read_to_string(src_dir.path().join("file1.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(src_dir.path().join("file1.txt")).unwrap(),
             "content1"
         );
     }
@@ -1132,9 +1132,9 @@ mod tests {
         create_test_tree(src_dir.path());
 
         // Pre-create destination with some existing content
-        fs_err::create_dir_all(dst_dir.path()).unwrap();
-        fs_err::write(dst_dir.path().join("file1.txt"), "old content").unwrap();
-        fs_err::write(dst_dir.path().join("extra.txt"), "extra").unwrap();
+        uv_vfs::fs::create_dir_all(dst_dir.path()).unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file1.txt"), "old content").unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("extra.txt"), "extra").unwrap();
 
         let options = LinkOptions::new(LinkMode::Clone)
             .with_on_existing_directory(OnExistingDirectory::Merge);
@@ -1144,12 +1144,12 @@ mod tests {
 
         // Source files should overwrite destination
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
             "content1"
         );
         // Extra file should remain
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("extra.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("extra.txt")).unwrap(),
             "extra"
         );
     }
@@ -1237,9 +1237,9 @@ mod tests {
         create_test_tree(src_dir.path());
 
         // Pre-create destination with existing content
-        fs_err::create_dir_all(dst_dir.path()).unwrap();
-        fs_err::write(dst_dir.path().join("file1.txt"), "old content").unwrap();
-        fs_err::write(dst_dir.path().join("extra.txt"), "extra").unwrap();
+        uv_vfs::fs::create_dir_all(dst_dir.path()).unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file1.txt"), "old content").unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("extra.txt"), "extra").unwrap();
 
         let options = LinkOptions::new(LinkMode::Clone)
             .with_on_existing_directory(OnExistingDirectory::Merge);
@@ -1254,12 +1254,12 @@ mod tests {
 
         // Source files should overwrite destination
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
             "content1"
         );
         // Extra file should remain
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("extra.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("extra.txt")).unwrap(),
             "extra"
         );
     }
@@ -1332,9 +1332,9 @@ mod tests {
         create_test_tree(src_dir.path());
 
         // Create destination with different content
-        fs_err::create_dir_all(dst_dir.path().join("subdir")).unwrap();
-        fs_err::write(dst_dir.path().join("file1.txt"), "old content").unwrap();
-        fs_err::write(dst_dir.path().join("existing.txt"), "should remain").unwrap();
+        uv_vfs::fs::create_dir_all(dst_dir.path().join("subdir")).unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file1.txt"), "old content").unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("existing.txt"), "should remain").unwrap();
 
         let options =
             LinkOptions::new(LinkMode::Copy).with_on_existing_directory(OnExistingDirectory::Merge);
@@ -1342,12 +1342,12 @@ mod tests {
 
         // Verify source files overwrote destination
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
             "content1"
         );
         // Verify existing file that wasn't in source remains
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("existing.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("existing.txt")).unwrap(),
             "should remain"
         );
     }
@@ -1360,7 +1360,7 @@ mod tests {
         create_test_tree(src_dir.path());
 
         // Create conflicting file in destination
-        fs_err::write(dst_dir.path().join("file1.txt"), "existing").unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file1.txt"), "existing").unwrap();
 
         // Hardlink mode with Fail should error when target exists
         let options = LinkOptions::new(LinkMode::Hardlink)
@@ -1375,7 +1375,7 @@ mod tests {
             // If it succeeded, hardlink must have fallen back to copy
             // which overwrites the file
             assert_eq!(
-                fs_err::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
+                uv_vfs::fs::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
                 "content1"
             );
         }
@@ -1389,7 +1389,7 @@ mod tests {
         create_test_tree(src_dir.path());
 
         // Create conflicting file in destination
-        fs_err::write(dst_dir.path().join("file1.txt"), "existing").unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file1.txt"), "existing").unwrap();
 
         // Copy mode always overwrites, even in Fail mode
         // (Fail mode only affects link operations that naturally fail on AlreadyExists)
@@ -1399,7 +1399,7 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
             "content1"
         );
     }
@@ -1411,7 +1411,7 @@ mod tests {
 
         create_test_tree(src_dir.path());
         // Add a RECORD file that should be copied, not linked
-        fs_err::write(src_dir.path().join("RECORD"), "record content").unwrap();
+        uv_vfs::fs::write(src_dir.path().join("RECORD"), "record content").unwrap();
 
         let options = LinkOptions::new(LinkMode::Hardlink)
             .with_mutable_copy_filter(|p: &Path| p.ends_with("RECORD"));
@@ -1419,7 +1419,7 @@ mod tests {
 
         // Verify RECORD exists
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("RECORD")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("RECORD")).unwrap(),
             "record content"
         );
 
@@ -1428,14 +1428,14 @@ mod tests {
             #[cfg(unix)]
             {
                 use std::os::unix::fs::MetadataExt;
-                let src_meta = fs_err::metadata(src_dir.path().join("RECORD")).unwrap();
-                let dst_meta = fs_err::metadata(dst_dir.path().join("RECORD")).unwrap();
+                let src_meta = uv_vfs::fs::metadata(src_dir.path().join("RECORD")).unwrap();
+                let dst_meta = uv_vfs::fs::metadata(dst_dir.path().join("RECORD")).unwrap();
                 // RECORD should be copied, not hardlinked
                 assert_ne!(src_meta.ino(), dst_meta.ino());
 
                 // But regular files should be hardlinked
-                let src_file_meta = fs_err::metadata(src_dir.path().join("file1.txt")).unwrap();
-                let dst_file_meta = fs_err::metadata(dst_dir.path().join("file1.txt")).unwrap();
+                let src_file_meta = uv_vfs::fs::metadata(src_dir.path().join("file1.txt")).unwrap();
+                let dst_file_meta = uv_vfs::fs::metadata(dst_dir.path().join("file1.txt")).unwrap();
                 assert_eq!(src_file_meta.ino(), dst_file_meta.ino());
             }
         }
@@ -1462,7 +1462,7 @@ mod tests {
         let dst_dir = test_tempdir();
 
         // Create empty subdirectory
-        fs_err::create_dir_all(src_dir.path().join("empty_subdir")).unwrap();
+        uv_vfs::fs::create_dir_all(src_dir.path().join("empty_subdir")).unwrap();
 
         let options = LinkOptions::new(LinkMode::Copy);
         link_dir(src_dir.path(), dst_dir.path(), &options).unwrap();
@@ -1477,14 +1477,14 @@ mod tests {
 
         // Create deeply nested structure
         let deep_path = src_dir.path().join("a/b/c/d/e");
-        fs_err::create_dir_all(&deep_path).unwrap();
-        fs_err::write(deep_path.join("deep.txt"), "deep content").unwrap();
+        uv_vfs::fs::create_dir_all(&deep_path).unwrap();
+        uv_vfs::fs::write(deep_path.join("deep.txt"), "deep content").unwrap();
 
         let options = LinkOptions::new(LinkMode::Copy);
         link_dir(src_dir.path(), dst_dir.path(), &options).unwrap();
 
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("a/b/c/d/e/deep.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("a/b/c/d/e/deep.txt")).unwrap(),
             "deep content"
         );
     }
@@ -1497,8 +1497,8 @@ mod tests {
         create_test_tree(src_dir.path());
 
         // Pre-create destination with existing file
-        fs_err::create_dir_all(dst_dir.path()).unwrap();
-        fs_err::write(dst_dir.path().join("file1.txt"), "old").unwrap();
+        uv_vfs::fs::create_dir_all(dst_dir.path()).unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file1.txt"), "old").unwrap();
 
         let options = LinkOptions::new(LinkMode::Hardlink)
             .with_on_existing_directory(OnExistingDirectory::Merge);
@@ -1508,7 +1508,7 @@ mod tests {
 
         // Content should be overwritten
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
             "content1"
         );
     }
@@ -1522,7 +1522,7 @@ mod tests {
         let dst_dir = test_tempdir();
 
         // Create a file to copy
-        fs_err::write(src_dir.path().join("file.txt"), "content").unwrap();
+        uv_vfs::fs::write(src_dir.path().join("file.txt"), "content").unwrap();
 
         let locks = Arc::new(CopyLocks::default());
         let src = src_dir.path().to_path_buf();
@@ -1549,7 +1549,7 @@ mod tests {
 
         // Verify file is intact
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("file.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("file.txt")).unwrap(),
             "content"
         );
     }
@@ -1563,8 +1563,8 @@ mod tests {
         create_test_tree(src_dir.path());
 
         // Pre-create destination with existing file
-        fs_err::create_dir_all(dst_dir.path()).unwrap();
-        fs_err::write(dst_dir.path().join("file1.txt"), "old").unwrap();
+        uv_vfs::fs::create_dir_all(dst_dir.path()).unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file1.txt"), "old").unwrap();
 
         let options = LinkOptions::new(LinkMode::Symlink)
             .with_on_existing_directory(OnExistingDirectory::Merge);
@@ -1574,7 +1574,7 @@ mod tests {
 
         // Content should come from source (via symlink or copy)
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
             "content1"
         );
 
@@ -1591,7 +1591,7 @@ mod tests {
         let dst_dir = test_tempdir();
 
         create_test_tree(src_dir.path());
-        fs_err::write(src_dir.path().join("RECORD"), "record content").unwrap();
+        uv_vfs::fs::write(src_dir.path().join("RECORD"), "record content").unwrap();
 
         let options = LinkOptions::new(LinkMode::Symlink)
             .with_mutable_copy_filter(|p: &Path| p.ends_with("RECORD"));
@@ -1599,7 +1599,7 @@ mod tests {
 
         // Verify RECORD exists and has correct content
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("RECORD")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("RECORD")).unwrap(),
             "record content"
         );
 
@@ -1633,7 +1633,7 @@ mod tests {
         let dst_dir = test_tempdir();
 
         create_test_tree(src_dir.path());
-        fs_err::write(src_dir.path().join("RECORD"), "record content").unwrap();
+        uv_vfs::fs::write(src_dir.path().join("RECORD"), "record content").unwrap();
 
         // Even with filter, clone mode should work (filter is ignored)
         let options = LinkOptions::new(LinkMode::Clone)
@@ -1642,7 +1642,7 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("RECORD")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("RECORD")).unwrap(),
             "record content"
         );
     }
@@ -1654,7 +1654,7 @@ mod tests {
         let dst_dir = test_tempdir();
 
         create_test_tree(src_dir.path());
-        fs_err::write(src_dir.path().join("RECORD"), "record content").unwrap();
+        uv_vfs::fs::write(src_dir.path().join("RECORD"), "record content").unwrap();
 
         let options = LinkOptions::new(LinkMode::Copy)
             .with_mutable_copy_filter(|p: &Path| p.ends_with("RECORD"));
@@ -1662,7 +1662,7 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("RECORD")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("RECORD")).unwrap(),
             "record content"
         );
     }
@@ -1673,24 +1673,24 @@ mod tests {
         let dst_dir = test_tempdir();
 
         // Create files with special characters (that are valid on most filesystems)
-        fs_err::write(src_dir.path().join("file with spaces.txt"), "spaces").unwrap();
-        fs_err::write(src_dir.path().join("file-with-dashes.txt"), "dashes").unwrap();
-        fs_err::write(
+        uv_vfs::fs::write(src_dir.path().join("file with spaces.txt"), "spaces").unwrap();
+        uv_vfs::fs::write(src_dir.path().join("file-with-dashes.txt"), "dashes").unwrap();
+        uv_vfs::fs::write(
             src_dir.path().join("file_with_underscores.txt"),
             "underscores",
         )
         .unwrap();
-        fs_err::write(src_dir.path().join("file.multiple.dots.txt"), "dots").unwrap();
+        uv_vfs::fs::write(src_dir.path().join("file.multiple.dots.txt"), "dots").unwrap();
 
         let options = LinkOptions::new(LinkMode::Copy);
         link_dir(src_dir.path(), dst_dir.path(), &options).unwrap();
 
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("file with spaces.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("file with spaces.txt")).unwrap(),
             "spaces"
         );
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("file-with-dashes.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("file-with-dashes.txt")).unwrap(),
             "dashes"
         );
     }
@@ -1701,24 +1701,24 @@ mod tests {
         let dst_dir = test_tempdir();
 
         // Create hidden files (dotfiles)
-        fs_err::write(src_dir.path().join(".hidden"), "hidden content").unwrap();
-        fs_err::write(src_dir.path().join(".gitignore"), "*.pyc").unwrap();
-        fs_err::create_dir_all(src_dir.path().join(".hidden_dir")).unwrap();
-        fs_err::write(src_dir.path().join(".hidden_dir/file.txt"), "nested hidden").unwrap();
+        uv_vfs::fs::write(src_dir.path().join(".hidden"), "hidden content").unwrap();
+        uv_vfs::fs::write(src_dir.path().join(".gitignore"), "*.pyc").unwrap();
+        uv_vfs::fs::create_dir_all(src_dir.path().join(".hidden_dir")).unwrap();
+        uv_vfs::fs::write(src_dir.path().join(".hidden_dir/file.txt"), "nested hidden").unwrap();
 
         let options = LinkOptions::new(LinkMode::Copy);
         link_dir(src_dir.path(), dst_dir.path(), &options).unwrap();
 
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join(".hidden")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join(".hidden")).unwrap(),
             "hidden content"
         );
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join(".gitignore")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join(".gitignore")).unwrap(),
             "*.pyc"
         );
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join(".hidden_dir/file.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join(".hidden_dir/file.txt")).unwrap(),
             "nested hidden"
         );
     }
@@ -1749,14 +1749,14 @@ mod tests {
         let dst_dir = test_tempdir();
 
         // Create nested structure in source
-        fs_err::create_dir_all(src_dir.path().join("a/b/c")).unwrap();
-        fs_err::write(src_dir.path().join("a/file1.txt"), "a1").unwrap();
-        fs_err::write(src_dir.path().join("a/b/file2.txt"), "b2").unwrap();
-        fs_err::write(src_dir.path().join("a/b/c/file3.txt"), "c3").unwrap();
+        uv_vfs::fs::create_dir_all(src_dir.path().join("a/b/c")).unwrap();
+        uv_vfs::fs::write(src_dir.path().join("a/file1.txt"), "a1").unwrap();
+        uv_vfs::fs::write(src_dir.path().join("a/b/file2.txt"), "b2").unwrap();
+        uv_vfs::fs::write(src_dir.path().join("a/b/c/file3.txt"), "c3").unwrap();
 
         // Pre-create partial destination structure to force merge
-        fs_err::create_dir_all(dst_dir.path().join("a/b")).unwrap();
-        fs_err::write(dst_dir.path().join("a/existing.txt"), "existing").unwrap();
+        uv_vfs::fs::create_dir_all(dst_dir.path().join("a/b")).unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("a/existing.txt"), "existing").unwrap();
 
         let options = LinkOptions::new(LinkMode::Clone)
             .with_on_existing_directory(OnExistingDirectory::Merge);
@@ -1766,20 +1766,20 @@ mod tests {
 
         // Source files should be cloned
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("a/file1.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("a/file1.txt")).unwrap(),
             "a1"
         );
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("a/b/file2.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("a/b/file2.txt")).unwrap(),
             "b2"
         );
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("a/b/c/file3.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("a/b/c/file3.txt")).unwrap(),
             "c3"
         );
         // Existing file should remain
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("a/existing.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("a/existing.txt")).unwrap(),
             "existing"
         );
     }
@@ -1791,10 +1791,10 @@ mod tests {
         let src_dir = test_tempdir();
         let dst_dir = test_tempdir();
 
-        fs_err::write(src_dir.path().join("file.txt"), "new content").unwrap();
+        uv_vfs::fs::write(src_dir.path().join("file.txt"), "new content").unwrap();
 
         // Create existing file with different content
-        fs_err::write(dst_dir.path().join("file.txt"), "old content").unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file.txt"), "old content").unwrap();
 
         let options = LinkOptions::new(LinkMode::Clone)
             .with_on_existing_directory(OnExistingDirectory::Merge);
@@ -1802,7 +1802,7 @@ mod tests {
 
         assert_eq!(result, LinkMode::Clone);
         assert_eq!(
-            fs_err::read_to_string(dst_dir.path().join("file.txt")).unwrap(),
+            uv_vfs::fs::read_to_string(dst_dir.path().join("file.txt")).unwrap(),
             "new content"
         );
     }
@@ -1815,7 +1815,7 @@ mod tests {
         create_test_tree(src_dir.path());
 
         // Pre-create destination with existing file
-        fs_err::write(dst_dir.path().join("file1.txt"), "existing").unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file1.txt"), "existing").unwrap();
 
         let options =
             LinkOptions::new(LinkMode::Clone).with_on_existing_directory(OnExistingDirectory::Fail);
@@ -1827,7 +1827,7 @@ mod tests {
         if result.is_ok() {
             // If it succeeded, it fell back to copy which overwrites
             assert_eq!(
-                fs_err::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
+                uv_vfs::fs::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
                 "content1"
             );
         }
@@ -1843,7 +1843,7 @@ mod tests {
         create_test_tree(src_dir.path());
 
         // Pre-create destination with existing file
-        fs_err::write(dst_dir.path().join("file1.txt"), "existing").unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file1.txt"), "existing").unwrap();
 
         let options = LinkOptions::new(LinkMode::Symlink)
             .with_on_existing_directory(OnExistingDirectory::Fail);
@@ -1853,7 +1853,7 @@ mod tests {
         if result.is_ok() {
             // Fell back to copy which overwrites
             assert_eq!(
-                fs_err::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
+                uv_vfs::fs::read_to_string(dst_dir.path().join("file1.txt")).unwrap(),
                 "content1"
             );
         }
@@ -1867,9 +1867,9 @@ mod tests {
         let dst_dir = test_tempdir();
 
         // Create a file and a directory
-        fs_err::write(src_dir.path().join("file.txt"), "content").unwrap();
-        fs_err::create_dir_all(src_dir.path().join("subdir")).unwrap();
-        fs_err::write(src_dir.path().join("subdir/nested.txt"), "nested").unwrap();
+        uv_vfs::fs::write(src_dir.path().join("file.txt"), "content").unwrap();
+        uv_vfs::fs::create_dir_all(src_dir.path().join("subdir")).unwrap();
+        uv_vfs::fs::write(src_dir.path().join("subdir/nested.txt"), "nested").unwrap();
 
         let options = LinkOptions::new(LinkMode::Symlink);
         let result = link_dir(src_dir.path(), dst_dir.path(), &options);
@@ -1879,11 +1879,11 @@ mod tests {
             if mode == LinkMode::Symlink {
                 // Verify the files are accessible through symlinks
                 assert_eq!(
-                    fs_err::read_to_string(dst_dir.path().join("file.txt")).unwrap(),
+                    uv_vfs::fs::read_to_string(dst_dir.path().join("file.txt")).unwrap(),
                     "content"
                 );
                 assert_eq!(
-                    fs_err::read_to_string(dst_dir.path().join("subdir/nested.txt")).unwrap(),
+                    uv_vfs::fs::read_to_string(dst_dir.path().join("subdir/nested.txt")).unwrap(),
                     "nested"
                 );
             }
@@ -1956,10 +1956,10 @@ mod tests {
         create_test_tree(src_dir.path());
 
         // Pre-create all destination files so every hardlink hits AlreadyExists
-        fs_err::create_dir_all(dst_dir.path().join("subdir")).unwrap();
-        fs_err::write(dst_dir.path().join("file1.txt"), "old1").unwrap();
-        fs_err::write(dst_dir.path().join("file2.txt"), "old2").unwrap();
-        fs_err::write(dst_dir.path().join("subdir/nested.txt"), "old nested").unwrap();
+        uv_vfs::fs::create_dir_all(dst_dir.path().join("subdir")).unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file1.txt"), "old1").unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("file2.txt"), "old2").unwrap();
+        uv_vfs::fs::write(dst_dir.path().join("subdir/nested.txt"), "old nested").unwrap();
 
         let options = LinkOptions::new(LinkMode::Hardlink)
             .with_on_existing_directory(OnExistingDirectory::Merge);

@@ -18,6 +18,8 @@ use uv_pep440::{Version, VersionParseError, VersionSpecifier, VersionSpecifiers}
 use uv_pep508::{MarkerTree, Requirement, VersionOrUrl};
 
 use crate::pyproject::{DependencyType, Source};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 /// Raw and mutable representation of a `pyproject.toml`.
 ///

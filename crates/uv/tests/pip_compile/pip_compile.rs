@@ -10,7 +10,7 @@ use std::str::FromStr;
 use anyhow::Result;
 use assert_fs::prelude::*;
 use flate2::write::GzEncoder;
-use fs_err::File;
+use uv_vfs::fs::File;
 use futures::executor::block_on;
 use futures::io::AllowStdIo;
 #[cfg(feature = "test-python-managed")]
@@ -32,6 +32,8 @@ use uv_static::EnvVars;
 use uv_test::packse::PackseServer;
 use uv_test::packse::scenario::{Package, PackageMetadata, Scenario};
 use uv_test::{DEFAULT_PYTHON_VERSION, TestContext, download_to_disk, uv_snapshot};
+#[cfg(target_family = "wasm")]
+use uv_vfs::UrlFilePathExt as _;
 
 fn write_tar_gz(file: File, entries: &[(&str, &str)]) -> Result<()> {
     let enc = GzEncoder::new(file, flate2::Compression::default());
@@ -156,7 +158,7 @@ fn missing_requirements_in() {
 fn missing_venv() -> Result<()> {
     let context = uv_test::test_context!("3.12");
     context.temp_dir.child("requirements.in").touch()?;
-    fs_err::remove_dir_all(context.venv.path())?;
+    uv_vfs::fs::remove_dir_all(context.venv.path())?;
 
     uv_snapshot!(context.filters(), context.pip_compile()
             .arg("requirements.in"), @"
@@ -1922,11 +1924,11 @@ fn compile_fallback_interpreter_broken_in_path() -> Result<()> {
     let python = context
         .bin_dir
         .join(format!("python3{}", std::env::consts::EXE_SUFFIX));
-    fs_err::write(&python, contents).unwrap();
+    uv_vfs::fs::write(&python, contents).unwrap();
 
-    let mut perms = fs_err::metadata(&python).unwrap().permissions();
+    let mut perms = uv_vfs::fs::metadata(&python).unwrap().permissions();
     perms.set_mode(0o755);
-    fs_err::set_permissions(&python, perms).unwrap();
+    uv_vfs::fs::set_permissions(&python, perms).unwrap();
 
     uv_snapshot!(context.filters(), context.pip_compile()
             .arg("requirements.in")
@@ -13986,13 +13988,13 @@ fn tool_uv_sources() -> Result<()> {
         poetry_editable = { path = "../poetry_editable", editable = true }
     "#})?;
 
-    let project_root = fs_err::canonicalize(current_dir()?.join("../.."))?;
-    fs_err::create_dir_all(context.temp_dir.join("poetry_editable/poetry_editable"))?;
-    fs_err::copy(
+    let project_root = uv_vfs::fs::canonicalize(current_dir()?.join("../.."))?;
+    uv_vfs::fs::create_dir_all(context.temp_dir.join("poetry_editable/poetry_editable"))?;
+    uv_vfs::fs::copy(
         project_root.join("test/packages/poetry_editable/pyproject.toml"),
         context.temp_dir.join("poetry_editable/pyproject.toml"),
     )?;
-    fs_err::copy(
+    uv_vfs::fs::copy(
         project_root.join("test/packages/poetry_editable/poetry_editable/__init__.py"),
         context
             .temp_dir
@@ -18104,7 +18106,7 @@ fn compile_broken_active_venv() -> Result<()> {
 
     // A broken system Python
     let broken_system_python = context.temp_dir.join("python3.14159");
-    fs_err::os::unix::fs::symlink("/does/not/exist", &broken_system_python)?;
+    uv_vfs::fs::os::unix::fs::symlink("/does/not/exist", &broken_system_python)?;
     uv_snapshot!(context
         .venv()
         .arg("--python")
@@ -18116,8 +18118,8 @@ fn compile_broken_active_venv() -> Result<()> {
     ");
 
     // Simulate a removed Python interpreter
-    fs_err::remove_file(context.interpreter())?;
-    fs_err::os::unix::fs::symlink("/removed/python/interpreter", context.interpreter())?;
+    uv_vfs::fs::remove_file(context.interpreter())?;
+    uv_vfs::fs::os::unix::fs::symlink("/removed/python/interpreter", context.interpreter())?;
     uv_snapshot!(context
         .pip_compile()
         .arg("requirements.in"), @"

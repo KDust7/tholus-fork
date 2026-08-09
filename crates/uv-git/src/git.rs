@@ -331,13 +331,13 @@ impl GitRemote {
         // Otherwise start from scratch to handle corrupt git repositories.
         // After our fetch (which is interpreted as a clone now) we do the same
         // resolution to figure out what we cloned.
-        match fs_err::remove_dir_all(into) {
+        match uv_vfs::fs::remove_dir_all(into) {
             Ok(()) => {}
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => return Err(e.into()),
         }
 
-        fs_err::create_dir_all(into)?;
+        uv_vfs::fs::create_dir_all(into)?;
         let mut repo = GitRepository::init(into)?;
         fetch(&mut repo, &self.url, reference, disable_ssl, offline)
             .with_context(|| format!("failed to clone into: {}", into.user_display()))?;
@@ -447,8 +447,8 @@ impl GitCheckout {
         original_remote_url: &DisplaySafeUrl,
     ) -> Result<Self> {
         let dirname = into.parent().unwrap();
-        fs_err::create_dir_all(dirname)?;
-        match fs_err::remove_dir_all(into) {
+        uv_vfs::fs::create_dir_all(dirname)?;
+        match uv_vfs::fs::remove_dir_all(into) {
             Ok(()) => {}
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => return Err(e.into()),

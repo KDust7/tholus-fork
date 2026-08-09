@@ -167,7 +167,7 @@ pub(crate) async fn init(
             if !no_readme && !bare {
                 let readme = path.join("README.md");
                 if !readme.exists() {
-                    fs_err::write(readme, String::new())?;
+                    uv_vfs::fs::write(readme, String::new())?;
                 }
             }
 
@@ -223,7 +223,7 @@ async fn init_script(
     let reporter = PythonDownloadReporter::single(printer);
 
     // If the file already exists, read its content.
-    let content = match fs_err::tokio::read(script_path).await {
+    let content = match uv_vfs::fs::tokio::read(script_path).await {
         Ok(metadata) => {
             // If the file is already a script, raise an error.
             if ScriptTag::parse(&metadata)?.is_some() {
@@ -262,7 +262,7 @@ async fn init_script(
     .await?;
 
     if let Some(parent) = script_path.parent() {
-        fs_err::tokio::create_dir_all(parent).await?;
+        uv_vfs::fs::tokio::create_dir_all(parent).await?;
     }
 
     Pep723Script::create(script_path, requires_python.specifiers(), content, bare).await?;
@@ -434,7 +434,7 @@ async fn init_project(
             pyproject.add_workspace(path.strip_prefix(workspace.install_path())?)?;
 
             // Save the modified `pyproject.toml`.
-            fs_err::write(
+            uv_vfs::fs::write(
                 workspace.install_path().join("pyproject.toml"),
                 pyproject.to_string(),
             )?;
@@ -748,7 +748,7 @@ impl InitProjectKind {
         author_from: Option<AuthorFrom>,
         no_readme: bool,
     ) -> Result<()> {
-        fs_err::create_dir_all(path)?;
+        uv_vfs::fs::create_dir_all(path)?;
 
         // Initialize the version control system first so that Git configuration can properly
         // read conditional includes that depend on the repository path.
@@ -812,7 +812,7 @@ impl InitProjectKind {
                 // TODO(zanieb): Only create `main.py` if there are no other Python files?
                 let main_py = path.join("main.py");
                 if !main_py.try_exists()? && !bare {
-                    fs_err::write(path.join("main.py"), main_contents)?;
+                    uv_vfs::fs::write(path.join("main.py"), main_contents)?;
                 }
             }
             Self::Library => {
@@ -825,7 +825,7 @@ impl InitProjectKind {
                 generate_package_scripts(name, path, build_backend, true)?;
             }
         }
-        fs_err::write(path.join("pyproject.toml"), pyproject)?;
+        uv_vfs::fs::write(path.join("pyproject.toml"), pyproject)?;
         Ok(())
     }
 }
@@ -992,7 +992,7 @@ fn pyproject_build_backend_prerequisites(
             // Generate Cargo.toml
             let build_file = path.join("Cargo.toml");
             if !build_file.try_exists()? {
-                fs_err::write(
+                uv_vfs::fs::write(
                     build_file,
                     indoc::formatdoc! {r#"
                     [package]
@@ -1017,7 +1017,7 @@ fn pyproject_build_backend_prerequisites(
             // Generate CMakeLists.txt
             let build_file = path.join("CMakeLists.txt");
             if !build_file.try_exists()? {
-                fs_err::write(
+                uv_vfs::fs::write(
                     build_file,
                     indoc::formatdoc! {r"
                     cmake_minimum_required(VERSION 3.15...4.0)
@@ -1047,7 +1047,7 @@ fn generate_package_scripts(
 
     let src_dir = path.join("src");
     let pkg_dir = src_dir.join(&*module_name);
-    fs_err::create_dir_all(&pkg_dir)?;
+    uv_vfs::fs::create_dir_all(&pkg_dir)?;
 
     let pure_python_script = if is_lib {
         indoc::formatdoc! {r#"
@@ -1090,7 +1090,7 @@ fn generate_package_scripts(
             // Generate lib.rs
             let native_src = src_dir.join("lib.rs");
             if !native_src.try_exists()? {
-                fs_err::write(
+                uv_vfs::fs::write(
                     native_src,
                     indoc::formatdoc! {r#"
                     use pyo3::prelude::*;
@@ -1113,7 +1113,7 @@ fn generate_package_scripts(
             // Generate .pyi file
             let pyi_file = pkg_dir.join("_core.pyi");
             if !pyi_file.try_exists()? {
-                fs_err::write(pyi_file, pyi_contents)?;
+                uv_vfs::fs::write(pyi_file, pyi_contents)?;
             }
             // Return python script calling binary
             binary_call_script
@@ -1122,7 +1122,7 @@ fn generate_package_scripts(
             // Generate main.cpp
             let native_src = src_dir.join("main.cpp");
             if !native_src.try_exists()? {
-                fs_err::write(
+                uv_vfs::fs::write(
                     native_src,
                     indoc::formatdoc! {r#"
                     #include <pybind11/pybind11.h>
@@ -1144,7 +1144,7 @@ fn generate_package_scripts(
             // Generate .pyi file
             let pyi_file = pkg_dir.join("_core.pyi");
             if !pyi_file.try_exists()? {
-                fs_err::write(pyi_file, pyi_contents)?;
+                uv_vfs::fs::write(pyi_file, pyi_contents)?;
             }
             // Return python script calling binary
             binary_call_script
@@ -1155,14 +1155,14 @@ fn generate_package_scripts(
     // Create `src/{name}/__init__.py`, if it doesn't exist already.
     let init_py = pkg_dir.join("__init__.py");
     if !init_py.try_exists()? {
-        fs_err::write(init_py, package_script)?;
+        uv_vfs::fs::write(init_py, package_script)?;
     }
 
     // Create `src/{name}/py.typed`, if it doesn't exist already.
     if is_lib {
         let py_typed = pkg_dir.join("py.typed");
         if !py_typed.try_exists()? {
-            fs_err::write(py_typed, "")?;
+            uv_vfs::fs::write(py_typed, "")?;
         }
     }
 

@@ -122,7 +122,7 @@ pub async fn unzip<R: tokio::io::AsyncRead + Unpin>(
         let is_dir = zip_entry.dir()?;
         let computed = if is_dir {
             if directories.insert(path.clone()) {
-                fs_err::tokio::create_dir_all(path)
+                uv_vfs::fs::tokio::create_dir_all(path)
                     .await
                     .map_err(Error::Io)?;
             }
@@ -157,14 +157,14 @@ pub async fn unzip<R: tokio::io::AsyncRead + Unpin>(
         } else {
             if let Some(parent) = path.parent() {
                 if directories.insert(parent.to_path_buf()) {
-                    fs_err::tokio::create_dir_all(parent)
+                    uv_vfs::fs::tokio::create_dir_all(parent)
                         .await
                         .map_err(Error::Io)?;
                 }
             }
 
             // We don't know the file permissions here, because we haven't seen the central directory yet.
-            let (actual_uncompressed_size, reader) = match fs_err::tokio::File::create_new(&path)
+            let (actual_uncompressed_size, reader) = match uv_vfs::fs::tokio::File::create_new(&path)
                 .await
             {
                 Ok(file) => {
@@ -190,7 +190,7 @@ pub async fn unzip<R: tokio::io::AsyncRead + Unpin>(
                     );
 
                     // Read the existing file into memory.
-                    let existing_contents = fs_err::tokio::read(&path).await.map_err(Error::Io)?;
+                    let existing_contents = uv_vfs::fs::tokio::read(&path).await.map_err(Error::Io)?;
 
                     // Read the entry into memory.
                     let mut expected_contents = Vec::with_capacity(existing_contents.len());
@@ -477,12 +477,12 @@ pub async fn unzip<R: tokio::io::AsyncRead + Unpin>(
                     let has_any_executable_bit = mode & 0o111;
                     if has_any_executable_bit != 0 {
                         let path = target.join(relpath);
-                        let permissions = fs_err::tokio::metadata(&path)
+                        let permissions = uv_vfs::fs::tokio::metadata(&path)
                             .await
                             .map_err(Error::Io)?
                             .permissions();
                         if permissions.mode() & 0o111 != 0o111 {
-                            fs_err::tokio::set_permissions(
+                            uv_vfs::fs::tokio::set_permissions(
                                 &path,
                                 Permissions::from_mode(permissions.mode() | 0o111),
                             )
@@ -578,7 +578,7 @@ async fn untar_in(
     dst: &Path,
 ) -> std::io::Result<Vec<(PathBuf, u64)>> {
     // Like `tokio-tar`, canonicalize the destination prior to unpacking.
-    let dst = fs_err::tokio::canonicalize(dst).await?;
+    let dst = uv_vfs::fs::tokio::canonicalize(dst).await?;
 
     // Memoize filesystem calls to canonicalize paths.
     let mut memo = FxHashSet::default();
@@ -625,9 +625,9 @@ async fn untar_in(
                 let has_any_executable_bit = mode & 0o111;
                 if has_any_executable_bit != 0 {
                     if let Some(path) = unpacked_at.as_deref() {
-                        let permissions = fs_err::tokio::metadata(&path).await?.permissions();
+                        let permissions = uv_vfs::fs::tokio::metadata(&path).await?.permissions();
                         if permissions.mode() & 0o111 != 0o111 {
-                            fs_err::tokio::set_permissions(
+                            uv_vfs::fs::tokio::set_permissions(
                                 &path,
                                 Permissions::from_mode(permissions.mode() | 0o111),
                             )

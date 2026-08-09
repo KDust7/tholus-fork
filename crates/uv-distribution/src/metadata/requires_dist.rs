@@ -461,7 +461,7 @@ mod test {
 
     use indoc::indoc;
     use insta::assert_snapshot;
-    use tempfile::TempDir;
+    use uv_vfs::temp::TempDir;
 
     use uv_auth::CredentialsCache;
     use uv_cache::Cache;
@@ -479,8 +479,8 @@ mod test {
         contents: &str,
     ) -> anyhow::Result<RequiresDist> {
         let workspace_cache = WorkspaceCache::default();
-        fs_err::create_dir_all(temp_dir)?;
-        fs_err::write(temp_dir.join("pyproject.toml"), contents)?;
+        uv_vfs::fs::create_dir_all(temp_dir)?;
+        uv_vfs::fs::write(temp_dir.join("pyproject.toml"), contents)?;
         let cache = Cache::from_path(temp_dir.join(".uv_cache"));
         let project_workspace = ProjectWorkspace::discover(
             temp_dir,

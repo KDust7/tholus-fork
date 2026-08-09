@@ -8,7 +8,7 @@ use std::sync::OnceLock;
 use std::{env, io};
 
 use configparser::ini::Ini;
-use fs_err as fs;
+use uv_vfs::fs as fs;
 use owo_colors::OwoColorize;
 use same_file::is_same_file;
 use serde::{Deserialize, Serialize};
@@ -696,7 +696,7 @@ impl Interpreter {
     }
 }
 
-/// Calls `fs_err::canonicalize` on Unix. On Windows, avoids attempting to resolve symlinks
+/// Calls `uv_vfs::fs::canonicalize` on Unix. On Windows, avoids attempting to resolve symlinks
 /// but will resolve junctions if they are part of a trampoline target.
 pub fn canonicalize_executable(path: impl AsRef<Path>) -> std::io::Result<PathBuf> {
     let path = path.as_ref();
@@ -716,7 +716,7 @@ pub fn canonicalize_executable(path: impl AsRef<Path>) -> std::io::Result<PathBu
     }
 
     #[cfg(unix)]
-    fs_err::canonicalize(path)
+    uv_vfs::fs::canonicalize(path)
 }
 
 /// The `EXTERNALLY-MANAGED` file in a Python installation.
@@ -959,7 +959,7 @@ struct InterpreterInfo {
 impl InterpreterInfo {
     /// Return the resolved [`InterpreterInfo`] for the given Python executable.
     fn query(interpreter: &Path, cache: &Cache) -> Result<Self, Error> {
-        let tempdir = tempfile::tempdir_in(cache.root())?;
+        let tempdir = uv_vfs::temp::tempdir_in(cache.root())?;
         Self::setup_python_query_files(tempdir.path())?;
 
         // Sanitize the path by (1) running under isolated mode (`-I`) to ignore any site packages
@@ -1086,30 +1086,30 @@ impl InterpreterInfo {
     /// the Python probing scripts with `python -m python.get_interpreter_info` from that tempdir.
     fn setup_python_query_files(root: &Path) -> Result<(), Error> {
         let python_dir = root.join("python");
-        fs_err::create_dir(&python_dir)?;
-        fs_err::write(
+        uv_vfs::fs::create_dir(&python_dir)?;
+        uv_vfs::fs::write(
             python_dir.join("get_interpreter_info.py"),
             include_str!("../python/get_interpreter_info.py"),
         )?;
-        fs_err::write(
+        uv_vfs::fs::write(
             python_dir.join("__init__.py"),
             include_str!("../python/__init__.py"),
         )?;
         let packaging_dir = python_dir.join("packaging");
-        fs_err::create_dir(&packaging_dir)?;
-        fs_err::write(
+        uv_vfs::fs::create_dir(&packaging_dir)?;
+        uv_vfs::fs::write(
             packaging_dir.join("__init__.py"),
             include_str!("../python/packaging/__init__.py"),
         )?;
-        fs_err::write(
+        uv_vfs::fs::write(
             packaging_dir.join("_elffile.py"),
             include_str!("../python/packaging/_elffile.py"),
         )?;
-        fs_err::write(
+        uv_vfs::fs::write(
             packaging_dir.join("_manylinux.py"),
             include_str!("../python/packaging/_manylinux.py"),
         )?;
-        fs_err::write(
+        uv_vfs::fs::write(
             packaging_dir.join("_musllinux.py"),
             include_str!("../python/packaging/_musllinux.py"),
         )?;
@@ -1204,7 +1204,7 @@ impl InterpreterInfo {
                             "Broken interpreter cache entry at {}, removing: {err}",
                             cache_entry.path().user_display()
                         );
-                        let _ = fs_err::remove_file(cache_entry.path());
+                        let _ = uv_vfs::fs::remove_file(cache_entry.path());
                     }
                 }
             }
@@ -1301,7 +1301,7 @@ fn find_base_python(
         }
 
         // If not, resolve the symlink.
-        let resolved = fs_err::read_link(&executable)?;
+        let resolved = uv_vfs::fs::read_link(&executable)?;
 
         // If the symlink is relative, resolve it relative to the executable.
         let resolved = if resolved.is_relative() {
@@ -1333,9 +1333,9 @@ fn python_home(interpreter: &Path) -> Option<PathBuf> {
 mod tests {
     use std::str::FromStr;
 
-    use fs_err as fs;
+    use uv_vfs::fs as fs;
     use indoc::{formatdoc, indoc};
-    use tempfile::tempdir;
+    use uv_vfs::temp::tempdir;
 
     use uv_cache::Cache;
     use uv_pep440::Version;

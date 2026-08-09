@@ -20,7 +20,7 @@ pub(crate) trait InstallLogger {
     fn on_check(
         &self,
         count: usize,
-        start: std::time::Instant,
+        start: web_time::Instant,
         printer: Printer,
         dry_run: DryRun,
     ) -> fmt::Result;
@@ -30,7 +30,7 @@ pub(crate) trait InstallLogger {
         &self,
         count: usize,
         suffix: Option<&str>,
-        start: std::time::Instant,
+        start: web_time::Instant,
         printer: Printer,
         dry_run: DryRun,
     ) -> fmt::Result;
@@ -39,7 +39,7 @@ pub(crate) trait InstallLogger {
     fn on_uninstall(
         &self,
         count: usize,
-        start: std::time::Instant,
+        start: web_time::Instant,
         printer: Printer,
         dry_run: DryRun,
     ) -> fmt::Result;
@@ -48,7 +48,7 @@ pub(crate) trait InstallLogger {
     fn on_install(
         &self,
         count: usize,
-        start: std::time::Instant,
+        start: web_time::Instant,
         printer: Printer,
         dry_run: DryRun,
     ) -> fmt::Result;
@@ -65,7 +65,7 @@ impl InstallLogger for DefaultInstallLogger {
     fn on_check(
         &self,
         count: usize,
-        start: std::time::Instant,
+        start: web_time::Instant,
         printer: Printer,
         dry_run: DryRun,
     ) -> fmt::Result {
@@ -98,7 +98,7 @@ impl InstallLogger for DefaultInstallLogger {
         &self,
         count: usize,
         suffix: Option<&str>,
-        start: std::time::Instant,
+        start: web_time::Instant,
         printer: Printer,
         dry_run: DryRun,
     ) -> fmt::Result {
@@ -127,7 +127,7 @@ impl InstallLogger for DefaultInstallLogger {
     fn on_uninstall(
         &self,
         count: usize,
-        start: std::time::Instant,
+        start: web_time::Instant,
         printer: Printer,
         dry_run: DryRun,
     ) -> fmt::Result {
@@ -152,7 +152,7 @@ impl InstallLogger for DefaultInstallLogger {
     fn on_install(
         &self,
         count: usize,
-        start: std::time::Instant,
+        start: web_time::Instant,
         printer: Printer,
         dry_run: DryRun,
     ) -> fmt::Result {
@@ -251,7 +251,7 @@ impl InstallLogger for SummaryInstallLogger {
     fn on_check(
         &self,
         _count: usize,
-        _start: std::time::Instant,
+        _start: web_time::Instant,
         _printer: Printer,
         _dry_run: DryRun,
     ) -> fmt::Result {
@@ -262,7 +262,7 @@ impl InstallLogger for SummaryInstallLogger {
         &self,
         _count: usize,
         _suffix: Option<&str>,
-        _start: std::time::Instant,
+        _start: web_time::Instant,
         _printer: Printer,
         _dry_run: DryRun,
     ) -> fmt::Result {
@@ -272,7 +272,7 @@ impl InstallLogger for SummaryInstallLogger {
     fn on_uninstall(
         &self,
         count: usize,
-        start: std::time::Instant,
+        start: web_time::Instant,
         printer: Printer,
         dry_run: DryRun,
     ) -> fmt::Result {
@@ -282,7 +282,7 @@ impl InstallLogger for SummaryInstallLogger {
     fn on_install(
         &self,
         count: usize,
-        start: std::time::Instant,
+        start: web_time::Instant,
         printer: Printer,
         dry_run: DryRun,
     ) -> fmt::Result {
@@ -316,7 +316,7 @@ impl InstallLogger for UpgradeInstallLogger {
     fn on_check(
         &self,
         _count: usize,
-        _start: std::time::Instant,
+        _start: web_time::Instant,
         _printer: Printer,
         _dry_run: DryRun,
     ) -> fmt::Result {
@@ -327,7 +327,7 @@ impl InstallLogger for UpgradeInstallLogger {
         &self,
         _count: usize,
         _suffix: Option<&str>,
-        _start: std::time::Instant,
+        _start: web_time::Instant,
         _printer: Printer,
         _dry_run: DryRun,
     ) -> fmt::Result {
@@ -337,7 +337,7 @@ impl InstallLogger for UpgradeInstallLogger {
     fn on_uninstall(
         &self,
         _count: usize,
-        _start: std::time::Instant,
+        _start: web_time::Instant,
         _printer: Printer,
         _dry_run: DryRun,
     ) -> fmt::Result {
@@ -347,7 +347,7 @@ impl InstallLogger for UpgradeInstallLogger {
     fn on_install(
         &self,
         _count: usize,
-        _start: std::time::Instant,
+        _start: web_time::Instant,
         _printer: Printer,
         _dry_run: DryRun,
     ) -> fmt::Result {
@@ -471,7 +471,7 @@ impl InstallLogger for UpgradeInstallLogger {
 /// A trait to handle logging during resolve operations.
 pub(crate) trait ResolveLogger {
     /// Log the completion of the operation.
-    fn on_complete(&self, count: usize, start: std::time::Instant, printer: Printer)
+    fn on_complete(&self, count: usize, start: web_time::Instant, printer: Printer)
     -> fmt::Result;
 }
 
@@ -483,7 +483,7 @@ impl ResolveLogger for DefaultResolveLogger {
     fn on_complete(
         &self,
         count: usize,
-        start: std::time::Instant,
+        start: web_time::Instant,
         printer: Printer,
     ) -> fmt::Result {
         if count == 0 {
@@ -516,7 +516,7 @@ impl ResolveLogger for SummaryResolveLogger {
     fn on_complete(
         &self,
         _count: usize,
-        _start: std::time::Instant,
+        _start: web_time::Instant,
         _printer: Printer,
     ) -> fmt::Result {
         Ok(())

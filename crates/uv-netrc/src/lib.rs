@@ -130,7 +130,7 @@ password hY5>yKqU&$vq&0
     fn create_netrc_file() -> PathBuf {
         let id = NETRC_COUNTER.fetch_add(1, Ordering::Relaxed);
         let dest = std::env::temp_dir().join(format!("mynetrc-{}-{id}", std::process::id()));
-        fs_err::write(&dest, CONTENT).unwrap();
+        uv_vfs::fs::write(&dest, CONTENT).unwrap();
         dest
     }
 

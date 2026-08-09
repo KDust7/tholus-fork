@@ -348,7 +348,7 @@ impl Workspace {
         }
 
         let pyproject_path = project_path.join("pyproject.toml");
-        let contents = fs_err::tokio::read_to_string(&pyproject_path).await?;
+        let contents = uv_vfs::fs::tokio::read_to_string(&pyproject_path).await?;
         let pyproject_toml = PyProjectToml::from_string(contents, &pyproject_path)
             .map_err(|err| WorkspaceErrorKind::Toml(pyproject_path.clone(), Box::new(err)))?;
 
@@ -1236,10 +1236,10 @@ impl Workspace {
 
                 // Read the member `pyproject.toml`.
                 let pyproject_path = member_root.join("pyproject.toml");
-                let contents = match fs_err::tokio::read_to_string(&pyproject_path).await {
+                let contents = match uv_vfs::fs::tokio::read_to_string(&pyproject_path).await {
                     Ok(contents) => contents,
                     Err(err) => {
-                        let metadata = match fs_err::metadata(&member_root) {
+                        let metadata = match uv_vfs::fs::metadata(&member_root) {
                             Ok(metadata) => metadata,
                             Err(err)
                                 if matches!(options.members, MemberDiscovery::Existing)
@@ -1574,7 +1574,7 @@ impl ProjectWorkspace {
         // Read the current `pyproject.toml`.
         let pyproject_path = project_root.join("pyproject.toml");
 
-        let contents = fs_err::tokio::read_to_string(&pyproject_path).await?;
+        let contents = uv_vfs::fs::tokio::read_to_string(&pyproject_path).await?;
         let pyproject_toml = PyProjectToml::from_string(contents, &pyproject_path)
             .map_err(|err| WorkspaceErrorKind::Toml(pyproject_path.clone(), Box::new(err)))?;
 
@@ -1609,7 +1609,7 @@ impl ProjectWorkspace {
 
         // Read the `pyproject.toml`.
         let pyproject_path = project_root.join("pyproject.toml");
-        let Ok(contents) = fs_err::tokio::read_to_string(&pyproject_path).await else {
+        let Ok(contents) = uv_vfs::fs::tokio::read_to_string(&pyproject_path).await else {
             // No `pyproject.toml`, but there may still be a `setup.py` or `setup.cfg`.
             return Ok(None);
         };
@@ -1855,7 +1855,7 @@ async fn find_workspace(
         );
 
         // Read the `pyproject.toml`.
-        let contents = fs_err::tokio::read_to_string(&pyproject_path).await?;
+        let contents = uv_vfs::fs::tokio::read_to_string(&pyproject_path).await?;
         let pyproject_toml = PyProjectToml::from_string(contents, &pyproject_path)
             .map_err(|err| WorkspaceErrorKind::Toml(pyproject_path.clone(), Box::new(err)))?;
 
@@ -2127,7 +2127,7 @@ impl VirtualProject {
 
         // Read the current `pyproject.toml`.
         let pyproject_path = project_root.join("pyproject.toml");
-        let contents = fs_err::tokio::read_to_string(&pyproject_path).await?;
+        let contents = uv_vfs::fs::tokio::read_to_string(&pyproject_path).await?;
         let pyproject_toml = PyProjectToml::from_string(contents, &pyproject_path)
             .map_err(|err| WorkspaceErrorKind::Toml(pyproject_path.clone(), Box::new(err)))?;
 
@@ -2705,7 +2705,7 @@ mod tests {
 
     #[tokio::test]
     async fn workspace_cache_reuses_workspace_for_member() -> Result<()> {
-        let root = tempfile::TempDir::new()?;
+        let root = uv_vfs::temp::TempDir::new()?;
         let root = ChildPath::new(root.path());
 
         root.child("pyproject.toml").write_str(
@@ -2769,7 +2769,7 @@ mod tests {
 
     #[tokio::test]
     async fn workspace_cache_does_not_store_partial_discovery() -> Result<()> {
-        let root = tempfile::TempDir::new()?;
+        let root = uv_vfs::temp::TempDir::new()?;
         let root = ChildPath::new(root.path());
 
         root.child("pyproject.toml").write_str(
@@ -2879,7 +2879,7 @@ mod tests {
 
     #[tokio::test]
     async fn exclude_package() -> Result<()> {
-        let root = tempfile::TempDir::new()?;
+        let root = uv_vfs::temp::TempDir::new()?;
         let root = ChildPath::new(root.path());
 
         // Create the root.
@@ -3372,7 +3372,7 @@ mod tests {
 
     #[tokio::test]
     async fn exclude_package_with_normalized_glob_and_escaped_root() -> Result<()> {
-        let temp_dir = tempfile::TempDir::new()?;
+        let temp_dir = uv_vfs::temp::TempDir::new()?;
         let temp_dir_root = ChildPath::new(temp_dir.path());
         let root = temp_dir_root.child("workspace[glob]?");
 
@@ -3520,7 +3520,7 @@ foo_bar = ["iniconfig"]
 
     #[tokio::test]
     async fn nested_workspace() -> Result<()> {
-        let root = tempfile::TempDir::new()?;
+        let root = uv_vfs::temp::TempDir::new()?;
         let root = ChildPath::new(root.path());
 
         // Create the root.
@@ -3567,7 +3567,7 @@ foo_bar = ["iniconfig"]
 
     #[tokio::test]
     async fn duplicate_names() -> Result<()> {
-        let root = tempfile::TempDir::new()?;
+        let root = uv_vfs::temp::TempDir::new()?;
         let root = ChildPath::new(root.path());
 
         // Create the root.

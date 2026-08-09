@@ -432,7 +432,7 @@ impl RemoveTarget {
                     Ok(false)
                 } else {
                     let pyproject_path = project.root().join("pyproject.toml");
-                    fs_err::write(pyproject_path, content)?;
+                    uv_vfs::fs::write(pyproject_path, content)?;
                     Ok(true)
                 }
             }
