@@ -7573,6 +7573,7 @@ name = "uv-wasm-compat"
 version = "0.0.70"
 dependencies = [
  "futures",
+ "getrandom 0.2.16",
  "js-sys",
  "rustc-hash",
  "tokio",

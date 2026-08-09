@@ -2,17 +2,26 @@ use std::borrow::Cow;
 use std::fmt;
 use std::io::Read;
 use std::io::Write;
-use std::str::{FromStr, Utf8Error};
+#[cfg(not(target_family = "wasm"))]
+use std::str::FromStr;
+use std::str::Utf8Error;
 
 use base64::prelude::BASE64_STANDARD;
 use base64::read::DecoderReader;
 use base64::write::EncoderWriter;
+#[cfg(not(target_family = "wasm"))]
 use http::Uri;
+#[cfg(not(target_family = "wasm"))]
 use reqsign::aws::DefaultSigner as AwsDefaultSigner;
+#[cfg(not(target_family = "wasm"))]
 use reqsign::azure::DefaultSigner as AzureDefaultSigner;
+#[cfg(not(target_family = "wasm"))]
 use reqsign::google::DefaultSigner as GcsDefaultSigner;
+#[cfg(not(target_family = "wasm"))]
 use reqwest::Request;
-use http::header::{HeaderName, HeaderValue};
+#[cfg(not(target_family = "wasm"))]
+use http::header::HeaderName;
+use http::header::HeaderValue;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::Url;
@@ -281,6 +290,7 @@ impl Credentials {
     /// Parse [`Credentials`] from an HTTP request, if any.
     ///
     /// Only HTTP Basic Authentication is supported.
+    #[cfg(not(target_family = "wasm"))]
     pub(crate) fn from_request(request: &Request) -> Result<Option<Self>, CredentialsFromUrlError> {
         // First, attempt to retrieve the credentials from the URL
         if let Some(credentials) = Self::from_url(request.url())? {
@@ -388,6 +398,7 @@ impl Credentials {
     ///
     /// Any existing credentials will be overridden.
     #[must_use]
+    #[cfg(not(target_family = "wasm"))]
     pub fn authenticate(&self, mut request: Request) -> Request {
         request
             .headers_mut()
@@ -402,16 +413,20 @@ pub(crate) enum Authentication {
     Credentials(Credentials),
 
     /// AWS Signature Version 4 signing.
+    #[cfg(not(target_family = "wasm"))]
     AwsSigner(AwsDefaultSigner),
 
     /// Google Cloud signing.
+    #[cfg(not(target_family = "wasm"))]
     GcsSigner(GcsDefaultSigner),
 
     /// Azure Storage signing.
+    #[cfg(not(target_family = "wasm"))]
     AzureSigner(AzureDefaultSigner),
 }
 
 #[derive(Debug, Error)]
+#[cfg(not(target_family = "wasm"))]
 pub(crate) enum AuthenticationError {
     #[error("Failed to convert request URL to URI")]
     InvalidUri(#[from] http::uri::InvalidUri),
@@ -435,9 +450,13 @@ impl PartialEq for Authentication {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Credentials(a), Self::Credentials(b)) => a == b,
+            #[cfg(not(target_family = "wasm"))]
             (Self::AwsSigner(..), Self::AwsSigner(..)) => true,
+            #[cfg(not(target_family = "wasm"))]
             (Self::GcsSigner(..), Self::GcsSigner(..)) => true,
+            #[cfg(not(target_family = "wasm"))]
             (Self::AzureSigner(..), Self::AzureSigner(..)) => true,
+            #[cfg(not(target_family = "wasm"))]
             _ => false,
         }
     }
@@ -451,18 +470,21 @@ impl From<Credentials> for Authentication {
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
 impl From<AwsDefaultSigner> for Authentication {
     fn from(signer: AwsDefaultSigner) -> Self {
         Self::AwsSigner(signer)
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
 impl From<GcsDefaultSigner> for Authentication {
     fn from(signer: GcsDefaultSigner) -> Self {
         Self::GcsSigner(signer)
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
 impl From<AzureDefaultSigner> for Authentication {
     fn from(signer: AzureDefaultSigner) -> Self {
         Self::AzureSigner(signer)
@@ -474,6 +496,7 @@ impl Authentication {
     pub(crate) fn password(&self) -> Option<&str> {
         match self {
             Self::Credentials(credentials) => credentials.password(),
+            #[cfg(not(target_family = "wasm"))]
             Self::AwsSigner(..) | Self::GcsSigner(..) | Self::AzureSigner(..) => None,
         }
     }
@@ -482,6 +505,7 @@ impl Authentication {
     pub(crate) fn username(&self) -> Option<&str> {
         match self {
             Self::Credentials(credentials) => credentials.username(),
+            #[cfg(not(target_family = "wasm"))]
             Self::AwsSigner(..) | Self::GcsSigner(..) | Self::AzureSigner(..) => None,
         }
     }
@@ -490,6 +514,7 @@ impl Authentication {
     pub(crate) fn as_username(&self) -> Cow<'_, Username> {
         match self {
             Self::Credentials(credentials) => credentials.as_username(),
+            #[cfg(not(target_family = "wasm"))]
             Self::AwsSigner(..) | Self::GcsSigner(..) | Self::AzureSigner(..) => {
                 Cow::Owned(Username::none())
             }
@@ -500,6 +525,7 @@ impl Authentication {
     pub(crate) fn to_username(&self) -> Username {
         match self {
             Self::Credentials(credentials) => credentials.to_username(),
+            #[cfg(not(target_family = "wasm"))]
             Self::AwsSigner(..) | Self::GcsSigner(..) | Self::AzureSigner(..) => Username::none(),
         }
     }
@@ -508,6 +534,7 @@ impl Authentication {
     pub(crate) fn is_authenticated(&self) -> bool {
         match self {
             Self::Credentials(credentials) => credentials.is_authenticated(),
+            #[cfg(not(target_family = "wasm"))]
             Self::AwsSigner(..) | Self::GcsSigner(..) | Self::AzureSigner(..) => true,
         }
     }
@@ -516,6 +543,7 @@ impl Authentication {
     pub(crate) fn is_empty(&self) -> bool {
         match self {
             Self::Credentials(credentials) => credentials.is_empty(),
+            #[cfg(not(target_family = "wasm"))]
             Self::AwsSigner(..) | Self::GcsSigner(..) | Self::AzureSigner(..) => false,
         }
     }
@@ -523,6 +551,7 @@ impl Authentication {
     /// Apply the authentication to the given request.
     ///
     /// Any existing credentials will be overridden.
+    #[cfg(not(target_family = "wasm"))]
     pub(crate) async fn authenticate(
         &self,
         mut request: Request,

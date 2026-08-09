@@ -1,6 +1,10 @@
+#[cfg(not(target_family = "wasm"))]
 use std::{io::Write, process::Stdio};
+#[cfg(not(target_family = "wasm"))]
 use tokio::process::Command;
-use tracing::{debug, instrument, trace, warn};
+use tracing::{debug, instrument, trace};
+#[cfg(not(target_family = "wasm"))]
+use tracing::warn;
 use uv_redacted::DisplaySafeUrl;
 use uv_warnings::warn_user_once;
 
@@ -262,6 +266,18 @@ impl KeyringProvider {
         credentials.map(|(username, password)| Credentials::basic(Some(username), Some(password)))
     }
 
+    #[cfg(target_family = "wasm")]
+    #[instrument(skip(self))]
+    async fn fetch_subprocess(
+        &self,
+        _service_name: &str,
+        _username: Option<&str>,
+    ) -> Option<(String, String)> {
+        warn_user_once!("The `keyring` subprocess backend is not supported in the browser");
+        None
+    }
+
+    #[cfg(not(target_family = "wasm"))]
     #[instrument(skip(self))]
     async fn fetch_subprocess(
         &self,
