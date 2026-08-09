@@ -302,7 +302,7 @@ impl LockedFile {
 
         #[expect(clippy::disallowed_types)]
         fn try_set_permissions(file: &File, path: &Path) {
-            if let Err(err) = file.set_permissions(std::fs::Permissions::from_mode(DESIRED_MODE)) {
+            if let Err(err) = file.set_permissions(uv_vfs::fs::Permissions::from_mode(DESIRED_MODE)) {
                 warn!(
                     "Failed to set permissions on temporary file `{path}`: {err}",
                     path = path.user_display()

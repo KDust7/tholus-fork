@@ -8893,7 +8893,7 @@ fn sync_partial_environment_delete() -> Result<()> {
     // bit of a hack but accomplishes the goal here.
     let unreadable2 = context.temp_dir.child(".venv/z2.txt");
     uv_vfs::fs::create_dir(&unreadable2)?;
-    let perms = std::fs::Permissions::from_mode(0o000);
+    let perms = uv_vfs::fs::Permissions::from_mode(0o000);
     uv_vfs::fs::set_permissions(&unreadable2, perms)?;
 
     uv_snapshot!(context.filters(), context.sync().arg("-p").arg("3.12"), @"
@@ -13159,7 +13159,7 @@ fn read_only() -> Result<()> {
     uv_vfs::fs::remove_file(context.venv.child(".lock"))?;
 
     // Make the virtual environment read and execute (but not write).
-    uv_vfs::fs::set_permissions(&context.venv, std::fs::Permissions::from_mode(0o555))?;
+    uv_vfs::fs::set_permissions(&context.venv, uv_vfs::fs::Permissions::from_mode(0o555))?;
 
     uv_snapshot!(context.filters(), context.sync(), @"
     exit_code: 0 (success)
@@ -13817,7 +13817,7 @@ fn sync_does_not_remove_empty_virtual_environment_directory() -> Result<()> {
     uv_vfs::fs::create_dir(&venv_dir)?;
 
     // Ensure the parent is read-only, to prevent deletion of the virtual environment
-    uv_vfs::fs::set_permissions(&project_dir, std::fs::Permissions::from_mode(0o555))?;
+    uv_vfs::fs::set_permissions(&project_dir, uv_vfs::fs::Permissions::from_mode(0o555))?;
 
     // Note we do _not_ fail to create the virtual environment — we fail later when writing to the
     // project directory

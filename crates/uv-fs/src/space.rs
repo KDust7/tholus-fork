@@ -21,7 +21,7 @@ pub const fn supports_physical_space() -> bool {
 ///
 /// The result excludes data retained by another hardlink, copy-on-write clone, or snapshot.
 /// Filesystem metadata is not included.
-pub fn physical_space(path: &Path, metadata: &std::fs::Metadata) -> io::Result<u64> {
+pub fn physical_space(path: &Path, metadata: &uv_vfs::fs::Metadata) -> io::Result<u64> {
     if !metadata.is_file() {
         #[cfg(unix)]
         {

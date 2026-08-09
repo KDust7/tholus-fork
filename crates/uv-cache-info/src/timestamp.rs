@@ -20,7 +20,7 @@ impl Timestamp {
     }
 
     /// Return the [`Timestamp`] for the given metadata.
-    pub fn from_metadata(metadata: &std::fs::Metadata) -> Self {
+    pub fn from_metadata(metadata: &uv_vfs::fs::Metadata) -> Self {
         cfg_select! {
             unix => {
                 use std::os::unix::fs::MetadataExt;

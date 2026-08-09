@@ -119,7 +119,7 @@ pub fn unzip(reader: uv_vfs::fs::File, target: &Path) -> Result<Vec<(PathBuf, u6
             // sync.
             #[cfg(unix)]
             {
-                use std::fs::Permissions;
+                use uv_vfs::fs::Permissions;
                 use std::os::unix::fs::PermissionsExt;
 
                 if let Some(mode) = entry.unix_permissions() {

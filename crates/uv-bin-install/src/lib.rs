@@ -758,7 +758,7 @@ async fn bin_install_from_urls(
     // Add executable bit
     #[cfg(unix)]
     {
-        use std::fs::Permissions;
+        use uv_vfs::fs::Permissions;
         use std::os::unix::fs::PermissionsExt;
         let permissions = uv_vfs::fs::tokio::metadata(&path).await?.permissions();
         if permissions.mode() & 0o111 != 0o111 {

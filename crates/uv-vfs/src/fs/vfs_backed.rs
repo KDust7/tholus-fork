@@ -42,6 +42,13 @@ impl Metadata {
         Ok(self.inner.modified)
     }
 
+    pub fn created(&self) -> io::Result<SystemTime> {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "creation time is not recorded by the virtual filesystem",
+        ))
+    }
+
     pub fn permissions(&self) -> Permissions {
         let mode = if self.inner.is_dir() { DIRECTORY_MODE } else { FILE_MODE };
         Permissions { readonly: false, mode }

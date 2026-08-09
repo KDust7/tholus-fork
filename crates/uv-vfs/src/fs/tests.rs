@@ -440,3 +440,12 @@ fn a_blocking_lock_reports_contention_rather_than_hanging() {
     let error = other.lock().expect_err("the second lock cannot be waited for");
     assert_eq!(error.kind(), std::io::ErrorKind::WouldBlock);
 }
+
+#[test]
+fn creation_time_is_not_recorded() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    let error =
+        metadata("/work/a.txt").expect("metadata").created().expect_err("no creation time");
+    assert_eq!(error.kind(), std::io::ErrorKind::Unsupported);
+}

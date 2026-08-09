@@ -1588,7 +1588,7 @@ fn requirements_txt_https_git_credentials() -> Result<()> {
 fn reduce_ssh_key_file_permissions(key_file: &Path) -> Result<()> {
     #[cfg(unix)]
     {
-        use std::fs::Permissions;
+        use uv_vfs::fs::Permissions;
         use std::os::unix::fs::PermissionsExt;
 
         uv_vfs::fs::set_permissions(key_file, Permissions::from_mode(0o400))?;

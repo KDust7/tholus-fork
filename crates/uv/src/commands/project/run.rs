@@ -1561,8 +1561,8 @@ impl ParsedRunCommand {
         }
 
         let metadata = target_path.metadata();
-        let is_file = metadata.as_ref().is_ok_and(std::fs::Metadata::is_file);
-        let is_dir = metadata.as_ref().is_ok_and(std::fs::Metadata::is_dir);
+        let is_file = metadata.as_ref().is_ok_and(uv_vfs::fs::Metadata::is_file);
+        let is_dir = metadata.as_ref().is_ok_and(uv_vfs::fs::Metadata::is_dir);
 
         if target.eq_ignore_ascii_case("python") {
             Ok(Self::Ready(RunCommand::Python(args.to_vec())))

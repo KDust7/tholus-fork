@@ -445,7 +445,7 @@ pub async fn unzip<R: tokio::io::AsyncRead + Unpin>(
                 // which indicates the first entry in the central directory. So we continue reading from there.
                 #[cfg(unix)]
                 {
-                    use std::fs::Permissions;
+                    use uv_vfs::fs::Permissions;
                     use std::os::unix::fs::PermissionsExt;
 
                     if entry.dir()? {
@@ -617,7 +617,7 @@ async fn untar_in(
         // Preserve the executable bit.
         #[cfg(unix)]
         {
-            use std::fs::Permissions;
+            use uv_vfs::fs::Permissions;
             use std::os::unix::fs::PermissionsExt;
 
             if entry_type.is_file() || entry_type.is_hard_link() {

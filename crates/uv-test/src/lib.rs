@@ -2454,7 +2454,7 @@ impl ReadOnlyDirectoryGuard {
         let original_mode = metadata.permissions().mode();
         // Remove write permissions (keep read and execute)
         let readonly_mode = original_mode & !0o222;
-        uv_vfs::fs::set_permissions(&path, std::fs::Permissions::from_mode(readonly_mode))?;
+        uv_vfs::fs::set_permissions(&path, uv_vfs::fs::Permissions::from_mode(readonly_mode))?;
         Ok(Self {
             path,
             original_mode,
@@ -2468,7 +2468,7 @@ impl Drop for ReadOnlyDirectoryGuard {
         use std::os::unix::fs::PermissionsExt;
         let _ = uv_vfs::fs::set_permissions(
             &self.path,
-            std::fs::Permissions::from_mode(self.original_mode),
+            uv_vfs::fs::Permissions::from_mode(self.original_mode),
         );
     }
 }

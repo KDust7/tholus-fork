@@ -85,7 +85,7 @@ impl Removal {
     }
 
     /// Account for a file while its current sharing state can still be inspected.
-    fn add_file(&mut self, path: &Path, metadata: &std::fs::Metadata) {
+    fn add_file(&mut self, path: &Path, metadata: &uv_vfs::fs::Metadata) {
         self.logical_bytes += metadata.len();
 
         if let Some(physical_bytes) = self.physical_bytes {

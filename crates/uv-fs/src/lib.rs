@@ -372,7 +372,7 @@ pub fn symlink_or_copy_file(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std
 pub fn tempfile_in(path: &Path) -> std::io::Result<NamedTempFile> {
     use std::os::unix::fs::PermissionsExt;
     uv_vfs::temp::Builder::new()
-        .permissions(std::fs::Permissions::from_mode(0o666))
+        .permissions(uv_vfs::fs::Permissions::from_mode(0o666))
         .tempfile_in(path)
 }
 

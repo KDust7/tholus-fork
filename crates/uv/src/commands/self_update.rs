@@ -486,7 +486,7 @@ async fn download_installer_from_urls(
 
     #[cfg(unix)]
     {
-        use std::fs::Permissions;
+        use uv_vfs::fs::Permissions;
         use std::os::unix::fs::PermissionsExt;
 
         uv_vfs::fs::tokio::set_permissions(installer_path, Permissions::from_mode(0o744)).await?;
@@ -1157,7 +1157,7 @@ mod tests {
             "#!/bin/sh\nprintf 'hello from stdout\\n'\nprintf 'hello from stderr\\n' >&2\nexit 23\n",
         )
         .unwrap();
-        uv_vfs::fs::set_permissions(&installer_path, std::fs::Permissions::from_mode(0o744)).unwrap();
+        uv_vfs::fs::set_permissions(&installer_path, uv_vfs::fs::Permissions::from_mode(0o744)).unwrap();
 
         let err = execute_official_installer(
             &installer_path,
@@ -1200,7 +1200,7 @@ mod tests {
             ),
         )
         .unwrap();
-        uv_vfs::fs::set_permissions(&installer_path, std::fs::Permissions::from_mode(0o744)).unwrap();
+        uv_vfs::fs::set_permissions(&installer_path, uv_vfs::fs::Permissions::from_mode(0o744)).unwrap();
 
         execute_official_installer(
             &installer_path,
@@ -1240,7 +1240,7 @@ mod tests {
             ),
         )
         .unwrap();
-        uv_vfs::fs::set_permissions(&installer_path, std::fs::Permissions::from_mode(0o744)).unwrap();
+        uv_vfs::fs::set_permissions(&installer_path, uv_vfs::fs::Permissions::from_mode(0o744)).unwrap();
 
         execute_official_installer(
             &installer_path,
@@ -1276,7 +1276,7 @@ mod tests {
             ),
         )
         .unwrap();
-        uv_vfs::fs::set_permissions(&installer_path, std::fs::Permissions::from_mode(0o744)).unwrap();
+        uv_vfs::fs::set_permissions(&installer_path, uv_vfs::fs::Permissions::from_mode(0o744)).unwrap();
 
         execute_official_installer(
             &installer_path,

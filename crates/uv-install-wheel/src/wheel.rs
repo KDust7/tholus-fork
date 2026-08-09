@@ -367,7 +367,7 @@ pub(crate) fn write_script_entrypoints(
             // Make the launcher executable.
             #[cfg(unix)]
             {
-                use std::fs::Permissions;
+                use uv_vfs::fs::Permissions;
                 use std::os::unix::fs::PermissionsExt;
 
                 let path = script.as_path();
@@ -615,7 +615,7 @@ fn install_script(
         // Make the script executable. We just created the file, so we can set permissions directly.
         #[cfg(unix)]
         {
-            use std::fs::Permissions;
+            use uv_vfs::fs::Permissions;
             use std::os::unix::fs::PermissionsExt;
 
             let permissions = fs::metadata(&script_absolute)?.permissions();
@@ -636,7 +636,7 @@ fn install_script(
 
         #[cfg(unix)]
         {
-            use std::fs::Permissions;
+            use uv_vfs::fs::Permissions;
             use std::os::unix::fs::PermissionsExt;
 
             let permissions = fs::metadata(&path)?.permissions();
