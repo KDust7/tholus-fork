@@ -224,7 +224,7 @@ impl LockedFile {
         );
         let path = file.path().to_path_buf();
         let lock_exclusive = tokio::task::spawn_blocking(move || (mode.lock(&file), file));
-        let (result, file) = tokio::time::timeout(*LOCK_TIMEOUT, lock_exclusive)
+        let (result, file) = uv_wasm_compat::time::timeout(*LOCK_TIMEOUT, lock_exclusive)
             .await
             .map_err(|_| LockedFileError::Timeout {
                 timeout: *LOCK_TIMEOUT,

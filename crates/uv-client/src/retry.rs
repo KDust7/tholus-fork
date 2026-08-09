@@ -127,7 +127,7 @@ impl RetryState {
         );
         // TODO(konsti): Should we show a spinner plus a message in the CLI while
         // waiting?
-        tokio::time::sleep(duration).await;
+        uv_wasm_compat::time::sleep(duration).await;
     }
 }
 

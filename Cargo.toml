@@ -86,6 +86,8 @@ uv-tool = { version = "0.0.70", path = "crates/uv-tool" }
 uv-torch = { version = "0.0.70", path = "crates/uv-torch" }
 uv-trampoline-builder = { version = "0.0.70", path = "crates/uv-trampoline-builder" }
 uv-vfs = { version = "0.0.70", path = "crates/uv-vfs" }
+uv-wasm-compat = { version = "0.0.70", path = "crates/uv-wasm-compat" }
+uv-wasm-http = { version = "0.0.70", path = "crates/uv-wasm-http" }
 uv-types = { version = "0.0.70", path = "crates/uv-types" }
 uv-unix = { version = "0.0.70", path = "crates/uv-unix" }
 uv-version = { version = "0.12.3", path = "crates/uv-version" }
@@ -262,15 +264,11 @@ terminal_size = { version = "0.4.2" }
 textwrap = { version = "0.16.1" }
 thiserror = { version = "2.0.0" }
 astral-tl = { version = "0.7.11" }
-tokio = { version = "1.40.0", features = [
-  "fs",
+tokio = { version = "1.45.1", features = [
   "io-util",
   "macros",
-  "process",
   "rt",
-  "signal",
   "sync",
-  "time",
 ] }
 tokio-stream = { version = "0.1.16" }
 tokio-util = { version = "0.7.12", features = ["compat", "io"] }

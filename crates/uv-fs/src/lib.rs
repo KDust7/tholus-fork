@@ -447,7 +447,7 @@ pub async fn rename_with_retry(
 
         rename
             .retry(backoff_file_move())
-            .sleep(tokio::time::sleep)
+            .sleep(uv_wasm_compat::time::sleep)
             .when(|e| e.kind() == std::io::ErrorKind::PermissionDenied)
             .notify(|err, _dur| {
                 warn!(
@@ -590,7 +590,7 @@ async fn persist_with_retry(
 
         let persisted = persist
             .retry(backoff_file_move())
-            .sleep(tokio::time::sleep)
+            .sleep(uv_wasm_compat::time::sleep)
             .when(|err| matches!(err, PersistRetryError::Persist(_)))
             .notify(|err, _dur| {
                 if let PersistRetryError::Persist(error_message) = err {

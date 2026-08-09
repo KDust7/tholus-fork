@@ -220,7 +220,7 @@ pub(crate) async fn pyx_login_with_browser(
         match response.status() {
             // Retry on 404.
             reqwest::StatusCode::NOT_FOUND => {
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                uv_wasm_compat::time::sleep(std::time::Duration::from_secs(1)).await;
                 retry += 1;
             }
             // Parse the credentials on success.

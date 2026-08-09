@@ -185,7 +185,7 @@ async fn time_out_response(
     let (tx, rx) = tokio::sync::mpsc::channel(1);
     tokio::spawn(async move {
         let _ = tx.send(Ok(Frame::data(Bytes::new()))).await;
-        tokio::time::sleep(Duration::from_mins(1)).await;
+        uv_wasm_compat::time::sleep(Duration::from_mins(1)).await;
     });
     let body = StreamBody::new(ReceiverStream::new(rx)).boxed();
     Ok(hyper::Response::builder()

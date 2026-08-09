@@ -53,3 +53,6 @@ rustc-hash = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tokio = { workspace = true, features = ["process"] }

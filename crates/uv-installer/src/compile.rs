@@ -344,7 +344,7 @@ async fn worker(
     // should ever take.
     let (mut bytecode_compiler, child_stdin, mut child_stdout, mut child_stderr) =
         if let Some(duration) = timeout {
-            tokio::time::timeout(duration, wait_until_ready)
+            uv_wasm_compat::time::timeout(duration, wait_until_ready)
                 .await
                 .map_err(|_| CompileError::StartupTimeout(timeout.unwrap()))??
         } else {
@@ -510,7 +510,7 @@ async fn worker_main_loop(
         // Handle a broken `python` by using a timeout, one that's higher than any compilation
         // should ever take.
         if let Some(duration) = timeout {
-            tokio::time::timeout(duration, python_handle)
+            uv_wasm_compat::time::timeout(duration, python_handle)
                 .await
                 .map_err(|_| CompileError::CompileTimeout {
                     elapsed: duration,

@@ -5879,6 +5879,7 @@ dependencies = [
  "uv-types",
  "uv-unix",
  "uv-version",
+ "uv-vfs",
  "uv-virtualenv",
  "uv-warnings",
  "uv-windows",
@@ -5957,6 +5958,7 @@ dependencies = [
  "uv-small-str",
  "uv-state",
  "uv-static",
+ "uv-vfs",
  "uv-warnings",
  "wiremock",
 ]
@@ -6027,6 +6029,7 @@ dependencies = [
  "uv-platform",
  "uv-redacted",
  "uv-static",
+ "uv-vfs",
  "wiremock",
 ]
 
@@ -6090,6 +6093,7 @@ dependencies = [
  "uv-pypi-types",
  "uv-toml",
  "uv-version",
+ "uv-vfs",
  "uv-warnings",
  "walkdir",
 ]
@@ -6128,6 +6132,7 @@ dependencies = [
  "uv-python",
  "uv-static",
  "uv-types",
+ "uv-vfs",
  "uv-virtualenv",
  "uv-warnings",
  "uv-workspace",
@@ -6156,6 +6161,7 @@ dependencies = [
  "uv-pypi-types",
  "uv-redacted",
  "uv-static",
+ "uv-vfs",
  "walkdir",
 ]
 
@@ -6173,6 +6179,7 @@ dependencies = [
  "toml",
  "tracing",
  "uv-fs",
+ "uv-vfs",
  "walkdir",
 ]
 
@@ -6217,6 +6224,7 @@ dependencies = [
  "uv-static",
  "uv-torch",
  "uv-version",
+ "uv-vfs",
  "uv-warnings",
  "uv-workspace",
 ]
@@ -6289,6 +6297,7 @@ dependencies = [
  "uv-static",
  "uv-torch",
  "uv-version",
+ "uv-vfs",
  "uv-warnings",
  "webpki-root-certs",
  "wiremock",
@@ -6327,6 +6336,7 @@ dependencies = [
  "uv-platform-tags",
  "uv-redacted",
  "uv-static",
+ "uv-vfs",
 ]
 
 [[package]]
@@ -6386,6 +6396,7 @@ dependencies = [
  "uv-settings",
  "uv-static",
  "uv-test",
+ "uv-vfs",
  "uv-workspace",
  "walkdir",
 ]
@@ -6400,6 +6411,7 @@ dependencies = [
  "indoc",
  "tracing",
  "uv-static",
+ "uv-vfs",
 ]
 
 [[package]]
@@ -6483,6 +6495,7 @@ dependencies = [
  "uv-python",
  "uv-redacted",
  "uv-types",
+ "uv-vfs",
  "uv-workspace",
  "walkdir",
 ]
@@ -6543,6 +6556,7 @@ dependencies = [
  "uv-pypi-types",
  "uv-redacted",
  "uv-small-str",
+ "uv-vfs",
  "uv-warnings",
 ]
 
@@ -6587,6 +6601,7 @@ dependencies = [
  "uv-distribution-filename",
  "uv-pypi-types",
  "uv-static",
+ "uv-vfs",
 ]
 
 [[package]]
@@ -6631,6 +6646,7 @@ dependencies = [
  "tokio",
  "tracing",
  "uv-static",
+ "uv-vfs",
  "uv-warnings",
  "uv-windows",
  "walkdir",
@@ -6659,6 +6675,7 @@ dependencies = [
  "uv-redacted",
  "uv-static",
  "uv-version",
+ "uv-vfs",
  "uv-warnings",
  "which",
 ]
@@ -6691,6 +6708,7 @@ dependencies = [
  "thiserror",
  "tracing",
  "uv-errors",
+ "uv-vfs",
  "walkdir",
 ]
 
@@ -6727,6 +6745,7 @@ dependencies = [
  "uv-pypi-types",
  "uv-shell",
  "uv-trampoline-builder",
+ "uv-vfs",
  "uv-warnings",
  "walkdir",
 ]
@@ -6771,6 +6790,7 @@ dependencies = [
  "uv-redacted",
  "uv-static",
  "uv-types",
+ "uv-vfs",
  "uv-warnings",
  "walkdir",
 ]
@@ -6827,6 +6847,7 @@ dependencies = [
  "uv-distribution-filename",
  "uv-normalize",
  "uv-pypi-types",
+ "uv-vfs",
 ]
 
 [[package]]
@@ -6837,6 +6858,7 @@ dependencies = [
  "shellexpand",
  "temp-env",
  "thiserror",
+ "uv-vfs",
 ]
 
 [[package]]
@@ -6907,6 +6929,7 @@ dependencies = [
  "uv-normalize",
  "uv-pep440",
  "uv-redacted",
+ "uv-vfs",
 ]
 
 [[package]]
@@ -6935,6 +6958,7 @@ dependencies = [
  "uv-fs",
  "uv-platform-tags",
  "uv-static",
+ "uv-vfs",
  "windows-version",
 ]
 
@@ -7005,6 +7029,7 @@ dependencies = [
  "uv-pypi-types",
  "uv-redacted",
  "uv-static",
+ "uv-vfs",
  "uv-warnings",
  "wiremock",
 ]
@@ -7040,6 +7065,7 @@ dependencies = [
  "uv-pep508",
  "uv-redacted",
  "uv-small-str",
+ "uv-vfs",
 ]
 
 [[package]]
@@ -7100,6 +7126,7 @@ dependencies = [
  "uv-state",
  "uv-static",
  "uv-trampoline-builder",
+ "uv-vfs",
  "uv-warnings",
  "which",
  "windows",
@@ -7115,6 +7142,7 @@ dependencies = [
  "serde",
  "thiserror",
  "url",
+ "uv-vfs",
 ]
 
 [[package]]
@@ -7148,6 +7176,7 @@ dependencies = [
  "uv-resolver",
  "uv-scripts",
  "uv-types",
+ "uv-vfs",
  "uv-warnings",
 ]
 
@@ -7181,6 +7210,7 @@ dependencies = [
  "uv-pep508",
  "uv-pypi-types",
  "uv-redacted",
+ "uv-vfs",
  "uv-warnings",
 ]
 
@@ -7251,6 +7281,7 @@ dependencies = [
  "uv-torch",
  "uv-types",
  "uv-version",
+ "uv-vfs",
  "uv-warnings",
  "uv-workspace",
 ]
@@ -7276,6 +7307,7 @@ dependencies = [
  "uv-pypi-types",
  "uv-redacted",
  "uv-settings",
+ "uv-vfs",
  "uv-warnings",
  "uv-workspace",
 ]
@@ -7315,6 +7347,7 @@ dependencies = [
  "uv-static",
  "uv-torch",
  "uv-version",
+ "uv-vfs",
  "uv-warnings",
  "uv-workspace",
 ]
@@ -7332,6 +7365,7 @@ dependencies = [
  "tracing",
  "uv-fs",
  "uv-static",
+ "uv-vfs",
  "windows",
  "windows-registry",
 ]
@@ -7352,6 +7386,7 @@ version = "0.0.70"
 dependencies = [
  "tempfile",
  "uv-dirs",
+ "uv-vfs",
 ]
 
 [[package]]
@@ -7405,6 +7440,7 @@ dependencies = [
  "uv-python",
  "uv-static",
  "uv-version",
+ "uv-vfs",
  "wiremock",
 ]
 
@@ -7442,6 +7478,7 @@ dependencies = [
  "uv-settings",
  "uv-state",
  "uv-static",
+ "uv-vfs",
  "uv-virtualenv",
 ]
 
@@ -7462,6 +7499,7 @@ dependencies = [
  "uv-pep440",
  "uv-platform-tags",
  "uv-static",
+ "uv-vfs",
  "windows",
 ]
 
@@ -7480,6 +7518,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "uv-fs",
+ "uv-vfs",
  "which",
  "windows",
 ]
@@ -7552,6 +7591,7 @@ dependencies = [
  "uv-python",
  "uv-shell",
  "uv-version",
+ "uv-vfs",
 ]
 
 [[package]]
@@ -7634,6 +7674,7 @@ dependencies = [
  "uv-redacted",
  "uv-static",
  "uv-toml",
+ "uv-vfs",
  "uv-warnings",
 ]
 
