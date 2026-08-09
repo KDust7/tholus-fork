@@ -1,3 +1,4 @@
+mod advisory_locks;
 pub mod vfs_backed;
 
 #[cfg(not(target_family = "wasm"))]

@@ -289,3 +289,154 @@ async fn the_async_surface_mirrors_the_sync_one() {
     crate::fs::vfs_backed::tokio::create_dir_all("/work/nested").await.expect("create");
     crate::fs::vfs_backed::tokio::remove_dir_all("/work/nested").await.expect("remove");
 }
+
+#[test]
+fn a_files_permissions_report_a_posix_mode() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    assert_eq!(metadata("/work/a.txt").expect("metadata").permissions().mode(), 0o644);
+}
+
+#[test]
+fn a_directorys_permissions_report_a_traversable_mode() {
+    fresh();
+    assert_eq!(metadata("/work").expect("metadata").permissions().mode(), 0o755);
+}
+
+#[test]
+fn setting_a_mode_is_remembered_by_the_handle() {
+    fresh();
+    let mut permissions = metadata("/work").expect("metadata").permissions();
+    permissions.set_mode(0o700);
+    assert_eq!(permissions.mode(), 0o700);
+}
+
+#[test]
+fn an_exclusive_lock_is_available_on_an_unlocked_file() {
+    fresh();
+    let file = File::create("/work/a.txt").expect("create");
+    assert!(file.try_lock().is_ok());
+}
+
+#[test]
+fn an_exclusive_lock_excludes_a_second_handle() {
+    fresh();
+    let held = File::create("/work/a.txt").expect("create");
+    held.try_lock().expect("first lock");
+
+    let other = File::open("/work/a.txt").expect("open");
+    assert!(matches!(other.try_lock(), Err(std::fs::TryLockError::WouldBlock)));
+}
+
+#[test]
+fn shared_locks_coexist_across_handles() {
+    fresh();
+    let first = File::create("/work/a.txt").expect("create");
+    first.try_lock_shared().expect("first lock");
+
+    let second = File::open("/work/a.txt").expect("open");
+    assert!(second.try_lock_shared().is_ok());
+}
+
+#[test]
+fn a_shared_lock_excludes_an_exclusive_lock() {
+    fresh();
+    let reader = File::create("/work/a.txt").expect("create");
+    reader.try_lock_shared().expect("shared lock");
+
+    let writer = File::open("/work/a.txt").expect("open");
+    assert!(matches!(writer.try_lock(), Err(std::fs::TryLockError::WouldBlock)));
+}
+
+#[test]
+fn an_exclusive_lock_excludes_a_shared_lock() {
+    fresh();
+    let writer = File::create("/work/a.txt").expect("create");
+    writer.try_lock().expect("exclusive lock");
+
+    let reader = File::open("/work/a.txt").expect("open");
+    assert!(matches!(reader.try_lock_shared(), Err(std::fs::TryLockError::WouldBlock)));
+}
+
+#[test]
+fn unlocking_releases_the_lock_for_another_handle() {
+    fresh();
+    let held = File::create("/work/a.txt").expect("create");
+    held.try_lock().expect("first lock");
+    held.unlock().expect("unlock");
+
+    let other = File::open("/work/a.txt").expect("open");
+    assert!(other.try_lock().is_ok());
+}
+
+#[test]
+fn dropping_a_handle_releases_its_lock() {
+    fresh();
+    let held = File::create("/work/a.txt").expect("create");
+    held.try_lock().expect("first lock");
+    drop(held);
+
+    let other = File::open("/work/a.txt").expect("open");
+    assert!(other.try_lock().is_ok());
+}
+
+#[test]
+fn releasing_one_shared_holder_keeps_the_lock_for_the_rest() {
+    fresh();
+    let first = File::create("/work/a.txt").expect("create");
+    first.try_lock_shared().expect("first lock");
+    let second = File::open("/work/a.txt").expect("open");
+    second.try_lock_shared().expect("second lock");
+    drop(first);
+
+    let writer = File::open("/work/a.txt").expect("open");
+    assert!(matches!(writer.try_lock(), Err(std::fs::TryLockError::WouldBlock)));
+}
+
+#[test]
+fn locks_on_different_paths_do_not_contend() {
+    fresh();
+    let first = File::create("/work/a.txt").expect("create");
+    first.try_lock().expect("first lock");
+
+    let second = File::create("/work/b.txt").expect("create");
+    assert!(second.try_lock().is_ok());
+}
+
+#[test]
+fn relocking_the_same_handle_converts_the_lock() {
+    fresh();
+    let file = File::create("/work/a.txt").expect("create");
+    file.try_lock_shared().expect("shared lock");
+    file.try_lock().expect("conversion to exclusive");
+
+    let other = File::open("/work/a.txt").expect("open");
+    assert!(matches!(other.try_lock_shared(), Err(std::fs::TryLockError::WouldBlock)));
+}
+
+#[test]
+fn unlocking_an_unlocked_handle_succeeds() {
+    fresh();
+    let file = File::create("/work/a.txt").expect("create");
+    assert!(file.unlock().is_ok());
+}
+
+#[test]
+fn a_blocking_lock_succeeds_when_uncontended() {
+    fresh();
+    let file = File::create("/work/a.txt").expect("create");
+    assert!(file.lock().is_ok());
+    file.unlock().expect("unlock");
+    assert!(file.lock_shared().is_ok());
+}
+
+#[test]
+fn a_blocking_lock_reports_contention_rather_than_hanging() {
+    fresh();
+    let held = File::create("/work/a.txt").expect("create");
+    held.try_lock().expect("first lock");
+
+    let other = File::open("/work/a.txt").expect("open");
+    let error = other.lock().expect_err("the second lock cannot be waited for");
+    assert_eq!(error.kind(), std::io::ErrorKind::WouldBlock);
+}

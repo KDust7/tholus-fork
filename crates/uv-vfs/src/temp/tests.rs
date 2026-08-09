@@ -188,3 +188,21 @@ fn a_directory_can_be_constructed_directly() {
     let dir = TempDir::new().expect("new");
     assert!(fs.exists(dir.path()));
 }
+
+#[test]
+fn a_named_temporary_file_borrows_as_its_path() {
+    let fs = fresh();
+    fs.create_dir_all(Path::new("/work")).expect("create");
+    let file = Builder::new().tempfile_in("/work").expect("tempfile_in");
+    let borrowed: &Path = file.as_ref();
+    assert_eq!(borrowed, file.path());
+}
+
+#[test]
+fn a_named_temporary_file_can_be_passed_to_path_taking_apis() {
+    let fs = fresh();
+    fs.create_dir_all(Path::new("/work")).expect("create");
+    let file = Builder::new().tempfile_in("/work").expect("tempfile_in");
+    crate::fs::vfs_backed::write(&file, b"payload").expect("write");
+    assert_eq!(crate::fs::vfs_backed::read(file.path()).expect("read"), b"payload");
+}

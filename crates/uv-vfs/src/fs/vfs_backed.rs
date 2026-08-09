@@ -1,10 +1,16 @@
+use std::cell::Cell;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 use web_time::SystemTime;
 
+use crate::fs::advisory_locks::{self, Holding, LockKind};
 use crate::path::normalize;
 use crate::{VfsKind, VfsMetadata, global};
+
+const FILE_MODE: u32 = 0o644;
+
+const DIRECTORY_MODE: u32 = 0o755;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Metadata {
@@ -37,7 +43,8 @@ impl Metadata {
     }
 
     pub fn permissions(&self) -> Permissions {
-        Permissions { readonly: false }
+        let mode = if self.inner.is_dir() { DIRECTORY_MODE } else { FILE_MODE };
+        Permissions { readonly: false, mode }
     }
 
     pub fn file_type(&self) -> FileType {
@@ -67,6 +74,7 @@ impl FileType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Permissions {
     readonly: bool,
+    mode: u32,
 }
 
 impl Permissions {
@@ -76,6 +84,14 @@ impl Permissions {
 
     pub fn set_readonly(&mut self, readonly: bool) {
         self.readonly = readonly;
+    }
+
+    pub fn mode(&self) -> u32 {
+        self.mode
+    }
+
+    pub fn set_mode(&mut self, mode: u32) {
+        self.mode = mode;
     }
 }
 
@@ -309,6 +325,7 @@ pub struct File {
     cursor: u64,
     writable: bool,
     dirty: bool,
+    holding: Holding,
 }
 
 impl File {
@@ -356,7 +373,14 @@ impl File {
             vfs.write(&normalized, &buffer)?;
         }
 
-        Ok(Self { path: normalized, buffer, cursor, writable, dirty: false })
+        Ok(Self {
+            path: normalized,
+            buffer,
+            cursor,
+            writable,
+            dirty: false,
+            holding: Cell::new(None),
+        })
     }
 
     pub fn path(&self) -> &Path {
@@ -382,6 +406,47 @@ impl File {
 
     pub fn sync_data(&mut self) -> io::Result<()> {
         self.flush()
+    }
+
+    pub fn lock(&self) -> io::Result<()> {
+        self.take_or_report_contention(LockKind::Exclusive)
+    }
+
+    pub fn lock_shared(&self) -> io::Result<()> {
+        self.take_or_report_contention(LockKind::Shared)
+    }
+
+    pub fn try_lock(&self) -> Result<(), std::fs::TryLockError> {
+        self.try_take(LockKind::Exclusive)
+    }
+
+    pub fn try_lock_shared(&self) -> Result<(), std::fs::TryLockError> {
+        self.try_take(LockKind::Shared)
+    }
+
+    pub fn unlock(&self) -> io::Result<()> {
+        advisory_locks::release(&self.path, &self.holding);
+        Ok(())
+    }
+
+    fn try_take(&self, kind: LockKind) -> Result<(), std::fs::TryLockError> {
+        if advisory_locks::acquire(&self.path, &self.holding, kind) {
+            return Ok(());
+        }
+        Err(std::fs::TryLockError::WouldBlock)
+    }
+
+    fn take_or_report_contention(&self, kind: LockKind) -> io::Result<()> {
+        if advisory_locks::acquire(&self.path, &self.holding, kind) {
+            return Ok(());
+        }
+        Err(io::Error::new(
+            io::ErrorKind::WouldBlock,
+            format!(
+                "{} is locked by another handle on this thread, which cannot release it while we wait",
+                self.path.display()
+            ),
+        ))
     }
 
     fn require_writable(&self) -> io::Result<()> {
@@ -457,6 +522,7 @@ impl Seek for File {
 impl Drop for File {
     fn drop(&mut self) {
         let _ = self.flush();
+        advisory_locks::release(&self.path, &self.holding);
     }
 }
 

@@ -147,6 +147,12 @@ impl NamedTempFile {
     }
 }
 
+impl AsRef<Path> for NamedTempFile {
+    fn as_ref(&self) -> &Path {
+        &self.path
+    }
+}
+
 impl io::Write for NamedTempFile {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
         io::Write::write(self.as_file_mut(), data)
