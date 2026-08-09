@@ -13,6 +13,7 @@ license = { workspace = true }
 doctest = false
 
 [dependencies]
+http = { workspace = true }
 uv-vfs = { workspace = true }
 uv-auth = { workspace = true }
 uv-cache = { workspace = true }

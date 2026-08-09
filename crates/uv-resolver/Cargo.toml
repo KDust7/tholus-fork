@@ -16,6 +16,8 @@ doctest = false
 workspace = true
 
 [dependencies]
+web-time = { workspace = true }
+http = { workspace = true }
 uv-vfs = { workspace = true }
 uv-console = { workspace = true }
 uv-cache-key = { workspace = true }

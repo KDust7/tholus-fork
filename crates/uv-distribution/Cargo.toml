@@ -16,6 +16,7 @@ doctest = false
 workspace = true
 
 [dependencies]
+http = { workspace = true }
 uv-wasm-compat = { workspace = true }
 uv-vfs = { workspace = true }
 uv-auth = { workspace = true }

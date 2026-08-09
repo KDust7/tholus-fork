@@ -5885,6 +5885,7 @@ dependencies = [
  "uv-windows",
  "uv-workspace",
  "walkdir",
+ "web-time",
  "which",
  "wiremock",
 ]
@@ -6007,6 +6008,7 @@ dependencies = [
  "astral-reqwest-middleware",
  "astral-reqwest-retry",
  "futures",
+ "http",
  "jiff",
  "reqwest",
  "serde",
@@ -6167,6 +6169,7 @@ dependencies = [
  "uv-fs",
  "uv-vfs",
  "walkdir",
+ "web-time",
 ]
 
 [[package]]
@@ -6189,6 +6192,7 @@ dependencies = [
  "anyhow",
  "clap",
  "clap_complete_command",
+ "fs-err",
  "insta",
  "serde",
  "url",
@@ -6380,6 +6384,7 @@ dependencies = [
  "uv-vfs",
  "uv-workspace",
  "walkdir",
+ "web-time",
 ]
 
 [[package]]
@@ -6437,6 +6442,7 @@ dependencies = [
  "astral-reqwest-middleware",
  "either",
  "futures",
+ "http",
  "indoc",
  "insta",
  "owo-colors",
@@ -6723,6 +6729,7 @@ dependencies = [
  "uv-vfs",
  "uv-warnings",
  "walkdir",
+ "web-time",
 ]
 
 [[package]]
@@ -6975,6 +6982,7 @@ dependencies = [
  "fastrand",
  "futures",
  "glob",
+ "http",
  "insta",
  "itertools 0.14.0",
  "reqwest",
@@ -7190,6 +7198,7 @@ dependencies = [
  "either",
  "futures",
  "hashbrown 0.17.1",
+ "http",
  "indexmap",
  "insta",
  "itertools 0.14.0",
@@ -7248,6 +7257,7 @@ dependencies = [
  "uv-vfs",
  "uv-warnings",
  "uv-workspace",
+ "web-time",
 ]
 
 [[package]]

@@ -15,6 +15,7 @@ default-run = "uv"
 workspace = true
 
 [dependencies]
+web-time = { workspace = true }
 uv-wasm-compat = { workspace = true }
 uv-vfs = { workspace = true }
 uv-audit = { workspace = true }

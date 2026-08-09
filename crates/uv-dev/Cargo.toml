@@ -15,6 +15,7 @@ license = { workspace = true }
 workspace = true
 
 [dependencies]
+web-time = { workspace = true }
 uv-vfs = { workspace = true }
 uv-cache = { workspace = true, features = ["clap"] }
 uv-cli = { workspace = true }
