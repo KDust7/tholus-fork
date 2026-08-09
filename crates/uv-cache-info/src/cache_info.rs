@@ -8,6 +8,7 @@ use tracing::{debug, info_span, warn};
 use uv_fs::Simplified;
 
 use crate::git_info::{Commit, Tags};
+#[cfg(not(target_family = "wasm"))]
 use crate::glob::cluster_globs;
 use crate::timestamp::Timestamp;
 use uv_vfs::VfsPathExt as _;
@@ -18,6 +19,9 @@ pub enum CacheInfoError {
     Glob(#[from] globwalk::GlobError),
     #[error(transparent)]
     Io(#[from] std::io::Error),
+    #[cfg(target_family = "wasm")]
+    #[error("Glob patterns in `cache-keys` are not supported in the browser")]
+    GlobUnsupported,
 }
 
 /// The information used to determine whether a built distribution is up-to-date, based on the
@@ -224,7 +228,13 @@ impl CacheInfo {
             }
         }
 
+        #[cfg(target_family = "wasm")]
+        if !globs.is_empty() {
+            return Err(CacheInfoError::GlobUnsupported);
+        }
+
         // If we have any globs, first cluster them using LCP and then do a single pass on each group.
+        #[cfg(not(target_family = "wasm"))]
         if !globs.is_empty() {
             for (glob_base, glob_patterns) in cluster_globs(&globs) {
                 let walker = globwalk::GlobWalkerBuilder::from_patterns(
