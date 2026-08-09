@@ -62,6 +62,7 @@ use uv_pypi_types::{
     ParsedUrl, VerbatimParsedUrl,
 };
 use uv_redacted::DisplaySafeUrl;
+use uv_vfs::VfsPathExt as _;
 
 pub use crate::annotation::*;
 pub use crate::any::*;
@@ -456,7 +457,7 @@ impl Dist {
         let install_path = normalize_absolute_path(&install_path)?;
 
         // Validate that the path exists.
-        if !install_path.exists() {
+        if !install_path.vfs_exists() {
             return Err(Error::NotFound(url.to_url()));
         }
 
@@ -522,7 +523,7 @@ impl Dist {
         let install_path = normalize_absolute_path(&install_path)?;
 
         // Validate that the path exists.
-        if !install_path.exists() {
+        if !install_path.vfs_exists() {
             return Err(Error::NotFound(url.to_url()));
         }
 

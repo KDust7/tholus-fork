@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use tracing::debug;
 use uv_static::EnvVars;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug)]
 struct MicrosoftStorePython {
@@ -114,6 +115,6 @@ pub(crate) fn find_microsoft_store_pythons() -> impl Iterator<Item = WindowsPyth
                     version: Some(PythonVersion::from_str(store_python.version).unwrap()),
                 }
             })
-            .filter(|windows_python| windows_python.path.is_file()),
+            .filter(|windows_python| windows_python.path.vfs_is_file()),
     )
 }

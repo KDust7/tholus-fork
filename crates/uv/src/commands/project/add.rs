@@ -67,6 +67,7 @@ use crate::printer::Printer;
 use crate::settings::{FrozenSource, LockCheck, ResolverInstallerSettings};
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
+use uv_vfs::VfsPathExt as _;
 
 /// Add one or more packages to the project requirements.
 #[expect(clippy::fn_params_excessive_bools)]
@@ -682,7 +683,7 @@ pub(crate) async fn add(
             let path = url
                 .to_file_path()
                 .map_err(|()| anyhow::anyhow!("Invalid file path in index URL: {url}"))?;
-            if !path.is_dir() {
+            if !path.vfs_is_dir() {
                 bail!("Directory not found for index: {url}");
             }
             if uv_vfs::fs::read_dir(&path)?.next().is_none() {
@@ -723,7 +724,7 @@ pub(crate) async fn add(
     // to perform resolution, since we want to use the resolved versions to populate lower bounds
     // in the script.
     let dry_run = if let AddTarget::Script(ref script, _) = target {
-        !LockTarget::from(script).lock_path().is_file()
+        !LockTarget::from(script).lock_path().vfs_is_file()
     } else {
         false
     };

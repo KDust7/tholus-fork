@@ -25,6 +25,7 @@ use uv_python::managed::{
 use uv_python::{Interpreter, VirtualEnvironment};
 use uv_shell::escape_posix_for_single_quotes;
 use uv_version::version;
+use uv_vfs::VfsPathExt as _;
 
 /// Activation scripts for the environment, with dependent paths templated out.
 const ACTIVATE_TEMPLATES: &[(&str, &str)] = &[
@@ -107,7 +108,7 @@ pub(crate) fn create(
     }
 
     // Validate the existing location.
-    match location.metadata() {
+    match location.vfs_metadata() {
         Ok(metadata) if metadata.is_file() => {
             return Err(Error::Io(io::Error::new(
                 io::ErrorKind::AlreadyExists,

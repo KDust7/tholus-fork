@@ -118,6 +118,7 @@ use crate::commands::project::{
 use crate::commands::reporters::PythonDownloadReporter;
 use crate::printer::Printer;
 use crate::settings::ResolverSettings;
+use uv_vfs::VfsPathExt as _;
 
 /// Return all packages which contain an executable with the given name.
 pub(super) fn matching_packages(name: &str, site_packages: &SitePackages) -> Vec<InstalledDist> {
@@ -860,7 +861,7 @@ pub(crate) fn finalize_tool_install(
         if !force {
             let mut existing_entrypoints = target_entrypoints
                 .iter()
-                .filter(|(_, _, target_path)| target_path.exists())
+                .filter(|(_, _, target_path)| target_path.vfs_exists())
                 .peekable();
             if existing_entrypoints.peek().is_some() {
                 // Clean up the environment we just created

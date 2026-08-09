@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use tracing::warn;
 use uv_fs::find_git_repository_root;
 use walkdir::WalkDir;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum GitInfoError {
@@ -34,7 +35,7 @@ impl Commit {
         let repository = GitRepository::find(path)?;
 
         let git_head_path = repository.git_dir.join("HEAD");
-        if !git_head_path.exists() {
+        if !git_head_path.vfs_exists() {
             return Err(GitInfoError::MissingHead(repository.git_dir));
         }
         let git_head_contents = uv_vfs::fs::read_to_string(git_head_path)?;
@@ -79,7 +80,7 @@ impl Tags {
         }
 
         // Map each tag to its commit.
-        if git_tags_path.exists() {
+        if git_tags_path.vfs_exists() {
             for entry in WalkDir::new(&git_tags_path).contents_first(true) {
                 let entry = match entry {
                     Ok(entry) => entry,
@@ -145,10 +146,10 @@ impl GitRepository {
 
 /// Resolve `.git` to the repository's Git directory, including linked-worktree files.
 fn read_git_dir(dot_git_path: &Path) -> Option<PathBuf> {
-    if dot_git_path.is_dir() {
+    if dot_git_path.vfs_is_dir() {
         return Some(dot_git_path.to_path_buf());
     }
-    if !dot_git_path.is_file() {
+    if !dot_git_path.vfs_is_file() {
         return None;
     }
 

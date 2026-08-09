@@ -10,6 +10,7 @@ use wiremock::{Request, ResponseTemplate};
 
 use crate::http_server::{HttpServer, content_type_for_filename};
 use crate::vendor::{VendorArtifact, vendor_artifacts};
+use uv_vfs::VfsPathExt as _;
 
 enum FileData {
     Bytes(Arc<[u8]>),
@@ -39,7 +40,7 @@ impl FindLinksServer {
         for entry in uv_vfs::fs::read_dir(directory).expect("failed to read find-links directory") {
             let entry = entry.expect("failed to read directory entry");
             let path = entry.path();
-            if !path.is_file() {
+            if !path.vfs_is_file() {
                 continue;
             }
             let Some(filename) = path.file_name().map(|n| n.to_string_lossy().to_string()) else {

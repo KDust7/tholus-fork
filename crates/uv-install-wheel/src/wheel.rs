@@ -24,6 +24,7 @@ use uv_warnings::warn_user_once;
 use crate::record::RecordEntry;
 use crate::script::{EntryPoints, Script};
 use crate::{Error, Layout};
+use uv_vfs::VfsPathExt as _;
 
 /// Wrapper script template function
 ///
@@ -153,7 +154,7 @@ fn get_script_executable(python_executable: &Path, is_gui: bool) -> PathBuf {
                 let new_name = name.to_string_lossy().replace("python", "pythonw");
                 python_executable.with_file_name(new_name)
             })
-            .filter(|path| path.is_file())
+            .filter(|path| path.vfs_is_file())
             .unwrap_or_else(|| python_executable.to_path_buf())
     } else {
         python_executable.to_path_buf()
@@ -200,7 +201,7 @@ impl<'wheel> ValidatedWheel<'wheel> {
             (data_dir.join("scripts"), &layout.scheme.scripts),
             (data_dir.join("data"), &layout.scheme.data),
         ] {
-            if !source.is_dir() {
+            if !source.vfs_is_dir() {
                 continue;
             }
 
@@ -525,13 +526,13 @@ fn install_script(
     }
 
     if file_type.is_symlink() {
-        let Ok(target) = file.path().canonicalize() else {
+        let Ok(target) = file.path().vfs_canonicalize() else {
             return Err(Error::InvalidWheel(format!(
                 "Wheel contains an invalid entry (broken symlink) in the `scripts` directory: {}",
                 file.path().simplified_display(),
             )));
         };
-        if target.is_dir() {
+        if target.vfs_is_dir() {
             return Err(Error::InvalidWheel(format!(
                 "Wheel contains an invalid entry (directory symlink) in the `scripts` directory: {} ({})",
                 file.path().simplified_display(),

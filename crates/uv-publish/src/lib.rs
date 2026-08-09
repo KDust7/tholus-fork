@@ -44,6 +44,7 @@ use crate::trusted_publishing::pyx::PyxPublishingService;
 use crate::trusted_publishing::{
     TrustedPublishingError, TrustedPublishingService, TrustedPublishingToken,
 };
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Error, Debug)]
 pub enum PublishError {
@@ -293,7 +294,7 @@ fn unroll_paths(paths: Vec<String>) -> Result<Vec<PathBuf>, PublishError> {
     for path in paths {
         for file in glob(&path).map_err(|err| PublishError::Pattern(path.clone(), err))? {
             let file = file?;
-            if !file.is_file() {
+            if !file.vfs_is_file() {
                 continue;
             }
 

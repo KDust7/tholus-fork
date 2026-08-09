@@ -37,6 +37,7 @@ use crate::commands::reporters::PythonDownloadReporter;
 use crate::commands::{ExitStatus, diagnostics, project};
 use crate::printer::Printer;
 use crate::settings::{FrozenSource, LockCheck, ResolverInstallerSettings};
+use uv_vfs::VfsPathExt as _;
 
 mod ty;
 
@@ -395,7 +396,7 @@ pub(crate) async fn check(
             LockMode::Frozen(frozen_source.into())
         } else if let LockCheck::Enabled(lock_check) = lock_check {
             LockMode::Locked(venv.interpreter(), lock_check)
-        } else if isolated || !lock_target.lock_path().is_file() {
+        } else if isolated || !lock_target.lock_path().vfs_is_file() {
             LockMode::DryRun(venv.interpreter())
         } else {
             LockMode::Write(venv.interpreter())

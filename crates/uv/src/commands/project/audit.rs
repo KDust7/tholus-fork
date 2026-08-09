@@ -42,6 +42,7 @@ use uv_scripts::Pep723Script;
 use uv_settings::PythonInstallMirrors;
 use uv_warnings::warn_user;
 use uv_workspace::{DiscoveryOptions, Workspace, WorkspaceCache};
+use uv_vfs::VfsPathExt as _;
 
 pub(crate) mod json;
 pub(crate) mod sarif;
@@ -172,7 +173,7 @@ pub(crate) async fn audit(
         LockMode::Frozen(frozen_source.into())
     } else if let LockCheck::Enabled(lock_check) = lock_check {
         LockMode::Locked(interpreter.as_ref().unwrap(), lock_check)
-    } else if matches!(target, LockTarget::Script(_)) && !target.lock_path().is_file() {
+    } else if matches!(target, LockTarget::Script(_)) && !target.lock_path().vfs_is_file() {
         // If we're locking a script, avoid creating a lockfile if it doesn't already exist.
         LockMode::DryRun(interpreter.as_ref().unwrap())
     } else {
@@ -252,7 +253,7 @@ pub(crate) async fn audit(
             // If we've run `uv audit --script`, we might only have an in-memory lockfile.
             // In that case, use the script's own path as the artifact path.
             let artifact_path = if let LockTarget::Script(script) = target
-                && !lock_path.is_file()
+                && !lock_path.vfs_is_file()
             {
                 script.path.as_path()
             } else {

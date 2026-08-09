@@ -5998,6 +5998,7 @@ dependencies = [
  "uv-python",
  "uv-resolver",
  "uv-types",
+ "uv-vfs",
  "uv-workspace",
 ]
 

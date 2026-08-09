@@ -31,6 +31,7 @@ use crate::pyproject::{
     OverrideDependency, Project, PyProjectToml, PyprojectTomlError, Source, Sources, ToolUvSources,
     ToolUvWorkspace, WorkspaceReference,
 };
+use uv_vfs::VfsPathExt as _;
 
 /// The workspace project environment selected by configuration and command-line options.
 #[derive(Debug)]
@@ -164,7 +165,7 @@ fn has_intermediate_pyproject(workspace_root: &Path, project_dir: &Path) -> bool
         .ancestors()
         .skip(1)
         .take_while(|ancestor| *ancestor != workspace_root)
-        .any(|ancestor| ancestor.join("pyproject.toml").is_file())
+        .any(|ancestor| ancestor.join("pyproject.toml").vfs_is_file())
 }
 
 #[derive(Debug, Clone)]
@@ -334,7 +335,7 @@ impl Workspace {
 
         let project_path = path
             .ancestors()
-            .find(|path| path.join("pyproject.toml").is_file())
+            .find(|path| path.join("pyproject.toml").vfs_is_file())
             .ok_or(WorkspaceErrorKind::MissingPyprojectToml)?
             .to_path_buf();
 
@@ -1549,7 +1550,7 @@ impl ProjectWorkspace {
                     .and_then(Path::parent)
                     .is_none_or(|stop_discovery_at| stop_discovery_at != *path)
             })
-            .find(|path| path.join("pyproject.toml").is_file())
+            .find(|path| path.join("pyproject.toml").vfs_is_file())
             .ok_or_else(|| WorkspaceErrorKind::MissingPyprojectToml)?;
 
         debug!(
@@ -1846,7 +1847,7 @@ async fn find_workspace(
         .skip(1)
     {
         let pyproject_path = workspace_root.join("pyproject.toml");
-        if !pyproject_path.is_file() {
+        if !pyproject_path.vfs_is_file() {
             continue;
         }
         trace!(
@@ -1945,7 +1946,7 @@ fn has_only_gitignored_files(path: &Path) -> bool {
         };
 
         // Skip directories.
-        if entry.path().is_dir() {
+        if entry.path().vfs_is_dir() {
             continue;
         }
 
@@ -2098,7 +2099,7 @@ impl VirtualProject {
                     .and_then(Path::parent)
                     .is_none_or(|stop_discovery_at| stop_discovery_at != *path)
             })
-            .find(|path| path.join("pyproject.toml").is_file())
+            .find(|path| path.join("pyproject.toml").vfs_is_file())
             .ok_or(WorkspaceErrorKind::MissingPyprojectToml)?;
 
         debug!(

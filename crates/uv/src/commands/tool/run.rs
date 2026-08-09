@@ -60,6 +60,7 @@ use crate::commands::{
 use crate::printer::Printer;
 use crate::settings::ResolverInstallerSettings;
 use crate::settings::ResolverSettings;
+use uv_vfs::VfsPathExt as _;
 
 /// The user-facing command used to invoke a tool run.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -174,7 +175,7 @@ pub(crate) async fn run(
 
         // If the user tries to invoke `uvx script.py`, hint them towards `uv run`.
         if has_python_script_ext(target_path) {
-            return if target_path.try_exists()? {
+            return if target_path.vfs_try_exists()? {
                 Err(ToolRunScriptError::TargetScriptExists {
                     path: target_path.to_path_buf(),
                     invocation: invocation_source,

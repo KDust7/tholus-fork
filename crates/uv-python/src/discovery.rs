@@ -41,6 +41,7 @@ use crate::virtualenv::{
 #[cfg(windows)]
 use crate::windows_registry::{WindowsPython, registry_pythons};
 use crate::{BrokenLink, Interpreter, PythonVersion};
+use uv_vfs::VfsPathExt as _;
 
 /// A request to find a Python installation.
 ///
@@ -616,7 +617,7 @@ fn python_executables_from_search_path<'a>(
     let mut seen_dirs = FxHashSet::with_capacity_and_hasher(search_dirs.len(), FxBuildHasher);
     search_dirs
         .into_iter()
-        .filter(|dir| dir.is_dir())
+        .filter(|dir| dir.vfs_is_dir())
         .flat_map(move |dir| {
             // Clone the directory for second closure
             let dir_clone = dir.clone();
@@ -1857,11 +1858,11 @@ impl PythonRequest {
 
         let value_as_path = PathBuf::from(value);
         // e.g. /path/to/.venv
-        if value_as_path.is_dir() {
+        if value_as_path.vfs_is_dir() {
             return Self::Directory(value_as_path);
         }
         // e.g. /path/to/python
-        if value_as_path.is_file() {
+        if value_as_path.vfs_is_file() {
             return Self::File(value_as_path);
         }
 
@@ -1869,7 +1870,7 @@ impl PythonRequest {
         #[cfg(windows)]
         if value_as_path.extension().is_none() {
             let value_as_path = value_as_path.with_extension(EXE_SUFFIX);
-            if value_as_path.is_file() {
+            if value_as_path.vfs_is_file() {
                 return Self::File(value_as_path);
             }
         }
@@ -1882,10 +1883,10 @@ impl PythonRequest {
         if value_as_path.is_relative() {
             if let Ok(current_dir) = crate::current_dir() {
                 let relative = current_dir.join(&value_as_path);
-                if relative.is_dir() {
+                if relative.vfs_is_dir() {
                     return Self::Directory(relative);
                 }
-                if relative.is_file() {
+                if relative.vfs_is_file() {
                     return Self::File(relative);
                 }
             }

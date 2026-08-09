@@ -168,6 +168,8 @@ pub fn system_config_file() -> Option<PathBuf> {
                 .and_then(|system_drive| locate_system_config_windows(format!("{system_drive}\\")))
         },
         _ => {
+            use uv_vfs::VfsPathExt as _;
+
             if let Some(path) =
                 locate_system_config_xdg(env::var(EnvVars::XDG_CONFIG_DIRS).ok().as_deref())
             {
@@ -177,7 +179,7 @@ pub fn system_config_file() -> Option<PathBuf> {
             // Fallback to `/etc/uv/uv.toml` if `XDG_CONFIG_DIRS` is not set or no valid
             // path is found.
             let candidate = Path::new("/etc/uv/uv.toml");
-            match candidate.try_exists() {
+            match candidate.vfs_try_exists() {
                 Ok(true) => Some(candidate.to_path_buf()),
                 Ok(false) => None,
                 Err(err) => {

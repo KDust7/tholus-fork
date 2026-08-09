@@ -10,6 +10,7 @@ use uv_cache::Cache;
 use uv_cli::CacheSizeOutputFormat;
 use uv_preview::{Preview, PreviewFeature};
 use uv_warnings::warn_user;
+use uv_vfs::VfsPathExt as _;
 
 /// Display the total size of the cache.
 pub(crate) fn cache_size(
@@ -31,7 +32,7 @@ pub(crate) fn cache_size(
         CacheSizeOutputFormat::Machine => false,
     };
 
-    if !cache.root().exists() {
+    if !cache.root().vfs_exists() {
         if human_readable {
             writeln!(printer.stdout_important(), "0B")?;
         } else {

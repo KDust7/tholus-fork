@@ -54,6 +54,7 @@ use uv_scripts::{OverrideDependency, Pep723Metadata};
 use uv_warnings::warn_user;
 
 use crate::{RequirementsSource, SourceTree};
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, Default, Clone)]
 pub struct RequirementsSpecification {
@@ -268,7 +269,7 @@ impl RequirementsSpecification {
                 ..Self::default()
             },
             RequirementsSource::RequirementsTxt(path) => {
-                if !(path.starts_with("http://") || path.starts_with("https://") || path.exists()) {
+                if !(path.starts_with("http://") || path.starts_with("https://") || path.vfs_exists()) {
                     return Err(anyhow::anyhow!("File not found: `{}`", path.user_display()));
                 }
 
@@ -329,7 +330,7 @@ impl RequirementsSpecification {
                 Self::from_pep723_metadata(&metadata)
             }
             RequirementsSource::SetupPy(path) => {
-                if !path.is_file() {
+                if !path.vfs_is_file() {
                     return Err(anyhow::anyhow!("File not found: `{}`", path.user_display()));
                 }
 
@@ -339,7 +340,7 @@ impl RequirementsSpecification {
                 }
             }
             RequirementsSource::SetupCfg(path) => {
-                if !path.is_file() {
+                if !path.vfs_is_file() {
                     return Err(anyhow::anyhow!("File not found: `{}`", path.user_display()));
                 }
 
@@ -349,7 +350,7 @@ impl RequirementsSpecification {
                 }
             }
             RequirementsSource::PylockToml(path) => {
-                if !(path.starts_with("http://") || path.starts_with("https://") || path.exists()) {
+                if !(path.starts_with("http://") || path.starts_with("https://") || path.vfs_exists()) {
                     return Err(anyhow::anyhow!("File not found: `{}`", path.user_display()));
                 }
 
@@ -739,7 +740,7 @@ async fn read_file(path: &Path, client_builder: &BaseClientBuilder<'_>) -> Resul
         //
         // We don't do this check on Windows since the file path would
         // be invalid anyway, and thus couldn't refer to a local file.
-        if !cfg!(unix) || matches!(path.try_exists(), Ok(false)) {
+        if !cfg!(unix) || matches!(path.vfs_try_exists(), Ok(false)) {
             let url = DisplaySafeUrl::parse(&path.to_string_lossy())?;
 
             let client = client_builder.build()?;

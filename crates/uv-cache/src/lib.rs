@@ -21,6 +21,7 @@ use crate::removal::Remover;
 pub use crate::removal::{Removal, RemovalMode};
 pub use crate::wheel::WheelCache;
 use crate::wheel::WheelCacheKind;
+use uv_vfs::VfsPathExt as _;
 pub use archive::ArchiveId;
 
 mod archive;
@@ -480,7 +481,7 @@ impl Cache {
             Ok(_) => {}
             // Handle read-only caches including sandboxed environments.
             Err(err) if err.kind() == io::ErrorKind::ReadOnlyFilesystem => {
-                if !phony_git.exists() {
+                if !phony_git.vfs_exists() {
                     return Err(err);
                 }
             }
@@ -603,7 +604,7 @@ impl Cache {
 
         // Remove any archives that are no longer referenced.
         for (target, references) in references {
-            if target.starts_with(&archive_root) && references.iter().all(|path| !path.exists()) {
+            if target.starts_with(&archive_root) && references.iter().all(|path| !path.vfs_exists()) {
                 debug!("Removing dangling cache entry: {}", target.display());
                 summary += self.remove_path(target)?;
             }
@@ -668,7 +669,7 @@ impl Cache {
                     for entry in entries {
                         let entry = entry?;
                         let path = entry.path();
-                        if path.is_dir() {
+                        if path.vfs_is_dir() {
                             debug!("Removing unzipped wheel entry: {}", path.display());
                             summary += self.remove_path(path)?;
                         }
@@ -679,7 +680,7 @@ impl Cache {
             }
 
             let source_distributions = self.bucket(CacheBucket::SourceDistributions);
-            if source_distributions.try_exists()? {
+            if source_distributions.vfs_try_exists()? {
                 for entry in walkdir::WalkDir::new(source_distributions) {
                     let entry = entry?;
 
@@ -688,7 +689,7 @@ impl Cache {
                         continue;
                     }
 
-                    if !entry.path().join("metadata.msgpack").exists() {
+                    if !entry.path().join("metadata.msgpack").vfs_exists() {
                         continue;
                     }
 
@@ -759,7 +760,7 @@ impl Cache {
         let mut references = FxHashMap::<PathBuf, Vec<PathBuf>>::default();
         for bucket in [CacheBucket::SourceDistributions, CacheBucket::Wheels] {
             let bucket_path = self.bucket(bucket);
-            if bucket_path.is_dir() {
+            if bucket_path.vfs_is_dir() {
                 let walker = walkdir::WalkDir::new(&bucket_path).into_iter();
                 for entry in walker.filter_entry(|entry| {
                     !(
@@ -862,7 +863,7 @@ impl Cache {
 
         // Reconstruct the path.
         let path = self.archive(&link.id);
-        path.canonicalize()
+        path.vfs_canonicalize()
     }
 
     /// Create a link to a directory in the archive bucket.
@@ -899,7 +900,7 @@ impl Cache {
     /// Returns an error if the link target does not exist.
     #[cfg(unix)]
     pub fn resolve_link(&self, path: impl AsRef<Path>) -> io::Result<PathBuf> {
-        path.as_ref().canonicalize()
+        path.as_ref().vfs_canonicalize()
     }
 }
 

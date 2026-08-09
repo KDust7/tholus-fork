@@ -26,6 +26,7 @@ use uv_static::{
 
 use crate::commands::ExitStatus;
 use crate::printer::Printer;
+use uv_vfs::VfsPathExt as _;
 
 const UV_GITHUB_RELEASES_DOWNLOAD_PREFIX: &str =
     "https://github.com/astral-sh/uv/releases/download/";
@@ -610,7 +611,7 @@ fn load_receipt_modify_path(app_name: &str) -> Result<bool> {
 fn find_receipt_path(app_name: &str) -> Result<Option<PathBuf>> {
     for prefix in receipt_prefixes(app_name)? {
         let receipt_path = prefix.join(format!("{app_name}-receipt.json"));
-        if receipt_path.exists() {
+        if receipt_path.vfs_exists() {
             return Ok(Some(receipt_path));
         }
     }
@@ -632,7 +633,7 @@ fn receipt_prefixes(app_name: &str) -> Result<Vec<PathBuf>> {
 
     if let Some(path) = std::env::var_os("XDG_CONFIG_HOME") {
         let path = PathBuf::from(path).join(app_name);
-        if path.exists() {
+        if path.vfs_exists() {
             prefixes.push(path);
         }
     }

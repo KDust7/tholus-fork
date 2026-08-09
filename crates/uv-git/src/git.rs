@@ -17,6 +17,7 @@ use uv_git_types::{GitOid, GitReference};
 use uv_redacted::DisplaySafeUrl;
 use uv_static::EnvVars;
 use uv_warnings::warn_user_once;
+use uv_vfs::VfsPathExt as _;
 
 /// A file indicates that if present, `git reset` has been done and a repo
 /// checkout is ready to go. See [`GitCheckout::reset`] for why we need this.
@@ -492,7 +493,7 @@ impl GitCheckout {
         match self.repo.rev_parse("HEAD") {
             Ok(id) if id == self.revision => {
                 // See comments in reset() for why we check this
-                self.repo.path.join(CHECKOUT_READY_LOCK).exists()
+                self.repo.path.join(CHECKOUT_READY_LOCK).vfs_exists()
             }
             _ => false,
         }

@@ -4,6 +4,7 @@ use std::env::consts::EXE_EXTENSION;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::process::Command;
+use uv_vfs::VfsPathExt as _;
 
 pub struct WindowsRunnable;
 
@@ -82,7 +83,7 @@ impl WindowsRunnable {
             .extension()
             .and_then(OsStr::to_str)
             .and_then(WindowsRunnableKind::from_extension)
-            .filter(|_| script_path.is_file())
+            .filter(|_| script_path.vfs_is_file())
         {
             return script_type.as_command(&script_path);
         }
@@ -97,7 +98,7 @@ impl WindowsRunnable {
                     script_path.with_added_extension(script_type.to_extension()),
                 )
             })
-            .find(|(_, script_path)| script_path.is_file())
+            .find(|(_, script_path)| script_path.vfs_is_file())
             .map(|(script_type, script_path)| script_type.as_command(&script_path))
             .unwrap_or_else(|| Command::new(runnable_name))
     }

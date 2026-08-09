@@ -22,6 +22,7 @@ use uv_python::{
 use crate::commands::ExitStatus;
 use crate::printer::Printer;
 use crate::settings::PythonListKinds;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord)]
 enum Kind {
@@ -246,7 +247,7 @@ pub(crate) async fn list(
                             let is_symlink = uv_vfs::fs::symlink_metadata(path)?.is_symlink();
                             if is_symlink {
                                 symlink_or_none =
-                                    Some(path.read_link()?.user_display().to_string());
+                                    Some(path.vfs_read_link()?.user_display().to_string());
                             }
                         }
                         Either::Right(url) => {
@@ -294,7 +295,7 @@ pub(crate) async fn list(
                                 printer.stdout(),
                                 "{key:width$}    {} -> {}",
                                 path.user_display().cyan(),
-                                path.read_link()?.user_display().cyan()
+                                path.vfs_read_link()?.user_display().cyan()
                             )?;
                         } else {
                             writeln!(

@@ -53,6 +53,7 @@ use crate::commands::pip::loggers::{InstallLogger, ResolveLogger};
 use crate::commands::reporters::{InstallReporter, PrepareReporter, ResolverReporter};
 use crate::commands::{compile_bytecode, compile_bytecode_files};
 use crate::printer::Printer;
+use uv_vfs::VfsPathExt as _;
 
 /// Consolidate the requirements for an installation.
 pub(crate) async fn read_requirements(
@@ -936,7 +937,7 @@ fn python_source_files_for_installs<'a>(
                 }
             };
             let path = python_source_path_from_record(&record_root, &entry.path, &site_packages)?;
-            path.is_file().then_some(Ok(path))
+            path.vfs_is_file().then_some(Ok(path))
         }))
     })
 }

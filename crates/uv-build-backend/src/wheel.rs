@@ -28,6 +28,7 @@ use crate::{
     BuildBackendSettings, DirectoryWriter, Error, FileList, ListWriter, PyProjectToml,
     error_on_venv, find_roots, write_directory_once, write_file_with_directories,
 };
+use uv_vfs::VfsPathExt as _;
 
 // Files at or below this size are buffered and written with `write_entry_whole`,
 // which was fastest in wheel-writer benchmarks because it can write final ZIP
@@ -67,7 +68,7 @@ pub fn build_wheel(
     let wheel_path = wheel_dir.join(filename.to_string());
     debug!("Writing wheel at {}", wheel_path.user_display());
 
-    if wheel_path.exists() {
+    if wheel_path.vfs_exists() {
         uv_vfs::fs::remove_file(&wheel_path)?;
     }
 
@@ -278,7 +279,7 @@ pub fn build_editable(
     let wheel_path = wheel_dir.join(filename.to_string());
     debug!("Writing wheel at {}", wheel_path.user_display());
 
-    if wheel_path.exists() {
+    if wheel_path.vfs_exists() {
         uv_vfs::fs::remove_file(&wheel_path)?;
     }
 
@@ -901,7 +902,7 @@ impl<W: AsyncWrite + AsyncSeek + Unpin> DirectoryWriter for ZipDirectoryWriter<W
 
     fn write_file(&mut self, path: &str, file: &Path) -> Result<(), Error> {
         trace!("Adding {} from {}", path, file.user_display());
-        let metadata = file.metadata()?;
+        let metadata = file.vfs_metadata()?;
         // Preserve the executable bit, especially for scripts
         #[cfg(unix)]
         let executable_bit = {

@@ -28,6 +28,7 @@ use uv_types::HashStrategy;
 
 use crate::satisfies::RequirementSatisfaction;
 use crate::{InstallationStrategy, SitePackages};
+use uv_vfs::VfsPathExt as _;
 
 /// A wheel dependency is incompatible with the current platform.
 #[derive(Debug)]
@@ -470,7 +471,7 @@ impl<'a> Planner<'a> {
                 }
                 Dist::Built(BuiltDist::Path(wheel)) => {
                     // Validate that the path exists.
-                    if !wheel.install_path.exists() {
+                    if !wheel.install_path.vfs_exists() {
                         return Err(Error::NotFound(wheel.url.to_url()).into());
                     }
 
@@ -672,7 +673,7 @@ impl<'a> Planner<'a> {
                 }
                 Dist::Source(SourceDist::Path(sdist)) => {
                     // Validate that the path exists.
-                    if !sdist.install_path.exists() {
+                    if !sdist.install_path.vfs_exists() {
                         return Err(Error::NotFound(sdist.url.to_url()).into());
                     }
 
@@ -706,7 +707,7 @@ impl<'a> Planner<'a> {
                 }
                 Dist::Source(SourceDist::Directory(sdist)) => {
                     // Validate that the path exists.
-                    if !sdist.install_path.exists() {
+                    if !sdist.install_path.vfs_exists() {
                         return Err(Error::NotFound(sdist.url.to_url()).into());
                     }
 

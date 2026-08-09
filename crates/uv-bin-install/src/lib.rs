@@ -31,6 +31,7 @@ use uv_extract::{Error as ExtractError, stream};
 use uv_pep440::{Version, VersionSpecifier, VersionSpecifiers};
 use uv_platform::Platform;
 use uv_redacted::DisplaySafeUrl;
+use uv_vfs::VfsPathExt as _;
 
 /// Binary tools that can be installed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -728,7 +729,7 @@ async fn bin_install_from_urls(
 
     // Lock the directory to prevent racing installs
     let _lock = cache_entry.with_file(".lock").lock().await?;
-    if cache_entry.path().exists() {
+    if cache_entry.path().vfs_exists() {
         return Ok(cache_entry.into_path_buf());
     }
 
@@ -862,7 +863,7 @@ async fn download_and_unpack(
         }
     };
 
-    if !extracted_binary.exists() {
+    if !extracted_binary.vfs_exists() {
         return Err(Error::BinaryNotFound {
             expected: extracted_binary,
         });

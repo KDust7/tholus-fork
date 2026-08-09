@@ -2,6 +2,7 @@
 
 use std::io::Write;
 use std::{io, path};
+use uv_vfs::VfsPathExt as _;
 
 /// The `CACHEDIR.TAG` file header as defined by the [specification](https://bford.info/cachedir/).
 const HEADER: &[u8; 43] = b"Signature: 8a477f597d28d172789f06886806bc55";
@@ -37,7 +38,7 @@ pub fn ensure_tag<P: AsRef<path::Path>>(directory: P) -> io::Result<()> {
         Err(e) => match e.kind() {
             io::ErrorKind::AlreadyExists => Ok(()),
             // If it exists, but we can't write to it for some reason don't fail
-            io::ErrorKind::PermissionDenied if directory.as_ref().join("CACHEDIR.TAG").exists() => {
+            io::ErrorKind::PermissionDenied if directory.as_ref().join("CACHEDIR.TAG").vfs_exists() => {
                 Ok(())
             }
             _ => Err(e),

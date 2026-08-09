@@ -17,6 +17,7 @@ use uv_warnings::warn_user;
 
 use crate::Error;
 use crate::wheel::ValidatedWheel;
+use uv_vfs::VfsPathExt as _;
 
 pub use uv_fs::link::LinkMode;
 
@@ -130,7 +131,7 @@ impl InstallState {
                 // directory enclosing them.
                 let files: BTreeSet<(&WheelFilename, u64)> = wheels
                     .iter()
-                    .map(|(wheel, absolute)| Ok((wheel, absolute.metadata()?.len())))
+                    .map(|(wheel, absolute)| Ok((wheel, absolute.vfs_metadata()?.len())))
                     .collect::<Result<_, io::Error>>()?;
                 Self::warn_file_conflict(relative, &files);
             } else if file_type.is_dir() {

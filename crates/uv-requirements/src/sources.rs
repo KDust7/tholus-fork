@@ -6,6 +6,7 @@ use console::Term;
 
 use uv_fs::{CWD, Simplified};
 use uv_requirements_txt::RequirementsTxtRequirement;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, Clone)]
 pub enum RequirementsSource {
@@ -193,7 +194,7 @@ impl RequirementsSource {
         // If the user provided a `requirements.txt` file without `-r` (as in
         // `uv pip install requirements.txt`), prompt them to correct it.
         #[expect(clippy::case_sensitive_file_extension_comparisons)]
-        if (name.ends_with(".txt") || name.ends_with(".in")) && Path::new(&name).is_file() {
+        if (name.ends_with(".txt") || name.ends_with(".in")) && Path::new(&name).vfs_is_file() {
             let term = Term::stderr();
             if term.is_term() {
                 let prompt = format!(
@@ -213,7 +214,7 @@ impl RequirementsSource {
             || name == "setup.py"
             || name == "setup.cfg"
             || is_pylock_toml(name))
-            && Path::new(&name).is_file()
+            && Path::new(&name).vfs_is_file()
         {
             let term = Term::stderr();
             if term.is_term() {
@@ -243,7 +244,7 @@ impl RequirementsSource {
         // If the user provided a `requirements.txt` file without `--with-requirements` (as in
         // `uvx --with requirements.txt ruff`), prompt them to correct it.
         #[expect(clippy::case_sensitive_file_extension_comparisons)]
-        if (name.ends_with(".txt") || name.ends_with(".in")) && Path::new(&name).is_file() {
+        if (name.ends_with(".txt") || name.ends_with(".in")) && Path::new(&name).vfs_is_file() {
             let term = Term::stderr();
             if term.is_term() {
                 let prompt = format!(
@@ -263,7 +264,7 @@ impl RequirementsSource {
             || name == "setup.py"
             || name == "setup.cfg"
             || is_pylock_toml(name))
-            && Path::new(&name).is_file()
+            && Path::new(&name).vfs_is_file()
         {
             let term = Term::stderr();
             if term.is_term() {

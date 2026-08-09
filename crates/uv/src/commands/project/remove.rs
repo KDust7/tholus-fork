@@ -37,6 +37,7 @@ use crate::commands::project::{
 use crate::commands::{ExitStatus, diagnostics, project};
 use crate::printer::Printer;
 use crate::settings::{FrozenSource, LockCheck, ResolverInstallerSettings};
+use uv_vfs::VfsPathExt as _;
 
 /// Remove one or more packages from the project requirements.
 pub(crate) async fn remove(
@@ -199,7 +200,7 @@ pub(crate) async fn remove(
 
     // If we're modifying a script, and lockfile doesn't exist, don't create it.
     if let RemoveTarget::Script(ref script) = target {
-        if !LockTarget::from(script).lock_path().is_file() {
+        if !LockTarget::from(script).lock_path().vfs_is_file() {
             writeln!(
                 printer.stderr(),
                 "Updated `{}`",

@@ -10,6 +10,7 @@ use uv_preview::{Preview, PreviewFeature};
 
 use crate::commands::{ExitStatus, human_readable_bytes};
 use crate::printer::Printer;
+use uv_vfs::VfsPathExt as _;
 
 /// Prune dangling cache entries and cached environments.
 pub(crate) async fn cache_prune(
@@ -19,7 +20,7 @@ pub(crate) async fn cache_prune(
     printer: Printer,
     preview: Preview,
 ) -> Result<ExitStatus> {
-    if !cache.root().exists() {
+    if !cache.root().vfs_exists() {
         writeln!(
             printer.stderr(),
             "No cache found at: {}",

@@ -59,6 +59,7 @@ use crate::settings::{
     PipInstallSettings, PipListSettings, PipShowSettings, PipSyncSettings, PipUninstallSettings,
     PublishSettings, resolve_color,
 };
+use uv_vfs::VfsPathExt as _;
 
 pub(crate) mod child;
 pub mod commands;
@@ -223,7 +224,7 @@ async fn run_with_workspace_cache(
         let path = normalize_path(std::path::absolute(project)?);
         if let Some(name) = path.file_name()
             && name == "pyproject.toml"
-            && path.is_file()
+            && path.vfs_is_file()
             && let Some(parent) = path.parent()
         {
             Cow::Owned(parent.to_path_buf())
@@ -249,12 +250,12 @@ async fn run_with_workspace_cache(
 
     if !skip_project_validation {
         if let Some(project_path) = cli.top_level.global_args.project.as_ref() {
-            if !project_dir.exists() {
+            if !project_dir.vfs_exists() {
                 bail!(
                     "Project directory `{}` does not exist",
                     project_path.user_display()
                 );
-            } else if !project_dir.is_dir() {
+            } else if !project_dir.vfs_is_dir() {
                 // `--project path/to/pyproject.toml` is resolved to its parent above,
                 // so this only triggers for other file types (see #18508).
                 bail!(

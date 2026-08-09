@@ -34,6 +34,7 @@ use crate::installation::{self, PythonInstallationKey};
 use crate::interpreter::Interpreter;
 use crate::python_version::PythonVersion;
 use crate::{PythonInstallationMinorVersionKey, PythonVariant, macos_dylib, sysconfig};
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -158,10 +159,10 @@ impl ManagedPythonInstallations {
         let root = &self.root;
 
         // Support `toolchains` -> `python` migration transparently.
-        if !root.exists()
+        if !root.vfs_exists()
             && root
                 .parent()
-                .is_some_and(|parent| parent.join("toolchains").exists())
+                .is_some_and(|parent| parent.join("toolchains").vfs_exists())
         {
             let deprecated = root.parent().unwrap().join("toolchains");
             // Move the deprecated directory to the new location.
@@ -438,7 +439,7 @@ impl ManagedPythonInstallation {
         // See https://github.com/astral-sh/uv/issues/8298
         if cfg!(windows)
             && matches!(self.key.variant, PythonVariant::Freethreaded)
-            && !executable.exists()
+            && !executable.vfs_exists()
         {
             // This is the alternative executable name for the freethreaded variant
             return self.python_dir().join(format!(
@@ -454,7 +455,7 @@ impl ManagedPythonInstallation {
 
     fn python_dir(&self) -> PathBuf {
         let install = self.path.join("install");
-        if install.is_dir() {
+        if install.vfs_is_dir() {
             install
         } else {
             self.path.clone()
@@ -833,13 +834,13 @@ impl PythonMinorVersionLink {
         cfg_select! {
             unix => {
                 self.symlink_directory
-                    .symlink_metadata()
+                    .vfs_symlink_metadata()
                     .is_ok_and(|metadata| metadata.file_type().is_symlink())
                     && points_to_target()
             },
             windows => {
                 self.symlink_directory
-                    .symlink_metadata()
+                    .vfs_symlink_metadata()
                     .is_ok_and(|metadata| {
                         // Check that this is a reparse point, which indicates this
                         // is a symlink or junction.

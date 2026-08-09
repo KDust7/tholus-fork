@@ -57,6 +57,7 @@ use crate::source::revision::Revision;
 use crate::{Reporter, RequiresDist};
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
+use uv_vfs::VfsPathExt as _;
 
 mod built_wheel_metadata;
 mod revision;
@@ -187,7 +188,7 @@ async fn fetch_git_source_tree(
         .await?;
 
     if let Some(subdirectory) = subdirectory
-        && !fetch.path().join(subdirectory).is_dir()
+        && !fetch.path().join(subdirectory).vfs_is_dir()
     {
         return Err(Error::MissingSubdirectory(url, subdirectory.to_path_buf()));
     }
@@ -690,7 +691,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
         }
 
         // Otherwise, we need to build a wheel. Before building, ensure that the source is present.
-        let revision = if source_dist_entry.path().is_dir() {
+        let revision = if source_dist_entry.path().vfs_is_dir() {
             revision
         } else {
             self.heal_url_revision(
@@ -708,7 +709,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
 
         // Validate that the subdirectory exists.
         if let Some(subdirectory) = subdirectory {
-            if !source_dist_entry.path().join(subdirectory).is_dir() {
+            if !source_dist_entry.path().join(subdirectory).vfs_is_dir() {
                 return Err(Error::MissingSubdirectory(
                     url.clone(),
                     subdirectory.to_path_buf(),
@@ -823,7 +824,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
         }
 
         // Otherwise, we need a wheel.
-        let revision = if source_dist_entry.path().is_dir() {
+        let revision = if source_dist_entry.path().vfs_is_dir() {
             revision
         } else {
             self.heal_url_revision(
@@ -841,7 +842,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
 
         // Validate that the subdirectory exists.
         if let Some(subdirectory) = subdirectory {
-            if !source_dist_entry.path().join(subdirectory).is_dir() {
+            if !source_dist_entry.path().join(subdirectory).vfs_is_dir() {
                 return Err(Error::MissingSubdirectory(
                     url.clone(),
                     subdirectory.to_path_buf(),
@@ -1115,7 +1116,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
         }
 
         // Otherwise, we need to build a wheel, which requires a source distribution.
-        let revision = if source_entry.path().is_dir() {
+        let revision = if source_entry.path().vfs_is_dir() {
             revision
         } else {
             self.heal_archive_revision(source, resource, &source_entry, revision, hashes)
@@ -1223,7 +1224,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
         }
 
         // Otherwise, we need a source distribution.
-        let revision = if source_entry.path().is_dir() {
+        let revision = if source_entry.path().vfs_is_dir() {
             revision
         } else {
             self.heal_archive_revision(source, resource, &source_entry, revision, hashes)
@@ -1326,7 +1327,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
         hashes: HashPolicy<'_>,
     ) -> Result<LocalRevisionPointer, Error> {
         // Verify that the archive exists.
-        if !resource.path.is_file() {
+        if !resource.path.vfs_is_file() {
             return Err(Error::NotFound(resource.url.clone()));
         }
 
@@ -1701,7 +1702,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
         cache_shard: &CacheShard,
     ) -> Result<LocalRevisionPointer, Error> {
         // Verify that the source tree exists.
-        if !resource.install_path.is_dir() {
+        if !resource.install_path.vfs_is_dir() {
             return Err(Error::NotFound(resource.url.clone()));
         }
 
@@ -1813,7 +1814,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
 
         // Verify that the archive exists.
         let install_path = fetch.path().join(&resource.path);
-        if !install_path.is_file() {
+        if !install_path.vfs_is_file() {
             return Err(Error::NotFound(resource.url.to_url()));
         }
 
@@ -2254,7 +2255,7 @@ impl<'a, T: BuildContext> SourceDistributionBuilder<'a, T> {
             });
         if cache_shard
             .as_ref()
-            .is_some_and(|cache_shard| cache_shard.is_dir())
+            .is_some_and(|cache_shard| cache_shard.vfs_is_dir())
         {
             debug!("Skipping GitHub fast path for: {source} (shard exists)");
         } else {
@@ -3311,7 +3312,7 @@ pub fn prune(cache: &Cache) -> Result<Removal, Error> {
     let mut removal = cache.removal();
 
     let bucket = cache.bucket(CacheBucket::SourceDistributions);
-    if bucket.is_dir() {
+    if bucket.vfs_is_dir() {
         for entry in walkdir::WalkDir::new(bucket) {
             let entry = entry.map_err(Error::CacheWalk)?;
 
@@ -3322,7 +3323,7 @@ pub fn prune(cache: &Cache) -> Result<Removal, Error> {
             // If we find a `revision.http` file, read the pointer, and remove any extraneous
             // directories.
             let revision = entry.path().join("revision.http");
-            if revision.is_file() {
+            if revision.vfs_is_file() {
                 if let Ok(Some(pointer)) = HttpRevisionPointer::read_from(revision) {
                     // Remove all sibling directories that are not referenced by the pointer.
                     for sibling in entry.path().read_dir().map_err(Error::CacheRead)? {
@@ -3346,7 +3347,7 @@ pub fn prune(cache: &Cache) -> Result<Removal, Error> {
             // If we find a `revision.rev` file, read the pointer, and remove any extraneous
             // directories.
             let revision = entry.path().join("revision.rev");
-            if revision.is_file() {
+            if revision.vfs_is_file() {
                 if let Ok(Some(pointer)) = LocalRevisionPointer::read_from(revision) {
                     // Remove all sibling directories that are not referenced by the pointer.
                     for sibling in entry.path().read_dir().map_err(Error::CacheRead)? {

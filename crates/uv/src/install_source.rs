@@ -4,6 +4,7 @@ use std::{
     ffi::OsStr,
     path::{Path, PathBuf},
 };
+use uv_vfs::VfsPathExt as _;
 
 /// Known sources for uv installations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,7 +15,7 @@ pub(crate) enum InstallSource {
 impl InstallSource {
     /// Attempt to infer the install source for the given executable path.
     fn from_path(path: &Path) -> Option<Self> {
-        let canonical = path.canonicalize().unwrap_or_else(|_| PathBuf::from(path));
+        let canonical = path.vfs_canonicalize().unwrap_or_else(|_| PathBuf::from(path));
 
         let components = canonical
             .components()

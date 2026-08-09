@@ -38,6 +38,7 @@ use crate::commands::ExitStatus;
 use crate::commands::project::{find_requires_python, init_script_python_requirement};
 use crate::commands::reporters::PythonDownloadReporter;
 use crate::printer::Printer;
+use uv_vfs::VfsPathExt as _;
 
 /// Add one or more packages to the project requirements.
 #[expect(clippy::single_match_else, clippy::fn_params_excessive_bools)]
@@ -102,7 +103,7 @@ pub(crate) async fn init(
             };
 
             // Make sure a project does not already exist in the given directory.
-            if path.join("pyproject.toml").exists() {
+            if path.join("pyproject.toml").vfs_exists() {
                 let path =
                     std::path::absolute(&path).unwrap_or_else(|_| path.simplified().to_path_buf());
                 anyhow::bail!(
@@ -166,7 +167,7 @@ pub(crate) async fn init(
             // Create the `README.md` if it does not already exist.
             if !no_readme && !bare {
                 let readme = path.join("README.md");
-                if !readme.exists() {
+                if !readme.vfs_exists() {
                     uv_vfs::fs::write(readme, String::new())?;
                 }
             }
@@ -300,7 +301,7 @@ async fn init_project(
         let parent = match path.parent() {
             Some(parent) => parent,
             None => {
-                if path.is_dir() {
+                if path.vfs_is_dir() {
                     // Support creating a project in the filesystem root (`/` on Unix).
                     path
                 } else {
@@ -811,7 +812,7 @@ impl InitProjectKind {
                 // (This isn't intended to be a particularly special or magical filename, just nice)
                 // TODO(zanieb): Only create `main.py` if there are no other Python files?
                 let main_py = path.join("main.py");
-                if !main_py.try_exists()? && !bare {
+                if !main_py.vfs_try_exists()? && !bare {
                     uv_vfs::fs::write(path.join("main.py"), main_contents)?;
                 }
             }
@@ -991,7 +992,7 @@ fn pyproject_build_backend_prerequisites(
         ProjectBuildBackend::Maturin => {
             // Generate Cargo.toml
             let build_file = path.join("Cargo.toml");
-            if !build_file.try_exists()? {
+            if !build_file.vfs_try_exists()? {
                 uv_vfs::fs::write(
                     build_file,
                     indoc::formatdoc! {r#"
@@ -1016,7 +1017,7 @@ fn pyproject_build_backend_prerequisites(
         ProjectBuildBackend::Scikit => {
             // Generate CMakeLists.txt
             let build_file = path.join("CMakeLists.txt");
-            if !build_file.try_exists()? {
+            if !build_file.vfs_try_exists()? {
                 uv_vfs::fs::write(
                     build_file,
                     indoc::formatdoc! {r"
@@ -1089,7 +1090,7 @@ fn generate_package_scripts(
         ProjectBuildBackend::Maturin => {
             // Generate lib.rs
             let native_src = src_dir.join("lib.rs");
-            if !native_src.try_exists()? {
+            if !native_src.vfs_try_exists()? {
                 uv_vfs::fs::write(
                     native_src,
                     indoc::formatdoc! {r#"
@@ -1112,7 +1113,7 @@ fn generate_package_scripts(
             }
             // Generate .pyi file
             let pyi_file = pkg_dir.join("_core.pyi");
-            if !pyi_file.try_exists()? {
+            if !pyi_file.vfs_try_exists()? {
                 uv_vfs::fs::write(pyi_file, pyi_contents)?;
             }
             // Return python script calling binary
@@ -1121,7 +1122,7 @@ fn generate_package_scripts(
         ProjectBuildBackend::Scikit => {
             // Generate main.cpp
             let native_src = src_dir.join("main.cpp");
-            if !native_src.try_exists()? {
+            if !native_src.vfs_try_exists()? {
                 uv_vfs::fs::write(
                     native_src,
                     indoc::formatdoc! {r#"
@@ -1143,7 +1144,7 @@ fn generate_package_scripts(
             }
             // Generate .pyi file
             let pyi_file = pkg_dir.join("_core.pyi");
-            if !pyi_file.try_exists()? {
+            if !pyi_file.vfs_try_exists()? {
                 uv_vfs::fs::write(pyi_file, pyi_contents)?;
             }
             // Return python script calling binary
@@ -1154,14 +1155,14 @@ fn generate_package_scripts(
 
     // Create `src/{name}/__init__.py`, if it doesn't exist already.
     let init_py = pkg_dir.join("__init__.py");
-    if !init_py.try_exists()? {
+    if !init_py.vfs_try_exists()? {
         uv_vfs::fs::write(init_py, package_script)?;
     }
 
     // Create `src/{name}/py.typed`, if it doesn't exist already.
     if is_lib {
         let py_typed = pkg_dir.join("py.typed");
-        if !py_typed.try_exists()? {
+        if !py_typed.vfs_try_exists()? {
             uv_vfs::fs::write(py_typed, "")?;
         }
     }

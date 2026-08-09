@@ -34,6 +34,7 @@ use tracing::trace;
 
 use crate::sysconfig::generated_mappings::DEFAULT_VARIABLE_UPDATES;
 use crate::sysconfig::parser::{Error as ParseError, SysconfigData, Value};
+use uv_vfs::VfsPathExt as _;
 
 mod cursor;
 mod generated_mappings;
@@ -105,7 +106,7 @@ fn find_sysconfigdata(
     let lib = real_prefix
         .join("lib")
         .join(format!("python{major}.{minor}{suffix}"));
-    if !lib.exists() {
+    if !lib.vfs_exists() {
         return Err(Error::MissingLib(lib));
     }
 

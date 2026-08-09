@@ -64,6 +64,7 @@ pub use crate::requirement::RequirementsTxtRequirement;
 use crate::shquote::unquote;
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
+use uv_vfs::VfsPathExt as _;
 
 mod requirement;
 mod shquote;
@@ -771,7 +772,7 @@ fn parse_entry(
         let expanded = expand_env_vars(given.as_ref());
         let url = if let Some(path) = std::path::absolute(expanded.as_ref())
             .ok()
-            .filter(|path| path.exists())
+            .filter(|path| path.vfs_exists())
         {
             VerbatimUrl::from_absolute_path(path).map_err(|err| {
                 RequirementsTxtParserError::VerbatimUrl {
@@ -802,7 +803,7 @@ fn parse_entry(
         let expanded = expand_env_vars(given.as_ref());
         let url = if let Some(path) = std::path::absolute(expanded.as_ref())
             .ok()
-            .filter(|path| path.exists())
+            .filter(|path| path.vfs_exists())
         {
             VerbatimUrl::from_absolute_path(path).map_err(|err| {
                 RequirementsTxtParserError::VerbatimUrl {
@@ -837,7 +838,7 @@ fn parse_entry(
         let expanded = expand_env_vars(given.as_ref());
         let url = if let Some(path) = std::path::absolute(requirements_dir.join(expanded.as_ref()))
             .ok()
-            .filter(|path| path.exists())
+            .filter(|path| path.vfs_exists())
         {
             VerbatimUrl::from_absolute_path(path).map_err(|err| {
                 RequirementsTxtParserError::VerbatimUrl {
@@ -1018,7 +1019,7 @@ fn parse_requirement_and_hashes(
         } else {
             Cow::Owned(working_dir.join(path))
         };
-        if path.is_file() {
+        if path.vfs_is_file() {
             return Err(RequirementsTxtParserError::MissingRequirementPrefix(
                 requirement.to_string(),
             ));

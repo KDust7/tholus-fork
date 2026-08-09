@@ -5,6 +5,7 @@ use std::sync::LazyLock;
 
 use either::Either;
 use path_slash::PathExt;
+use uv_vfs::VfsPathExt as _;
 
 /// The current working directory.
 #[expect(clippy::print_stderr)]
@@ -421,7 +422,7 @@ pub fn relative_to(
 pub fn find_git_repository_root(path: &Path) -> Option<&Path> {
     // TODO: Consider supporting GIT_CEILING_DIRECTORIES here.
     path.ancestors()
-        .find(|ancestor| ancestor.join(".git").exists())
+        .find(|ancestor| ancestor.join(".git").vfs_exists())
 }
 
 /// Try to compute a path relative to `base` if `should_relativize` is true, otherwise return

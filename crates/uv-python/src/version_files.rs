@@ -9,6 +9,7 @@ use uv_fs::Simplified;
 use uv_warnings::warn_user_once;
 
 use crate::PythonRequest;
+use uv_vfs::VfsPathExt as _;
 
 /// The file name for Python version pins.
 pub static PYTHON_VERSION_FILENAME: &str = ".python-version";
@@ -178,7 +179,7 @@ impl PythonVersionFile {
             FilePreference::Version => [version_path, versions_path],
         };
 
-        paths.into_iter().find(|path| path.is_file())
+        paths.into_iter().find(|path| path.vfs_is_file())
     }
 
     /// Try to read a Python version file at the given path.

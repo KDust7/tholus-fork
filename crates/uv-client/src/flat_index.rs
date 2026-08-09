@@ -18,6 +18,7 @@ use crate::html::SimpleDetailHTML;
 use crate::{CachedClient, Connectivity, Error, ErrorKind, OwnedArchive};
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FlatIndexError {
@@ -171,7 +172,7 @@ impl<'a> FlatIndexClient<'a> {
                 let path = url
                     .to_file_path()
                     .map_err(|()| FlatIndexError::NonFileUrl(url.to_url()))?;
-                if path.is_file() {
+                if path.vfs_is_file() {
                     self.read_from_file(&path, index)
                         .await
                         .map_err(|err| FlatIndexError::FindLinksFile(path.clone(), err))
@@ -331,14 +332,14 @@ impl<'a> FlatIndexClient<'a> {
             }
 
             if metadata.is_symlink() {
-                let Ok(target) = entry.path().read_link() else {
+                let Ok(target) = entry.path().vfs_read_link() else {
                     warn!(
                         "Skipping unreadable symlink in `--find-links` directory: {}",
                         entry.path().display()
                     );
                     continue;
                 };
-                if target.is_dir() {
+                if target.vfs_is_dir() {
                     continue;
                 }
             }

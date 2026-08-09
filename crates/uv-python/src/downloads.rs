@@ -49,6 +49,7 @@ use crate::python_version::{BuildVersionError, python_build_version_from_env};
 use crate::{Interpreter, PythonRequest, PythonVersion, VersionRequest};
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -1239,7 +1240,7 @@ impl ManagedPythonDownload {
         let path = installation_dir.join(self.key().to_string());
 
         // If it is not a reinstall and the dir already exists, return it.
-        if !reinstall && path.is_dir() {
+        if !reinstall && path.vfs_is_dir() {
             return Ok(DownloadResult::AlreadyAvailable(path));
         }
 
@@ -1358,7 +1359,7 @@ impl ManagedPythonDownload {
         };
 
         // If the distribution is a `full` archive, the Python installation is in the `install` directory.
-        if extracted.join("install").is_dir() {
+        if extracted.join("install").vfs_is_dir() {
             extracted = extracted.join("install");
         // If the distribution is a Pyodide archive, the Python installation is in the `pyodide-root/dist` directory.
         } else if self.os().is_emscripten() {
@@ -1401,7 +1402,7 @@ impl ManagedPythonDownload {
         }
 
         // Remove the target if it already exists.
-        if path.is_dir() {
+        if path.vfs_is_dir() {
             debug!("Removing existing directory: {}", path.user_display());
             uv_vfs::fs::tokio::remove_dir_all(&path).await?;
         }
@@ -1459,7 +1460,7 @@ impl ManagedPythonDownload {
         // Move the completed file into place, invalidating the `File` instance.
         match rename_with_retry(&temp_file, target_cache_file).await {
             Ok(()) => {}
-            Err(_) if target_cache_file.is_file() => {}
+            Err(_) if target_cache_file.vfs_is_file() => {}
             Err(err) => return Err(err.into()),
         }
         Ok(())

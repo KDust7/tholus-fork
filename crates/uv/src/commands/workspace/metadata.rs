@@ -26,6 +26,7 @@ use crate::printer::{Printer, Stdout};
 use crate::settings::{FrozenSource, LockCheck, ResolverSettings};
 
 use super::module_owners::collect_module_owners;
+use uv_vfs::VfsPathExt as _;
 
 /// Display metadata about the workspace.
 pub(crate) async fn metadata(
@@ -126,7 +127,7 @@ pub(crate) async fn metadata(
         if let LockCheck::Enabled(lock_check) = lock_check {
             LockMode::Locked(&interpreter, lock_check)
         } else if dry_run.enabled()
-            || (matches!(target, LockTarget::Script(_)) && !target.lock_path().is_file())
+            || (matches!(target, LockTarget::Script(_)) && !target.lock_path().vfs_is_file())
         {
             LockMode::DryRun(&interpreter)
         } else {

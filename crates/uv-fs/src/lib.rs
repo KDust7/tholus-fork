@@ -8,6 +8,7 @@ use std::io::Read;
 use encoding_rs_io::DecodeReaderBytes;
 use uv_vfs::temp::NamedTempFile;
 use tracing::{debug, warn};
+use uv_vfs::VfsPathExt as _;
 
 pub use crate::locked_file::*;
 pub use crate::path::*;
@@ -792,7 +793,7 @@ pub fn is_virtualenv_executable(executable: impl AsRef<Path>) -> bool {
 /// for a `home` key, but in practice we've found this to be
 /// unnecessary.
 pub fn is_virtualenv_base(path: impl AsRef<Path>) -> bool {
-    path.as_ref().join("pyvenv.cfg").is_file()
+    path.as_ref().join("pyvenv.cfg").vfs_is_file()
 }
 
 /// Whether the error is due to a lock being held.
@@ -885,7 +886,7 @@ pub fn remove_virtualenv(location: &Path) -> io::Result<()> {
         if path == location.join("pyvenv.cfg") {
             continue;
         }
-        if path.is_dir() {
+        if path.vfs_is_dir() {
             uv_vfs::fs::remove_dir_all(&path)?;
         } else {
             uv_vfs::fs::remove_file(&path)?;
@@ -921,7 +922,7 @@ pub fn remove_virtualenv(location: &Path) -> io::Result<()> {
 /// Returns whether an existing entry was found.
 pub fn clear_virtualenv(location: &Path) -> io::Result<bool> {
     let location = location
-        .canonicalize()
+        .vfs_canonicalize()
         .unwrap_or_else(|_| location.to_path_buf());
     let cleared = match remove_virtualenv(&location) {
         Ok(()) => true,

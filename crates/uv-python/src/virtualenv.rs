@@ -12,6 +12,7 @@ use uv_pypi_types::Scheme;
 use uv_static::EnvVars;
 
 use crate::PythonVersion;
+use uv_vfs::VfsPathExt as _;
 
 /// The layout of a virtual environment.
 #[derive(Debug)]
@@ -129,7 +130,7 @@ impl CondaEnvironmentKind {
 
 /// Detect whether the current `CONDA_PREFIX` belongs to a Pixi-managed environment.
 fn is_pixi_environment(path: &Path) -> bool {
-    path.join("conda-meta").join("pixi").is_file()
+    path.join("conda-meta").join("pixi").vfs_is_file()
 }
 
 /// Locate an active conda environment by inspecting environment variables.
@@ -185,20 +186,20 @@ pub(crate) fn virtualenv_python_executable(venv: impl AsRef<Path>) -> PathBuf {
     if cfg!(windows) {
         // Search for `python.exe` in the `Scripts` directory.
         let default_executable = venv.join("Scripts").join("python.exe");
-        if default_executable.exists() {
+        if default_executable.vfs_exists() {
             return default_executable;
         }
 
         // Apparently, Python installed via msys2 on Windows _might_ produce a POSIX-like layout.
         // See: https://github.com/PyO3/maturin/issues/1108
         let executable = venv.join("bin").join("python.exe");
-        if executable.exists() {
+        if executable.vfs_exists() {
             return executable;
         }
 
         // Fallback for Conda environments.
         let executable = venv.join("python.exe");
-        if executable.exists() {
+        if executable.vfs_exists() {
             return executable;
         }
 
@@ -207,12 +208,12 @@ pub(crate) fn virtualenv_python_executable(venv: impl AsRef<Path>) -> PathBuf {
     } else {
         // Check for both `python3` over `python`, preferring the more specific one
         let default_executable = venv.join("bin").join("python3");
-        if default_executable.exists() {
+        if default_executable.vfs_exists() {
             return default_executable;
         }
 
         let executable = venv.join("bin").join("python");
-        if executable.exists() {
+        if executable.vfs_exists() {
             return executable;
         }
 

@@ -67,6 +67,7 @@ use crate::settings::{
     FrozenSource, InstallerSettingsRef, LockCheckSource, ResolverInstallerSettings,
     ResolverSettings,
 };
+use uv_vfs::VfsPathExt as _;
 
 pub(crate) mod add;
 pub(crate) mod audit;
@@ -1063,7 +1064,7 @@ fn existing_project_environment(
                     if !centralized
                         && uv_vfs::fs::read_dir(root).is_ok_and(|mut dir| dir.next().is_some())
                     {
-                        if !root.join("pyvenv.cfg").try_exists().unwrap_or_default() {
+                        if !root.join("pyvenv.cfg").vfs_try_exists().unwrap_or_default() {
                             return Err(ProjectError::InvalidProjectEnvironmentDir(
                                 root.to_path_buf(),
                                 "it is not a valid Python environment (no Python executable was found)"
@@ -1887,7 +1888,7 @@ impl ProjectEnvironment {
                 let replace_environment = if centralized_environment_reference {
                     true
                 } else {
-                    match (root.try_exists(), root.join("pyvenv.cfg").try_exists()) {
+                    match (root.vfs_try_exists(), root.join("pyvenv.cfg").vfs_try_exists()) {
                         // It's a virtual environment we can remove it
                         (_, Ok(true)) => true,
                         // It doesn't exist at all, we should use it without deleting it to avoid TOCTOU bugs
@@ -2168,7 +2169,7 @@ impl ScriptEnvironment {
                         uv_virtualenv::Seed::Disabled,
                         upgradeable,
                     )?;
-                    return Ok(if root.exists() {
+                    return Ok(if root.vfs_exists() {
                         Self::WouldReplace(root, environment, temp_dir)
                     } else {
                         Self::WouldCreate(root, environment, temp_dir)

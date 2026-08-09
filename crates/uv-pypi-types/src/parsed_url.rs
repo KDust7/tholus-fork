@@ -15,6 +15,7 @@ use uv_redacted::{DisplaySafeUrl, DisplaySafeUrlError};
 use crate::{ArchiveInfo, DirInfo, DirectUrl, VcsInfo, VcsKind};
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, Error)]
 pub enum ParsedUrlError {
@@ -84,7 +85,7 @@ impl UnnamedRequirementUrl for VerbatimParsedUrl {
     ) -> Result<Self, Self::Err> {
         let verbatim = <VerbatimUrl as UnnamedRequirementUrl>::parse_path(&path, &working_dir)?;
         let verbatim_path = verbatim.as_path()?;
-        let is_dir = if let Ok(metadata) = verbatim_path.metadata() {
+        let is_dir = if let Ok(metadata) = verbatim_path.vfs_metadata() {
             metadata.is_dir()
         } else {
             verbatim_path.extension().is_none()
@@ -116,7 +117,7 @@ impl UnnamedRequirementUrl for VerbatimParsedUrl {
     fn parse_absolute_path(path: impl AsRef<Path>) -> Result<Self, Self::Err> {
         let verbatim = <VerbatimUrl as UnnamedRequirementUrl>::parse_absolute_path(&path)?;
         let verbatim_path = verbatim.as_path()?;
-        let is_dir = if let Ok(metadata) = verbatim_path.metadata() {
+        let is_dir = if let Ok(metadata) = verbatim_path.vfs_metadata() {
             metadata.is_dir()
         } else {
             verbatim_path.extension().is_none()
@@ -487,7 +488,7 @@ impl TryFrom<DisplaySafeUrl> for ParsedUrl {
             let path = url
                 .to_file_path()
                 .map_err(|()| ParsedUrlError::InvalidFileUrl(url.to_string()))?;
-            let is_dir = if let Ok(metadata) = path.metadata() {
+            let is_dir = if let Ok(metadata) = path.vfs_metadata() {
                 metadata.is_dir()
             } else {
                 path.extension().is_none()

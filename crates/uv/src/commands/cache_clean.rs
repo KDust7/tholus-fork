@@ -12,6 +12,7 @@ use uv_preview::{Preview, PreviewFeature};
 use crate::commands::reporters::{CleaningDirectoryReporter, CleaningPackageReporter};
 use crate::commands::{ExitStatus, human_readable_bytes};
 use crate::printer::Printer;
+use uv_vfs::VfsPathExt as _;
 
 /// Clear the cache, removing all entries or those linked to specific packages.
 pub(crate) async fn cache_clean(
@@ -21,7 +22,7 @@ pub(crate) async fn cache_clean(
     printer: Printer,
     preview: Preview,
 ) -> Result<ExitStatus> {
-    if !cache.root().exists() {
+    if !cache.root().vfs_exists() {
         writeln!(
             printer.stderr(),
             "No cache found at: {}",

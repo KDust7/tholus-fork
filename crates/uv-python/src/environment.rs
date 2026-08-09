@@ -17,6 +17,7 @@ use crate::{
     EnvironmentPreference, Error, Interpreter, Prefix, PythonNotFound, PythonPreference,
     PythonRequest, Target,
 };
+use uv_vfs::VfsPathExt as _;
 
 /// A Python environment, consisting of a Python [`Interpreter`] and its associated paths.
 #[derive(Debug, Clone)]
@@ -170,7 +171,7 @@ impl PythonEnvironment {
             "Checking for Python environment at: `{}`",
             root.as_ref().user_display()
         );
-        match root.as_ref().try_exists() {
+        match root.as_ref().vfs_try_exists() {
             Ok(true) => {}
             Ok(false) => {
                 return Err(Error::MissingEnvironment(EnvironmentNotFound {
@@ -181,7 +182,7 @@ impl PythonEnvironment {
             Err(err) => return Err(Error::Discovery(err.into())),
         }
 
-        if root.as_ref().is_file() {
+        if root.as_ref().vfs_is_file() {
             return Err(InvalidEnvironment {
                 path: root.as_ref().to_path_buf(),
                 kind: InvalidEnvironmentKind::NotDirectory,
@@ -207,7 +208,7 @@ impl PythonEnvironment {
         let executable = virtualenv_python_executable(&root);
 
         // If we can't find an executable, exit before querying to provide a better error.
-        if !(executable.is_symlink() || executable.is_file()) {
+        if !(executable.is_symlink() || executable.vfs_is_file()) {
             return Err(InvalidEnvironment {
                 path: root.as_ref().to_path_buf(),
                 kind: InvalidEnvironmentKind::MissingExecutable(executable.clone()),

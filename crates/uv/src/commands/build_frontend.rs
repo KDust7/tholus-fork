@@ -50,6 +50,7 @@ use crate::commands::project::{ProjectError, find_requires_python};
 use crate::commands::reporters::PythonDownloadReporter;
 use crate::printer::Printer;
 use crate::settings::ResolverSettings;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, Error)]
 pub(crate) enum Error {
@@ -541,7 +542,7 @@ async fn build_package(
     };
 
     // Clear the output directory if requested
-    if clear && output_dir.exists() {
+    if clear && output_dir.vfs_exists() {
         uv_vfs::fs::remove_dir_all(&*output_dir)?;
     }
 

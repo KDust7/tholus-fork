@@ -18,6 +18,7 @@ use uv_static::EnvVars;
 
 use crate::credentials::Token;
 use crate::{AccessToken, Credentials, Realm};
+use uv_vfs::VfsPathExt as _;
 
 /// The default pyx API URL.
 const PYX_DEFAULT_API_URL: &str = "https://api.pyx.dev";
@@ -189,7 +190,7 @@ impl PyxDirectories {
             StateStore::from_settings(None)?.bucket(StateBucket::Credentials)
         };
         let subdirectory = root.join(&digest);
-        if subdirectory.exists() {
+        if subdirectory.vfs_exists() {
             return Ok(Self { root, subdirectory });
         }
 
@@ -341,7 +342,7 @@ impl PyxTokenStore {
 
     /// Returns `true` if the user appears to have OAuth tokens stored on disk.
     fn has_oauth_tokens(&self) -> bool {
-        self.subdirectory.join("tokens.json").is_file()
+        self.subdirectory.join("tokens.json").vfs_is_file()
     }
 
     /// Returns `true` if the user appears to have credentials (which may be invalid).

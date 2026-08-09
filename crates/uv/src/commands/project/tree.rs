@@ -35,6 +35,7 @@ use crate::printer::Printer;
 use crate::settings::FrozenSource;
 use crate::settings::LockCheck;
 use crate::settings::ResolverSettings;
+use uv_vfs::VfsPathExt as _;
 
 /// Run a command.
 #[expect(clippy::fn_params_excessive_bools)]
@@ -150,7 +151,7 @@ pub(crate) async fn tree(
         LockMode::Frozen(frozen_source.into())
     } else if let LockCheck::Enabled(lock_check) = lock_check {
         LockMode::Locked(interpreter.as_ref().unwrap(), lock_check)
-    } else if matches!(target, LockTarget::Script(_)) && !target.lock_path().is_file() {
+    } else if matches!(target, LockTarget::Script(_)) && !target.lock_path().vfs_is_file() {
         // If we're locking a script, avoid creating a lockfile if it doesn't already exist.
         LockMode::DryRun(interpreter.as_ref().unwrap())
     } else {

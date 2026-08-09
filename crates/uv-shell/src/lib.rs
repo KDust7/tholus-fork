@@ -17,6 +17,7 @@ use uv_static::EnvVars;
 
 #[cfg(unix)]
 use tracing::debug;
+use uv_vfs::VfsPathExt as _;
 
 /// Shells for which virtualenv activation scripts are available.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -169,7 +170,7 @@ impl Shell {
                     [".bash_profile", ".bash_login", ".profile"]
                         .iter()
                         .map(|rc| home_dir.join(rc))
-                        .find(|rc| rc.is_file())
+                        .find(|rc| rc.vfs_is_file())
                         .unwrap_or_else(|| home_dir.join(".bash_profile")),
                     home_dir.join(".bashrc"),
                 ]
@@ -193,13 +194,13 @@ impl Shell {
                 if let Some(zsh_dot_dir) = zsh_dot_dir.as_ref() {
                     // If `ZDOTDIR` is set, and `ZDOTDIR/.zshenv` exists, then we update that file.
                     let zshenv = zsh_dot_dir.join(".zshenv");
-                    if zshenv.is_file() {
+                    if zshenv.vfs_is_file() {
                         return vec![zshenv];
                     }
                 }
                 // Whether `ZDOTDIR` is set or not, if `~/.zshenv` exists then we update that file.
                 let zshenv = home_dir.join(".zshenv");
-                if zshenv.is_file() {
+                if zshenv.vfs_is_file() {
                     return vec![zshenv];
                 }
 

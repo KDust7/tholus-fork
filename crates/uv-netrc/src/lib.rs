@@ -35,6 +35,7 @@ use std::io::ErrorKind;
 use std::iter::repeat;
 use std::path::{Path, PathBuf};
 use std::result;
+use uv_vfs::VfsPathExt as _;
 
 mod lex;
 mod netrc;
@@ -102,7 +103,7 @@ impl Netrc {
         #[cfg(not(windows))]
         let default = std::env::var("HOME").map(|home| PathBuf::from(home).join(".netrc"));
 
-        env_var.into_iter().chain(default).find(|f| f.exists())
+        env_var.into_iter().chain(default).find(|f| f.vfs_exists())
     }
 }
 

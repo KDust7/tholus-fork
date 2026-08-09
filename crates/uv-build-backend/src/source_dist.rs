@@ -23,6 +23,7 @@ use uv_fs::{Simplified, normalize_path};
 use uv_globfilter::{GlobDirFilter, PortableGlobParser};
 use uv_warnings::warn_user_once;
 use walkdir::WalkDir;
+use uv_vfs::VfsPathExt as _;
 
 /// Build a source distribution from the source tree and place it in the output directory.
 pub fn build_source_dist(
@@ -39,7 +40,7 @@ pub fn build_source_dist(
     };
     let source_dist_path = source_dist_directory.join(filename.to_string());
 
-    if source_dist_path.exists() {
+    if source_dist_path.vfs_exists() {
         uv_vfs::fs::remove_file(&source_dist_path)?;
     }
 

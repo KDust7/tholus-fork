@@ -42,6 +42,7 @@ use crate::commands::python::{ChangeEvent, ChangeEventKind};
 use crate::commands::reporters::PythonDownloadReporter;
 use crate::commands::{ExitStatus, conjunction, elapsed};
 use crate::printer::Printer;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct InstallRequest<'a> {
@@ -1004,7 +1005,7 @@ fn create_bin_links(
 
     for target in targets {
         let target = bin.join(target);
-        if upgrade && !target.try_exists().unwrap_or_default() {
+        if upgrade && !target.vfs_try_exists().unwrap_or_default() {
             continue;
         }
         let executable = if upgradeable {
@@ -1057,8 +1058,8 @@ fn create_bin_links(
                         // symlinks are not common for Python interpreters.
                         let valid_link = cfg!(windows)
                             || target
-                                .read_link()
-                                .and_then(|target| target.try_exists())
+                                .vfs_read_link()
+                                .and_then(|target| target.vfs_try_exists())
                                 .inspect_err(|err| {
                                     debug!("Failed to inspect executable with error: {err}");
                                 })
@@ -1251,8 +1252,8 @@ async fn compile_stdlib_bytecode(
 
     // Ensure the bytecode compilation occurs in the correct place, in case the installed
     // interpreter reports a weird stdlib path.
-    let interpreter_path = installation.path().canonicalize()?;
-    let stdlib_path = match interpreter.stdlib().canonicalize() {
+    let interpreter_path = installation.path().vfs_canonicalize()?;
+    let stdlib_path = match interpreter.stdlib().vfs_canonicalize() {
         Ok(path) if path.starts_with(&interpreter_path) => path,
         _ => {
             warn!(

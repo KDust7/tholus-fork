@@ -1,6 +1,7 @@
 use std::{io, path::PathBuf, sync::Arc};
 
 use uv_vfs::temp::{TempDir, tempdir};
+use uv_vfs::VfsPathExt as _;
 
 /// The main state storage abstraction.
 ///
@@ -50,7 +51,7 @@ impl StateStore {
     pub fn from_settings(state_dir: Option<PathBuf>) -> Result<Self, io::Error> {
         if let Some(state_dir) = state_dir {
             Ok(Self::from_path(state_dir))
-        } else if let Some(data_dir) = uv_dirs::legacy_user_state_dir().filter(|dir| dir.exists()) {
+        } else if let Some(data_dir) = uv_dirs::legacy_user_state_dir().filter(|dir| dir.vfs_exists()) {
             // If the user has an existing directory at (e.g.) `/Users/user/Library/Application Support/uv`,
             // respect it for backwards compatibility. Otherwise, prefer the XDG strategy, even on
             // macOS.

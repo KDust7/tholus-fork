@@ -62,6 +62,7 @@ use crate::settings::{
     FrozenSource, InstallerSettingsRef, LockCheck, LockCheckSource, ResolverInstallerSettings,
     ResolverSettings,
 };
+use uv_vfs::VfsPathExt as _;
 
 /// Sync the project environment.
 pub(crate) async fn sync(
@@ -225,7 +226,7 @@ pub(crate) async fn sync(
     // we don't create a lockfile, so the resolve-and-install semantics are different.
     if let SyncTarget::Script(script) = &target {
         let lockfile = LockTarget::from(script).lock_path();
-        if !lockfile.is_file() {
+        if !lockfile.vfs_is_file() {
             if frozen.is_some() {
                 return Err(anyhow::anyhow!(
                     "`uv sync --frozen` requires a script lockfile; run `{}` to lock the script",

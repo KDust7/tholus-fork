@@ -3,6 +3,7 @@
 use std::convert::Infallible;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode, ExitStatus};
+use uv_vfs::VfsPathExt as _;
 
 /// Spawns a command exec style.
 fn exec_spawn(cmd: &mut Command) -> std::io::Result<Infallible> {
@@ -31,7 +32,7 @@ fn get_uv_path(current_exe_parent: &Path, uvw_suffix: Option<&str>) -> std::io::
     let uv_with_suffix = uvw_suffix.map(|suffix| current_exe_parent.join(format!("uv{suffix}")));
     if let Some(uv_with_suffix) = &uv_with_suffix {
         #[expect(clippy::print_stderr, reason = "printing a very rare warning")]
-        match uv_with_suffix.try_exists() {
+        match uv_with_suffix.vfs_try_exists() {
             Ok(true) => return Ok(uv_with_suffix.to_owned()),
             Ok(false) => { /* definitely not there, proceed to fallback */ }
             Err(err) => {
@@ -51,7 +52,7 @@ fn get_uv_path(current_exe_parent: &Path, uvw_suffix: Option<&str>) -> std::io::
     let uv = current_exe_parent.join(format!("uv{}", std::env::consts::EXE_SUFFIX));
     // If we are sure the `uv` binary does not exist, display a clearer error message.
     // If we're not certain if uv exists (try_exists == Err), keep going and hope it works.
-    if matches!(uv.try_exists(), Ok(false)) {
+    if matches!(uv.vfs_try_exists(), Ok(false)) {
         let message = if let Some(uv_with_suffix) = uv_with_suffix {
             format!(
                 "Could not find the `uv` binary at either of:\n  {}\n  {}",

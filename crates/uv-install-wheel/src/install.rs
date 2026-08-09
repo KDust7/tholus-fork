@@ -17,6 +17,7 @@ use crate::wheel::{
     parse_scripts, read_record, write_installer_metadata, write_record, write_script_entrypoints,
 };
 use crate::{Error, Layout};
+use uv_vfs::VfsPathExt as _;
 
 /// Return the path at which the wheel's `.dist-info` directory will be installed.
 pub fn installed_dist_info_path(
@@ -127,7 +128,7 @@ pub fn install_wheel<Cache: serde::Serialize, Build: serde::Serialize>(
     // 2.a Unpacked archive includes distribution-1.0.dist-info/ and (if there is data) distribution-1.0.data/.
     // 2.b Move each subtree of distribution-1.0.data/ onto its destination path. Each subdirectory of distribution-1.0.data/ is a key into a dict of destination directories, such as distribution-1.0.data/(purelib|platlib|headers|scripts|data). The initially supported paths are taken from distutils.command.install.
     let data_dir = site_packages.join(format!("{dist_info_prefix}.data"));
-    if data_dir.is_dir() {
+    if data_dir.vfs_is_dir() {
         install_data(
             layout,
             relocatable,

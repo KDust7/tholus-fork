@@ -14,6 +14,7 @@ use uv_workspace::{
 };
 
 use crate::metadata::{GitWorkspaceMember, LoweredRequirement, MetadataError};
+use uv_vfs::VfsPathExt as _;
 
 /// Like [`crate::RequiresDist`] but only supporting dependency-groups.
 ///
@@ -64,7 +65,7 @@ impl SourcedDependencyGroups {
         credentials_cache: &CredentialsCache,
     ) -> Result<Self, MetadataError> {
         // If the `pyproject.toml` doesn't exist, fail early.
-        if !pyproject_path.is_file() {
+        if !pyproject_path.vfs_is_file() {
             return Err(MetadataError::MissingPyprojectToml(
                 pyproject_path.to_path_buf(),
             ));

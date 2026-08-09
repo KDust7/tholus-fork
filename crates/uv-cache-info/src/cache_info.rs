@@ -10,6 +10,7 @@ use uv_fs::Simplified;
 use crate::git_info::{Commit, Tags};
 use crate::glob::cluster_globs;
 use crate::timestamp::Timestamp;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CacheInfoError {
@@ -114,7 +115,7 @@ impl CacheInfo {
 
                     // Treat the path as a file.
                     let path = directory.join(file.as_ref());
-                    let metadata = match path.metadata() {
+                    let metadata = match path.vfs_metadata() {
                         Ok(metadata) => metadata,
                         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
                             continue;
@@ -141,7 +142,7 @@ impl CacheInfo {
                 CacheKey::Directory { dir } => {
                     // Treat the path as a directory.
                     let path = directory.join(dir.as_ref());
-                    let metadata = match path.metadata() {
+                    let metadata = match path.vfs_metadata() {
                         Ok(metadata) => metadata,
                         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
                             directories.insert(dir, None);

@@ -5,6 +5,7 @@ use uv_static::EnvVars;
 use crate::Cache;
 use clap::{Parser, ValueHint};
 use tracing::{debug, warn};
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Parser, Debug, Clone)]
 #[command(next_help_heading = "Cache options")]
@@ -45,7 +46,7 @@ impl Cache {
             Self::temp()
         } else if let Some(cache_dir) = cache_dir {
             Ok(Self::from_path(cache_dir))
-        } else if let Some(cache_dir) = uv_dirs::legacy_user_cache_dir().filter(|dir| dir.exists())
+        } else if let Some(cache_dir) = uv_dirs::legacy_user_cache_dir().filter(|dir| dir.vfs_exists())
         {
             // If the user has an existing directory at (e.g.) `/Users/user/Library/Caches/uv`,
             // respect it for backwards compatibility. Otherwise, prefer the XDG strategy, even on
@@ -104,7 +105,7 @@ fn migrate_windows_cache(source: &Path, destination: &Path) -> Result<(), io::Er
         let destination = destination.join(directory);
 
         // Migrate the cache bucket.
-        if source.exists() {
+        if source.vfs_exists() {
             debug!(
                 "Migrating cache bucket from {} to {}",
                 source.display(),
@@ -123,7 +124,7 @@ fn migrate_windows_cache(source: &Path, destination: &Path) -> Result<(), io::Er
         let destination = destination.join(file);
 
         // Migrate the cache file.
-        if source.exists() {
+        if source.vfs_exists() {
             debug!(
                 "Migrating cache file from {} to {}",
                 source.display(),

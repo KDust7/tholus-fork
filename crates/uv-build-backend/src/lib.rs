@@ -28,6 +28,7 @@ use uv_pypi_types::{Identifier, IdentifierParseError};
 
 use crate::metadata::ValidationError;
 use crate::settings::ModuleName;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -217,7 +218,7 @@ fn check_metadata_directory(
     let entrypoints_path = metadata_directory.join("entry_points.txt");
     match pyproject_toml.to_entry_points()? {
         None => {
-            if entrypoints_path.is_file() {
+            if entrypoints_path.vfs_is_file() {
                 return Err(Error::InconsistentSteps("entry_points.txt"));
             }
         }
@@ -377,7 +378,7 @@ fn find_module_path_from_package_name(
             .to_string();
         let module_relative = PathBuf::from(format!("{module_name}-stubs"));
         let init_pyi = src_root.join(&module_relative).join("__init__.pyi");
-        if !init_pyi.is_file() {
+        if !init_pyi.vfs_is_file() {
             return Err(Error::MissingInitPy(init_pyi));
         }
         Ok(module_relative)
@@ -385,7 +386,7 @@ fn find_module_path_from_package_name(
         // This name is always lowercase.
         let module_relative = PathBuf::from(package_name.as_dist_info_name().to_string());
         let init_py = src_root.join(&module_relative).join("__init__.py");
-        if !init_py.is_file() {
+        if !init_py.vfs_is_file() {
             return Err(Error::MissingInitPy(init_py));
         }
         Ok(module_relative)
@@ -432,14 +433,14 @@ fn module_path_from_module_name(src_root: &Path, module_name: &str) -> Result<Pa
         src_root
             .join(&module_relative)
             .join(if stubs { "__init__.pyi" } else { "__init__.py" });
-    if !init_py.is_file() {
+    if !init_py.vfs_is_file() {
         return Err(Error::MissingInitPy(init_py));
     }
 
     // For a namespace, check that the directories above the lowest are namespace directories.
     for namespace_dir in module_relative.ancestors().skip(1) {
-        if src_root.join(namespace_dir).join("__init__.py").exists()
-            || src_root.join(namespace_dir).join("__init__.pyi").exists()
+        if src_root.join(namespace_dir).join("__init__.py").vfs_exists()
+            || src_root.join(namespace_dir).join("__init__.pyi").vfs_exists()
         {
             return Err(Error::NotANamespace(src_root.join(namespace_dir)));
         }
@@ -461,7 +462,7 @@ pub(crate) fn error_on_venv(file_name: &OsStr, path: &Path) -> Result<(), Error>
     };
 
     if parent.join("bin").join("python").is_symlink()
-        || parent.join("Scripts").join("python.exe").is_file()
+        || parent.join("Scripts").join("python.exe").vfs_is_file()
     {
         return Err(Error::VenvInSourceTree(parent.to_path_buf()));
     }

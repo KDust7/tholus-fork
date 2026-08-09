@@ -14,6 +14,7 @@ use x509_parser::prelude::{FromDer, X509Certificate};
 use uv_fs::Simplified;
 use uv_static::EnvVars;
 use uv_warnings::warn_user_once;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, Clone)]
 enum CertificateSource {
@@ -218,7 +219,7 @@ impl Certificates {
     /// certificates returns an error instead of being ignored with a warning.
     pub fn from_file(file: &Path) -> Result<Self, CertificateFileError> {
         let metadata = file
-            .metadata()
+            .vfs_metadata()
             .map_err(|err| CertificateFileError::Io(file.to_path_buf(), err))?;
         if !metadata.is_file() {
             return Err(CertificateFileError::NotFile(file.to_path_buf()));
@@ -282,7 +283,7 @@ impl Certificates {
         }
 
         let file = PathBuf::from(ssl_cert_file);
-        match file.metadata() {
+        match file.vfs_metadata() {
             Ok(metadata) if metadata.is_file() => {
                 let result = Self::from_paths(Some(&file), None);
                 for err in &result.errors {
@@ -339,7 +340,7 @@ impl Certificates {
         }
 
         let (existing, missing): (Vec<_>, Vec<_>) =
-            env::split_paths(ssl_cert_dir).partition(|path| path.exists());
+            env::split_paths(ssl_cert_dir).partition(|path| path.vfs_exists());
 
         if existing.is_empty() {
             let end_note = if missing.len() == 1 {

@@ -47,6 +47,7 @@ use uv_types::{
 };
 use uv_warnings::warn_user_once;
 use uv_workspace::WorkspaceCache;
+use uv_vfs::VfsPathExt as _;
 
 pub use crate::error::{Error, MissingHeaderCause};
 
@@ -503,7 +504,7 @@ impl SourceBuild {
         let mut source_tree_lock = None;
         if self.pep517_backend.is_setuptools() {
             debug!("Locking the source tree for setuptools");
-            let canonical_source_path = self.source_tree.canonicalize()?;
+            let canonical_source_path = self.source_tree.vfs_canonicalize()?;
             let lock_path = env::temp_dir().join(format!(
                 "uv-setuptools-{}.lock",
                 cache_digest(&canonical_source_path)
@@ -591,7 +592,7 @@ impl SourceBuild {
             }
             Err(err) if err.kind() == io::ErrorKind::NotFound => {
                 // We require either a `pyproject.toml` or a `setup.py` file at the top level.
-                if !source_tree.join("setup.py").is_file() {
+                if !source_tree.join("setup.py").vfs_is_file() {
                     return Err(Box::new(Error::InvalidSourceDist(
                         source_tree.to_path_buf(),
                     )));
@@ -625,7 +626,7 @@ impl SourceBuild {
                     )));
                 }
                 let backend_path = source_tree.join(path);
-                if !backend_path.is_dir() {
+                if !backend_path.vfs_is_dir() {
                     return Err(Box::new(Error::InvalidBackendPath(path.to_string())));
                 }
                 if !uv_vfs::fs::canonicalize(backend_path)
@@ -728,8 +729,8 @@ impl SourceBuild {
             // `setuptools`, warn. The build will succeed, but the metadata will be
             // incomplete (for example, the package name will be `UNKNOWN`).
             if pyproject_toml.project.is_none()
-                && !source_tree.join("setup.py").is_file()
-                && !source_tree.join("setup.cfg").is_file()
+                && !source_tree.join("setup.py").vfs_is_file()
+                && !source_tree.join("setup.cfg").vfs_is_file()
             {
                 // Give a specific hint for `uv pip install .` in a workspace root.
                 let looks_like_workspace_root = pyproject_toml
@@ -985,7 +986,7 @@ impl SourceBuild {
         }
 
         let distribution_filename = fs::read_to_string(&outfile)?;
-        if !output_dir.join(&distribution_filename).is_file() {
+        if !output_dir.join(&distribution_filename).vfs_is_file() {
             return Err(Error::from_command_output(
                 format!(
                     "Call to `{}.build_{}` failed",

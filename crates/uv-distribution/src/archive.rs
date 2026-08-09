@@ -3,6 +3,7 @@ use uv_cache::{ARCHIVE_VERSION, ArchiveId, Cache};
 use uv_distribution_filename::WheelFilename;
 use uv_distribution_types::Hashed;
 use uv_pypi_types::{HashDigest, HashDigests};
+use uv_vfs::VfsPathExt as _;
 
 /// An archive (unzipped wheel) that exists in the local cache.
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -56,7 +57,7 @@ impl Archive {
 
     /// Returns `true` if the archive exists in the cache.
     pub(crate) fn exists(&self, cache: &Cache) -> bool {
-        self.version == ARCHIVE_VERSION && cache.archive(&self.id).exists()
+        self.version == ARCHIVE_VERSION && cache.archive(&self.id).vfs_exists()
     }
 }
 

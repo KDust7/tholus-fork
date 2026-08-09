@@ -83,6 +83,7 @@ use crate::settings::{
     FrozenSource, GlobalSettings, LockCheck, LockCheckSource, ResolverInstallerSettings,
     ResolverSettings,
 };
+use uv_vfs::VfsPathExt as _;
 
 /// Run a command.
 #[expect(clippy::fn_params_excessive_bools)]
@@ -202,7 +203,7 @@ pub(crate) async fn run(
         if let Some(target) = script
             .as_script()
             .map(LockTarget::from)
-            .filter(|target| target.lock_path().is_file())
+            .filter(|target| target.lock_path().vfs_is_file())
         {
             debug!("Found existing lockfile for script");
 
@@ -1151,10 +1152,10 @@ pub(crate) async fn run(
                 // See https://github.com/jupyterlab/jupyterlab/issues/17716
                 for dir in &["etc/jupyter", "share/jupyter"] {
                     let source = interpreter.sys_prefix().join(dir);
-                    if !matches!(source.try_exists(), Ok(true)) {
+                    if !matches!(source.vfs_try_exists(), Ok(true)) {
                         continue;
                     }
-                    if !source.is_dir() {
+                    if !source.vfs_is_dir() {
                         continue;
                     }
                     let target = ephemeral_env.sys_prefix().join(dir);
@@ -1534,7 +1535,7 @@ impl ParsedRunCommand {
             //
             // We don't do this check on Windows since the file path would
             // be invalid anyway, and thus couldn't refer to a local file.
-            if !cfg!(unix) || matches!(target_path.try_exists(), Ok(false)) {
+            if !cfg!(unix) || matches!(target_path.vfs_try_exists(), Ok(false)) {
                 let url = DisplaySafeUrl::parse(&target.to_string_lossy())?;
                 return Ok(Self::PendingRemote(PendingRemoteRunCommand {
                     url,
@@ -1560,7 +1561,7 @@ impl ParsedRunCommand {
             )));
         }
 
-        let metadata = target_path.metadata();
+        let metadata = target_path.vfs_metadata();
         let is_file = metadata.as_ref().is_ok_and(uv_vfs::fs::Metadata::is_file);
         let is_dir = metadata.as_ref().is_ok_and(uv_vfs::fs::Metadata::is_dir);
 
@@ -1584,7 +1585,7 @@ impl ParsedRunCommand {
                 target_path,
                 args.to_vec(),
             )))
-        } else if is_dir && target_path.join("__main__.py").is_file() {
+        } else if is_dir && target_path.join("__main__.py").vfs_is_file() {
             Ok(Self::Ready(RunCommand::PythonPackage(
                 target.clone(),
                 target_path,
@@ -1764,7 +1765,7 @@ impl RunCommand {
                         let new_name = name.to_string_lossy().replace("python", "pythonw");
                         python_executable.with_file_name(new_name)
                     })
-                    .filter(|path| path.is_file())
+                    .filter(|path| path.vfs_is_file())
                     .unwrap_or_else(|| python_executable.to_path_buf());
 
                 let mut process = Command::new(&pythonw_executable);
@@ -1801,7 +1802,7 @@ impl RunCommand {
                         let new_name = name.to_string_lossy().replace("python", "pythonw");
                         python_executable.with_file_name(new_name)
                     })
-                    .filter(|path| path.is_file())
+                    .filter(|path| path.vfs_is_file())
                     .unwrap_or_else(|| python_executable.to_path_buf());
 
                 let mut process = Command::new(&pythonw_executable);

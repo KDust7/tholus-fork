@@ -29,6 +29,7 @@ use uv_workspace::{DiscoveryOptions, Workspace, WorkspaceCache, WorkspaceError};
 use crate::metadata::GitWorkspaceMember;
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, Clone)]
 pub struct LoweredRequirement(Requirement);
@@ -934,7 +935,7 @@ fn path_source(
         .to_file_path()
         .map_err(|()| LoweringError::RelativeTo(io::Error::other("Invalid path in file URL")))?;
 
-    let is_dir = if let Ok(metadata) = install_path.metadata() {
+    let is_dir = if let Ok(metadata) = install_path.vfs_metadata() {
         metadata.is_dir()
     } else {
         install_path.extension().is_none()

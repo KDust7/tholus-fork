@@ -58,6 +58,7 @@ use crate::commands::pip::{operations, resolution_markers, resolution_tags};
 use crate::commands::reporters::PythonDownloadReporter;
 use crate::commands::{ExitStatus, OutputWriter, diagnostics};
 use crate::printer::Printer;
+use uv_vfs::VfsPathExt as _;
 
 /// Resolve a set of requirements into a set of pinned versions.
 #[expect(clippy::fn_params_excessive_bools)]
@@ -470,7 +471,7 @@ pub(crate) async fn pip_compile(
 
     // Read the lockfile, if present.
     let LockedRequirements { preferences, git } =
-        if let Some(output_file) = output_file.filter(|output_file| output_file.exists()) {
+        if let Some(output_file) = output_file.filter(|output_file| output_file.vfs_exists()) {
             match format {
                 PipCompileFormat::RequirementsTxt => LockedRequirements::from_preferences(
                     read_requirements_txt(output_file, &upgrade).await?,

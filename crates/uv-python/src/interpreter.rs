@@ -38,6 +38,7 @@ use crate::{
 
 #[cfg(windows)]
 use windows::Win32::Foundation::{APPMODEL_ERROR_NO_PACKAGE, ERROR_CANT_ACCESS_FILE, WIN32_ERROR};
+use uv_vfs::VfsPathExt as _;
 
 /// A Python executable and its associated platform markers.
 #[expect(clippy::struct_excessive_bools)]
@@ -1029,7 +1030,7 @@ impl InterpreterInfo {
             // The IO error from the CPython trampoline is unstructured and localized, so we check
             // whether the `home` from `pyvenv.cfg` still exists, it's missing if the Python
             // interpreter was uninstalled.
-            if python_home(interpreter).is_some_and(|home| !home.exists()) {
+            if python_home(interpreter).is_some_and(|home| !home.vfs_exists()) {
                 return Err(Error::BrokenLink(BrokenLink {
                     path: interpreter.to_path_buf(),
                     unix: false,
@@ -1132,7 +1133,7 @@ impl InterpreterInfo {
                 // Check if it looks like a venv interpreter where the underlying Python
                 // installation was removed.
                 if absolute
-                    .symlink_metadata()
+                    .vfs_symlink_metadata()
                     .is_ok_and(|metadata| metadata.is_symlink())
                 {
                     Error::BrokenLink(BrokenLink {
@@ -1276,12 +1277,12 @@ fn find_base_python(
     /// See: <https://github.com/python/cpython/blob/a03efb533a58fd13fb0cc7f4a5c02c8406a407bd/Modules/getpath.py#L183>
     fn is_prefix(dir: &Path, major: u8, minor: u8, suffix: &str) -> bool {
         if cfg!(windows) {
-            dir.join("Lib").join("os.py").is_file()
+            dir.join("Lib").join("os.py").vfs_is_file()
         } else {
             dir.join("lib")
                 .join(format!("python{major}.{minor}{suffix}"))
                 .join("os.py")
-                .is_file()
+                .vfs_is_file()
         }
     }
 

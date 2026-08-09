@@ -37,6 +37,7 @@ use uv_python::{
     EnvironmentPreference, PythonInstallation, PythonPreference, PythonRequest, PythonVersion,
 };
 use uv_static::EnvVars;
+use uv_vfs::VfsPathExt as _;
 
 // Shared test timestamp for deterministic package availability and relative times.
 static TEST_TIMESTAMP: &str = "2024-03-25T00:00:00Z";
@@ -438,7 +439,7 @@ impl TestContext {
         for (version, executable) in &self.python_versions {
             if uv_vfs::fs::symlink_metadata(executable).unwrap().is_symlink() {
                 self.filters.extend(
-                    Self::path_patterns(executable.read_link().unwrap())
+                    Self::path_patterns(executable.vfs_read_link().unwrap())
                         .into_iter()
                         .map(|pattern| (format! {" -> {pattern}"}, String::new())),
                 );
@@ -789,7 +790,7 @@ impl TestContext {
         uv_vfs::fs::create_dir_all(&self.temp_dir)?;
         // Place the venv inside temp_dir (matching the default TestContext layout)
         // so that `context.venv()` creates it at the same path that `VIRTUAL_ENV` points to.
-        let canonical_temp_dir = self.temp_dir.canonicalize()?;
+        let canonical_temp_dir = self.temp_dir.vfs_canonicalize()?;
         self.venv = ChildPath::new(canonical_temp_dir.join(".venv"));
         let temp_replacement = format!("[{name}]/[TEMP_DIR]/");
         self.filters.extend(
@@ -867,7 +868,7 @@ impl TestContext {
         };
 
         // Canonicalize the temp dir for consistent snapshot behavior
-        let canonical_temp_dir = temp_dir.canonicalize().unwrap();
+        let canonical_temp_dir = temp_dir.vfs_canonicalize().unwrap();
         let venv = ChildPath::new(canonical_temp_dir.join(".venv"));
 
         let python_version = python_versions
@@ -1680,7 +1681,7 @@ impl TestContext {
         let mut interpreter = self.interpreter();
 
         // If there's not a virtual environment, use the first Python interpreter in the context
-        if !interpreter.exists() {
+        if !interpreter.vfs_exists() {
             interpreter.clone_from(
                 &self
                     .python_versions
@@ -1790,10 +1791,10 @@ impl TestContext {
         let mut patterns = Vec::new();
 
         // We can only canonicalize paths that exist already
-        if path.as_ref().exists() {
+        if path.as_ref().vfs_exists() {
             patterns.push(Self::path_pattern(
                 path.as_ref()
-                    .canonicalize()
+                    .vfs_canonicalize()
                     .expect("Failed to create canonical path"),
             ));
         }

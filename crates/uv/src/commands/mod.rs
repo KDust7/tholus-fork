@@ -79,6 +79,7 @@ pub(crate) use workspace::metadata::metadata;
 
 use crate::commands::pip::operations::ChangedDist;
 use crate::printer::Printer;
+use uv_vfs::VfsPathExt as _;
 
 mod auth;
 pub(crate) mod build_backend;
@@ -297,7 +298,7 @@ pub(super) async fn compile_bytecode(
     let mut files = 0;
     for site_packages in venv.site_packages() {
         let site_packages = CWD.join(site_packages);
-        if !site_packages.exists() {
+        if !site_packages.vfs_exists() {
             debug!(
                 "Skipping non-existent site-packages directory: {}",
                 site_packages.display()
