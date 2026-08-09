@@ -1,11 +1,14 @@
+use std::cell::RefCell;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use web_time::SystemTime;
 
+pub mod fs;
 pub mod memory;
 pub mod path;
+pub mod temp;
 pub mod url;
 
 pub use memory::MemoryFs;
@@ -101,29 +104,25 @@ pub fn unsupported(operation: &str, path: &Path) -> io::Error {
     )
 }
 
-static GLOBAL: RwLock<Option<Arc<dyn Vfs>>> = RwLock::new(None);
+thread_local! {
+    static GLOBAL: RefCell<Option<Arc<dyn Vfs>>> = const { RefCell::new(None) };
+}
 
 pub fn install_global(vfs: Arc<dyn Vfs>) {
-    if let Ok(mut slot) = GLOBAL.write() {
-        *slot = Some(vfs);
-    }
+    GLOBAL.with(|slot| {
+        *slot.borrow_mut() = Some(vfs);
+    });
 }
 
 pub fn global() -> Arc<dyn Vfs> {
-    if let Ok(slot) = GLOBAL.read() {
-        if let Some(vfs) = slot.as_ref() {
+    GLOBAL.with(|slot| {
+        if let Some(vfs) = slot.borrow().as_ref() {
             return Arc::clone(vfs);
         }
-    }
-
-    let fallback: Arc<dyn Vfs> = Arc::new(MemoryFs::new());
-    if let Ok(mut slot) = GLOBAL.write() {
-        if let Some(existing) = slot.as_ref() {
-            return Arc::clone(existing);
-        }
-        *slot = Some(Arc::clone(&fallback));
-    }
-    fallback
+        let fallback: Arc<dyn Vfs> = Arc::new(MemoryFs::new());
+        *slot.borrow_mut() = Some(Arc::clone(&fallback));
+        fallback
+    })
 }
 
 #[cfg(test)]

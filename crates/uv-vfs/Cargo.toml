@@ -15,8 +15,19 @@ doctest = false
 [lints]
 workspace = true
 
+[features]
+default = ["tokio"]
+tokio = []
+
 [dependencies]
 percent-encoding = { workspace = true }
 rustc-hash = { workspace = true }
 url = { workspace = true }
 web-time = { version = "1.1.0" }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+fs-err = { workspace = true }
+tempfile = { workspace = true }
+
+[dev-dependencies]
+tokio = { version = "1.45.1", default-features = false, features = ["macros", "rt"] }

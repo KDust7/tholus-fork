@@ -7520,6 +7520,19 @@ name = "uv-version"
 version = "0.12.3"
 
 [[package]]
+name = "uv-vfs"
+version = "0.0.70"
+dependencies = [
+ "fs-err",
+ "percent-encoding",
+ "rustc-hash",
+ "tempfile",
+ "tokio",
+ "url",
+ "web-time",
+]
+
+[[package]]
 name = "uv-virtualenv"
 version = "0.0.70"
 dependencies = [
@@ -7551,6 +7564,26 @@ dependencies = [
  "owo-colors",
  "rustc-hash",
  "uv-errors",
+]
+
+[[package]]
+name = "uv-wasm-compat"
+version = "0.0.70"
+dependencies = [
+ "futures",
+ "js-sys",
+ "rustc-hash",
+ "tokio",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-time",
+]
+
+[[package]]
+name = "uv-wasm-http"
+version = "0.0.70"
+dependencies = [
+ "tokio",
 ]
 
 [[package]]
