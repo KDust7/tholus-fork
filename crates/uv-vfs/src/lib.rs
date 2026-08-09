@@ -8,10 +8,12 @@ use web_time::SystemTime;
 pub mod fs;
 pub mod memory;
 pub mod path;
+pub mod path_ext;
 pub mod temp;
 pub mod url;
 
 pub use memory::MemoryFs;
+pub use path_ext::VfsPathExt;
 pub use url::UrlFilePathExt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

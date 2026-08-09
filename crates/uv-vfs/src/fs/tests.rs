@@ -4,7 +4,8 @@ use std::sync::Arc;
 
 use crate::fs::vfs_backed::{
     File, OpenOptions, canonicalize, copy, create_dir_all, hard_link, metadata, os, read,
-    read_dir, read_link, read_to_string, remove_dir_all, remove_file, rename, symlink_metadata,
+    exists, is_dir, is_file, read_dir, read_link, read_to_string, remove_dir_all, remove_file,
+    rename, symlink_metadata, try_exists,
     write,
 };
 use crate::{MemoryFs, install_global};
@@ -448,4 +449,47 @@ fn creation_time_is_not_recorded() {
     let error =
         metadata("/work/a.txt").expect("metadata").created().expect_err("no creation time");
     assert_eq!(error.kind(), std::io::ErrorKind::Unsupported);
+}
+
+#[test]
+fn presence_is_reported_for_files_and_directories() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    assert!(exists("/work/a.txt"));
+    assert!(exists("/work"));
+    assert!(!exists("/work/missing.txt"));
+}
+
+#[test]
+fn presence_can_be_reported_fallibly() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    assert_eq!(try_exists("/work/a.txt").expect("try_exists"), true);
+    assert_eq!(try_exists("/work/missing.txt").expect("try_exists"), false);
+}
+
+#[test]
+fn files_are_distinguished_from_directories() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    assert!(is_file("/work/a.txt"));
+    assert!(!is_dir("/work/a.txt"));
+    assert!(is_dir("/work"));
+    assert!(!is_file("/work"));
+}
+
+#[test]
+fn a_missing_path_is_neither_a_file_nor_a_directory() {
+    fresh();
+    assert!(!is_file("/work/missing"));
+    assert!(!is_dir("/work/missing"));
+}
+
+#[test]
+fn a_symlink_is_followed_when_classifying() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    os::unix::fs::symlink("/work/a.txt", "/work/link").expect("symlink");
+    assert!(is_file("/work/link"));
+    assert!(exists("/work/link"));
 }

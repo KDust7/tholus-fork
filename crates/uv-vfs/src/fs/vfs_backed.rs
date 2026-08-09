@@ -187,6 +187,22 @@ pub fn hard_link(source: impl AsRef<Path>, target: impl AsRef<Path>) -> io::Resu
     global().hard_link(source.as_ref(), target.as_ref())
 }
 
+pub fn exists(path: impl AsRef<Path>) -> bool {
+    global().exists(path.as_ref())
+}
+
+pub fn try_exists(path: impl AsRef<Path>) -> io::Result<bool> {
+    Ok(global().exists(path.as_ref()))
+}
+
+pub fn is_file(path: impl AsRef<Path>) -> bool {
+    global().metadata(path.as_ref()).is_ok_and(|entry| entry.is_file())
+}
+
+pub fn is_dir(path: impl AsRef<Path>) -> bool {
+    global().metadata(path.as_ref()).is_ok_and(|entry| entry.is_dir())
+}
+
 pub fn metadata(path: impl AsRef<Path>) -> io::Result<Metadata> {
     Ok(Metadata { inner: global().metadata(path.as_ref())? })
 }
