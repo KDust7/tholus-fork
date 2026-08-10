@@ -553,6 +553,7 @@ impl Drop for File {
     }
 }
 
+#[cfg(feature = "tokio")]
 pub mod tokio {
     use std::io::{self, Read as _, Seek as _, SeekFrom, Write as _};
     use std::path::{Path, PathBuf};
@@ -560,6 +561,7 @@ pub mod tokio {
     use std::task::{Context, Poll};
 
     use tokio::io::{AsyncRead, AsyncSeek, AsyncWrite, ReadBuf};
+    use web_time::SystemTime;
 
     use super::{FileType, Metadata, Permissions};
 
@@ -766,6 +768,10 @@ pub mod tokio {
 
         pub async fn set_permissions(&self, permissions: Permissions) -> io::Result<()> {
             super::set_permissions(self.inner.path(), permissions)
+        }
+
+        pub async fn set_modified(&self, time: SystemTime) -> io::Result<()> {
+            self.inner.set_modified(time)
         }
 
         pub async fn sync_all(&mut self) -> io::Result<()> {

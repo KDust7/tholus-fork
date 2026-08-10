@@ -620,3 +620,13 @@ async fn async_hard_links_report_the_same_refusal_as_the_sync_side() {
     let error = afs::hard_link("/work/a.txt", "/work/b.txt").await.expect_err("hard_link");
     assert_eq!(error.kind(), std::io::ErrorKind::Unsupported);
 }
+
+#[tokio::test]
+async fn an_async_file_records_a_modification_time() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    let stamp = SystemTime::UNIX_EPOCH + Duration::from_secs(1_000);
+    let file = afs::File::open("/work/a.txt").await.expect("open");
+    file.set_modified(stamp).await.expect("set_modified");
+    assert_eq!(metadata("/work/a.txt").expect("metadata").modified().expect("modified"), stamp);
+}
