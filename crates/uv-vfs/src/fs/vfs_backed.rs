@@ -414,6 +414,10 @@ impl File {
         metadata(&self.path)
     }
 
+    pub fn set_modified(&self, time: SystemTime) -> io::Result<()> {
+        global().set_modified(&self.path, time)
+    }
+
     pub fn set_len(&mut self, size: u64) -> io::Result<()> {
         self.require_writable()?;
         let size = usize::try_from(size).unwrap_or(usize::MAX);

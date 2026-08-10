@@ -1,6 +1,9 @@
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Duration;
+
+use web_time::SystemTime;
 
 use crate::fs::vfs_backed::{
     File, OpenOptions, canonicalize, copy, create_dir_all, hard_link, metadata, os, read,
@@ -75,6 +78,21 @@ fn reports_metadata() {
     assert!(info.modified().is_ok());
     assert!(info.file_type().is_file());
     assert!(!info.permissions().readonly());
+}
+
+#[test]
+fn an_open_handle_sets_the_modification_time() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    let stamp = SystemTime::UNIX_EPOCH + Duration::from_secs(1_000_000);
+    File::open("/work/a.txt")
+        .expect("open")
+        .set_modified(stamp)
+        .expect("set modified");
+    assert_eq!(
+        metadata("/work/a.txt").expect("metadata").modified().expect("modified"),
+        stamp
+    );
 }
 
 #[test]
