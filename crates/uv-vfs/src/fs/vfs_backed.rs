@@ -232,7 +232,7 @@ pub fn read_dir(path: impl AsRef<Path>) -> io::Result<ReadDir> {
         .read_dir(&root)?
         .into_iter()
         .map(|entry| DirEntry {
-            path: root.join(&entry.name),
+            path: normalize(&root.join(&entry.name)),
             name: entry.name,
             kind: entry.kind,
         })
@@ -554,10 +554,14 @@ impl Drop for File {
 }
 
 pub mod tokio {
-    use std::io;
+    use std::io::{self, Read as _, Seek as _, SeekFrom, Write as _};
     use std::path::{Path, PathBuf};
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
 
-    use super::{Metadata, Permissions};
+    use tokio::io::{AsyncRead, AsyncSeek, AsyncWrite, ReadBuf};
+
+    use super::{FileType, Metadata, Permissions};
 
     pub async fn read(path: impl AsRef<Path>) -> io::Result<Vec<u8>> {
         super::read(path)
@@ -600,5 +604,232 @@ pub mod tokio {
         permissions: Permissions,
     ) -> io::Result<()> {
         super::set_permissions(path, permissions)
+    }
+
+    pub async fn symlink_metadata(path: impl AsRef<Path>) -> io::Result<Metadata> {
+        super::symlink_metadata(path)
+    }
+
+    pub async fn create_dir(path: impl AsRef<Path>) -> io::Result<()> {
+        super::create_dir(path)
+    }
+
+    pub async fn remove_dir(path: impl AsRef<Path>) -> io::Result<()> {
+        super::remove_dir(path)
+    }
+
+    pub async fn copy(from: impl AsRef<Path>, to: impl AsRef<Path>) -> io::Result<u64> {
+        super::copy(from, to)
+    }
+
+    pub async fn hard_link(source: impl AsRef<Path>, target: impl AsRef<Path>) -> io::Result<()> {
+        super::hard_link(source, target)
+    }
+
+    pub async fn symlink(original: impl AsRef<Path>, link: impl AsRef<Path>) -> io::Result<()> {
+        super::os::unix::fs::symlink(original, link)
+    }
+
+    pub async fn read_link(path: impl AsRef<Path>) -> io::Result<PathBuf> {
+        super::read_link(path)
+    }
+
+    pub async fn try_exists(path: impl AsRef<Path>) -> io::Result<bool> {
+        super::try_exists(path)
+    }
+
+    pub async fn read_dir(path: impl AsRef<Path>) -> io::Result<ReadDir> {
+        Ok(ReadDir { inner: super::read_dir(path)? })
+    }
+
+    pub struct ReadDir {
+        inner: super::ReadDir,
+    }
+
+    impl ReadDir {
+        pub async fn next_entry(&mut self) -> io::Result<Option<DirEntry>> {
+            self.inner.next().transpose().map(|entry| entry.map(|inner| DirEntry { inner }))
+        }
+    }
+
+    pub struct DirEntry {
+        inner: super::DirEntry,
+    }
+
+    impl DirEntry {
+        pub fn path(&self) -> PathBuf {
+            self.inner.path()
+        }
+
+        pub fn file_name(&self) -> std::ffi::OsString {
+            self.inner.file_name()
+        }
+
+        pub async fn file_type(&self) -> io::Result<FileType> {
+            self.inner.file_type()
+        }
+
+        pub async fn metadata(&self) -> io::Result<Metadata> {
+            self.inner.metadata()
+        }
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    pub struct OpenOptions {
+        inner: super::OpenOptions,
+    }
+
+    impl Default for OpenOptions {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+    impl OpenOptions {
+        pub fn new() -> Self {
+            Self { inner: super::OpenOptions::new() }
+        }
+
+        pub fn read(&mut self, value: bool) -> &mut Self {
+            self.inner.read(value);
+            self
+        }
+
+        pub fn write(&mut self, value: bool) -> &mut Self {
+            self.inner.write(value);
+            self
+        }
+
+        pub fn append(&mut self, value: bool) -> &mut Self {
+            self.inner.append(value);
+            self
+        }
+
+        pub fn truncate(&mut self, value: bool) -> &mut Self {
+            self.inner.truncate(value);
+            self
+        }
+
+        pub fn create(&mut self, value: bool) -> &mut Self {
+            self.inner.create(value);
+            self
+        }
+
+        pub fn create_new(&mut self, value: bool) -> &mut Self {
+            self.inner.create_new(value);
+            self
+        }
+
+        pub async fn open(&self, path: impl AsRef<Path>) -> io::Result<File> {
+            Ok(File::new(self.inner.open(path)?))
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct File {
+        inner: super::File,
+        seeked: Option<u64>,
+    }
+
+    impl File {
+        fn new(inner: super::File) -> Self {
+            Self { inner, seeked: None }
+        }
+
+        pub async fn open(path: impl AsRef<Path>) -> io::Result<Self> {
+            Ok(Self::new(super::File::open(path)?))
+        }
+
+        pub async fn create(path: impl AsRef<Path>) -> io::Result<Self> {
+            Ok(Self::new(super::File::create(path)?))
+        }
+
+        pub async fn create_new(path: impl AsRef<Path>) -> io::Result<Self> {
+            Ok(Self::new(super::OpenOptions::new().write(true).create_new(true).open(path)?))
+        }
+
+        pub fn options() -> OpenOptions {
+            OpenOptions::new()
+        }
+
+        pub fn path(&self) -> &Path {
+            self.inner.path()
+        }
+
+        pub async fn metadata(&self) -> io::Result<Metadata> {
+            self.inner.metadata()
+        }
+
+        pub async fn set_len(&mut self, size: u64) -> io::Result<()> {
+            self.inner.set_len(size)
+        }
+
+        pub async fn set_permissions(&self, permissions: Permissions) -> io::Result<()> {
+            super::set_permissions(self.inner.path(), permissions)
+        }
+
+        pub async fn sync_all(&mut self) -> io::Result<()> {
+            self.inner.sync_all()
+        }
+
+        pub async fn sync_data(&mut self) -> io::Result<()> {
+            self.inner.sync_data()
+        }
+    }
+
+    impl AsyncRead for File {
+        fn poll_read(
+            mut self: Pin<&mut Self>,
+            _context: &mut Context<'_>,
+            buffer: &mut ReadBuf<'_>,
+        ) -> Poll<io::Result<()>> {
+            let count = match self.inner.read(buffer.initialize_unfilled()) {
+                Ok(count) => count,
+                Err(error) => return Poll::Ready(Err(error)),
+            };
+            buffer.advance(count);
+            Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for File {
+        fn poll_write(
+            mut self: Pin<&mut Self>,
+            _context: &mut Context<'_>,
+            data: &[u8],
+        ) -> Poll<io::Result<usize>> {
+            Poll::Ready(self.inner.write(data))
+        }
+
+        fn poll_flush(
+            mut self: Pin<&mut Self>,
+            _context: &mut Context<'_>,
+        ) -> Poll<io::Result<()>> {
+            Poll::Ready(self.inner.flush())
+        }
+
+        fn poll_shutdown(
+            self: Pin<&mut Self>,
+            context: &mut Context<'_>,
+        ) -> Poll<io::Result<()>> {
+            self.poll_flush(context)
+        }
+    }
+
+    impl AsyncSeek for File {
+        fn start_seek(mut self: Pin<&mut Self>, position: SeekFrom) -> io::Result<()> {
+            self.seeked = Some(self.inner.seek(position)?);
+            Ok(())
+        }
+
+        fn poll_complete(
+            mut self: Pin<&mut Self>,
+            _context: &mut Context<'_>,
+        ) -> Poll<io::Result<u64>> {
+            if let Some(position) = self.seeked.take() {
+                return Poll::Ready(Ok(position));
+            }
+            Poll::Ready(self.inner.stream_position())
+        }
     }
 }

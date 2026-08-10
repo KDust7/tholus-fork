@@ -17,11 +17,12 @@ workspace = true
 
 [features]
 default = ["tokio"]
-tokio = []
+tokio = ["dep:tokio"]
 
 [dependencies]
 percent-encoding = { workspace = true }
 rustc-hash = { workspace = true }
+tokio = { workspace = true, optional = true }
 url = { workspace = true }
 web-time = { version = "1.1.0" }
 
@@ -31,4 +32,4 @@ tempfile = { workspace = true }
 walkdir = { workspace = true }
 
 [dev-dependencies]
-tokio = { version = "1.45.1", default-features = false, features = ["macros", "rt"] }
+tokio = { workspace = true }

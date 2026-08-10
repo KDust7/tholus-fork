@@ -3,8 +3,10 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
+use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use web_time::SystemTime;
 
+use crate::fs::vfs_backed::tokio as afs;
 use crate::fs::vfs_backed::{
     File, OpenOptions, canonicalize, copy, create_dir_all, hard_link, metadata, os, read,
     exists, is_dir, is_file, read_dir, read_link, read_to_string, remove_dir_all, remove_file,
@@ -510,4 +512,111 @@ fn a_symlink_is_followed_when_classifying() {
     os::unix::fs::symlink("/work/a.txt", "/work/link").expect("symlink");
     assert!(is_file("/work/link"));
     assert!(exists("/work/link"));
+}
+
+#[test]
+fn directory_entries_keep_posix_separators_on_every_host() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    let entry = read_dir("/work").expect("read_dir").next().expect("entry").expect("entry");
+    assert_eq!(entry.path().display().to_string(), "/work/a.txt");
+}
+
+#[tokio::test]
+async fn an_async_file_writes_through_open_options() {
+    fresh();
+    let mut file = afs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open("/work/a.txt")
+        .await
+        .expect("open");
+    file.write_all(b"async").await.expect("write");
+    file.flush().await.expect("flush");
+    assert_eq!(read("/work/a.txt").expect("read"), b"async");
+}
+
+#[tokio::test]
+async fn an_async_file_refuses_to_clobber_an_existing_path() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    let error = afs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open("/work/a.txt")
+        .await
+        .expect_err("create_new");
+    assert_eq!(error.kind(), std::io::ErrorKind::AlreadyExists);
+}
+
+#[tokio::test]
+async fn an_async_file_reads_what_the_sync_side_wrote() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    let mut file = afs::File::open("/work/a.txt").await.expect("open");
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents).await.expect("read");
+    assert_eq!(contents, b"hello");
+}
+
+#[tokio::test]
+async fn an_async_file_seeks_and_truncates() {
+    fresh();
+    let mut file = afs::File::create("/work/a.txt").await.expect("create");
+    file.write_all(b"hello").await.expect("write");
+    file.flush().await.expect("flush");
+    let position = file.seek(SeekFrom::Current(3)).await.expect("seek");
+    assert_eq!(position, 8);
+    file.set_len(position).await.expect("set_len");
+    drop(file);
+    assert_eq!(read("/work/a.txt").expect("read"), b"hello\0\0\0");
+}
+
+#[tokio::test]
+async fn an_async_file_reports_its_own_metadata() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    let file = afs::File::open("/work/a.txt").await.expect("open");
+    assert_eq!(file.metadata().await.expect("metadata").len(), 5);
+    assert_eq!(file.path().display().to_string(), "/work/a.txt");
+}
+
+#[tokio::test]
+async fn the_async_directory_surface_walks_entries() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    afs::create_dir("/work/nested").await.expect("create_dir");
+    let mut entries = afs::read_dir("/work").await.expect("read_dir");
+    let mut seen = Vec::new();
+    while let Some(entry) = entries.next_entry().await.expect("next") {
+        let kind = entry.file_type().await.expect("file_type");
+        seen.push((entry.path().display().to_string(), kind.is_dir()));
+    }
+    seen.sort();
+    assert_eq!(
+        seen,
+        vec![("/work/a.txt".to_string(), false), ("/work/nested".to_string(), true)]
+    );
+}
+
+#[tokio::test]
+async fn the_async_surface_covers_links_and_probes() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    afs::symlink("/work/a.txt", "/work/link").await.expect("symlink");
+    assert!(afs::symlink_metadata("/work/link").await.expect("symlink_metadata").is_symlink());
+    assert_eq!(afs::read_link("/work/link").await.expect("read_link"), Path::new("/work/a.txt"));
+    assert!(afs::try_exists("/work/a.txt").await.expect("try_exists"));
+    assert_eq!(afs::copy("/work/a.txt", "/work/b.txt").await.expect("copy"), 5);
+    afs::create_dir("/work/nested").await.expect("create_dir");
+    afs::remove_dir("/work/nested").await.expect("remove_dir");
+    assert!(!exists("/work/nested"));
+}
+
+#[tokio::test]
+async fn async_hard_links_report_the_same_refusal_as_the_sync_side() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    let error = afs::hard_link("/work/a.txt", "/work/b.txt").await.expect_err("hard_link");
+    assert_eq!(error.kind(), std::io::ErrorKind::Unsupported);
 }
