@@ -148,7 +148,7 @@ impl Removal {
             return Ok(());
         }
 
-        for entry in walkdir::WalkDir::new(&path).contents_first(true) {
+        for entry in uv_vfs::walk::WalkDir::new(&path).contents_first(true) {
             // If we hit a directory that lacks read permissions, try to make it readable.
             if let Err(ref err) = entry {
                 if err
@@ -240,8 +240,9 @@ impl std::ops::AddAssign for Removal {
 /// If the directory isn't readable by the current user, change the permissions to make it readable.
 #[cfg_attr(windows, allow(unused_variables, clippy::unnecessary_wraps))]
 fn set_readable(path: &Path) -> io::Result<bool> {
-    #[cfg(unix)]
+    #[cfg(any(unix, target_family = "wasm"))]
     {
+        #[cfg(unix)]
         use std::os::unix::fs::PermissionsExt;
         let mut perms = uv_vfs::fs::metadata(path)?.permissions();
         if perms.mode() & 0o500 == 0 {

@@ -3313,7 +3313,7 @@ pub fn prune(cache: &Cache) -> Result<Removal, Error> {
 
     let bucket = cache.bucket(CacheBucket::SourceDistributions);
     if bucket.vfs_is_dir() {
-        for entry in walkdir::WalkDir::new(bucket) {
+        for entry in uv_vfs::walk::WalkDir::new(bucket) {
             let entry = entry.map_err(Error::CacheWalk)?;
 
             if !entry.file_type().is_dir() {

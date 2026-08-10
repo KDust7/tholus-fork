@@ -64,7 +64,6 @@ tracing = { workspace = true }
 tracing-durations-export = { workspace = true, features = ["plot"] }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 uv-performance-memory-allocator = { path = "../uv-performance-memory-allocator", optional = true }
-walkdir = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }

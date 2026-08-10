@@ -22,7 +22,7 @@ use uv_distribution_filename::{SourceDistExtension, SourceDistFilename};
 use uv_fs::{Simplified, normalize_path};
 use uv_globfilter::{GlobDirFilter, PortableGlobParser};
 use uv_warnings::warn_user_once;
-use walkdir::WalkDir;
+use uv_vfs::walk::WalkDir;
 use uv_vfs::VfsPathExt as _;
 
 /// Build a source distribution from the source tree and place it in the output directory.

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use tracing::warn;
 use uv_fs::find_git_repository_root;
-use walkdir::WalkDir;
+use uv_vfs::walk::WalkDir;
 use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, thiserror::Error)]

@@ -12,7 +12,7 @@ use mailparse::parse_headers;
 use rustc_hash::FxHashMap;
 use sha2::{Digest, Sha256};
 use tracing::{debug, instrument, trace, warn};
-use walkdir::WalkDir;
+use uv_vfs::walk::WalkDir;
 
 use uv_fs::{PortablePath, Simplified, normalize_path_under, persist_with_retry_sync, relative_to};
 use uv_normalize::PackageName;

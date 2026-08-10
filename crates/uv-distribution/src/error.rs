@@ -65,7 +65,7 @@ pub enum Error {
     #[error("Failed to serialize cache entry")]
     CacheEncode(#[from] rmp_serde::encode::Error),
     #[error("Failed to walk the distribution cache")]
-    CacheWalk(#[source] walkdir::Error),
+    CacheWalk(#[source] uv_vfs::walk::Error),
     #[error(transparent)]
     CacheInfo(#[from] uv_cache_info::CacheInfoError),
 

@@ -126,7 +126,7 @@ mod tests {
     use crate::glob_dir_filter::GlobDirFilter;
     use std::path::{MAIN_SEPARATOR, Path};
     use uv_vfs::temp::tempdir;
-    use walkdir::WalkDir;
+    use uv_vfs::walk::WalkDir;
 
     const FILES: [&str; 5] = [
         "path1/dir1/subdir/a.txt",

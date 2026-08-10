@@ -4,7 +4,7 @@ use globset::GlobSetBuilder;
 use std::env::args;
 use tracing::trace;
 use uv_globfilter::{GlobDirFilter, PortableGlobParser};
-use walkdir::WalkDir;
+use uv_vfs::walk::WalkDir;
 
 fn main() {
     let includes = ["src/**", "pyproject.toml"];

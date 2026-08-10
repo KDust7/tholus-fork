@@ -5884,7 +5884,6 @@ dependencies = [
  "uv-wasm-compat",
  "uv-windows",
  "uv-workspace",
- "walkdir",
  "web-time",
  "which",
  "wiremock",
@@ -6090,7 +6089,6 @@ dependencies = [
  "uv-version",
  "uv-vfs",
  "uv-warnings",
- "walkdir",
 ]
 
 [[package]]
@@ -6153,7 +6151,6 @@ dependencies = [
  "uv-redacted",
  "uv-static",
  "uv-vfs",
- "walkdir",
 ]
 
 [[package]]
@@ -6169,7 +6166,6 @@ dependencies = [
  "tracing",
  "uv-fs",
  "uv-vfs",
- "walkdir",
  "web-time",
 ]
 
@@ -6384,7 +6380,6 @@ dependencies = [
  "uv-test",
  "uv-vfs",
  "uv-workspace",
- "walkdir",
  "web-time",
 ]
 
@@ -6484,7 +6479,6 @@ dependencies = [
  "uv-vfs",
  "uv-wasm-compat",
  "uv-workspace",
- "walkdir",
 ]
 
 [[package]]
@@ -6634,7 +6628,6 @@ dependencies = [
  "uv-warnings",
  "uv-wasm-compat",
  "uv-windows",
- "walkdir",
  "windows",
 ]
 
@@ -6692,7 +6685,6 @@ dependencies = [
  "tracing",
  "uv-errors",
  "uv-vfs",
- "walkdir",
 ]
 
 [[package]]
@@ -6729,7 +6721,6 @@ dependencies = [
  "uv-trampoline-builder",
  "uv-vfs",
  "uv-warnings",
- "walkdir",
  "web-time",
 ]
 
@@ -6774,7 +6765,6 @@ dependencies = [
  "uv-vfs",
  "uv-warnings",
  "uv-wasm-compat",
- "walkdir",
 ]
 
 [[package]]
@@ -7531,6 +7521,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "url",
+ "walkdir",
  "web-time",
 ]
 

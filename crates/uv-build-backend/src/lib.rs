@@ -63,7 +63,7 @@ pub enum Error {
     WalkDir {
         root: PathBuf,
         #[source]
-        err: walkdir::Error,
+        err: uv_vfs::walk::Error,
     },
     #[error("Failed to write wheel zip archive")]
     AsyncZip(#[from] async_zip::error::ZipError),

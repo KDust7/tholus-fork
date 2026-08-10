@@ -17,7 +17,7 @@ use uv_test::{LATEST_PYTHON_3_12, uv_snapshot};
 use uv_fs::Simplified;
 use uv_python::managed::platform_key_from_env;
 use uv_static::EnvVars;
-use walkdir::WalkDir;
+use uv_vfs::walk::WalkDir;
 
 #[test]
 fn python_install() {

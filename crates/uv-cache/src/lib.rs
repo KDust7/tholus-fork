@@ -681,7 +681,7 @@ impl Cache {
 
             let source_distributions = self.bucket(CacheBucket::SourceDistributions);
             if source_distributions.vfs_try_exists()? {
-                for entry in walkdir::WalkDir::new(source_distributions) {
+                for entry in uv_vfs::walk::WalkDir::new(source_distributions) {
                     let entry = entry?;
 
                     // If the directory contains a `metadata.msgpack`, then it's a built wheel revision.
@@ -761,7 +761,7 @@ impl Cache {
         for bucket in [CacheBucket::SourceDistributions, CacheBucket::Wheels] {
             let bucket_path = self.bucket(bucket);
             if bucket_path.vfs_is_dir() {
-                let walker = walkdir::WalkDir::new(&bucket_path).into_iter();
+                let walker = uv_vfs::walk::WalkDir::new(&bucket_path).into_iter();
                 for entry in walker.filter_entry(|entry| {
                     !(
                         // As an optimization, ignore any `.lock`, `.whl`, `.msgpack`, `.rev`, or

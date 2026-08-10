@@ -22,7 +22,7 @@ use predicates::prelude::predicate;
 use tokio::io::AsyncWriteExt;
 use tokio_util::compat::{FuturesAsyncReadCompatExt, FuturesAsyncWriteCompatExt};
 use url::Url;
-use walkdir::WalkDir;
+use uv_vfs::walk::WalkDir;
 use wiremock::{
     Mock, MockServer, ResponseTemplate,
     matchers::{basic_auth, method, path},

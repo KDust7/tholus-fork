@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use tracing::info;
-use walkdir::WalkDir;
+use uv_vfs::walk::WalkDir;
 
 #[derive(Parser)]
 pub(crate) struct ClearCompileArgs {

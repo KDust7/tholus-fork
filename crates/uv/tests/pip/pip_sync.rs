@@ -226,7 +226,7 @@ fn install_hardlink() -> Result<()> {
 /// low hardlink limit (e.g., minix with ~250).
 #[test]
 fn install_hardlink_after_emlink() -> anyhow::Result<()> {
-    use walkdir::WalkDir;
+    use uv_vfs::walk::WalkDir;
 
     let Some(context) = uv_test::test_context!("3.12").with_cache_on_lowlinks_fs()? else {
         return Ok(());

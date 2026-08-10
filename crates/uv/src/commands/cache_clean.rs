@@ -60,7 +60,7 @@ pub(crate) async fn cache_clean(
             cache.root().user_display().cyan()
         )?;
 
-        let num_paths = walkdir::WalkDir::new(cache.root()).into_iter().count();
+        let num_paths = uv_vfs::walk::WalkDir::new(cache.root()).into_iter().count();
         let reporter = CleaningDirectoryReporter::new(printer, Some(num_paths));
 
         let root = cache.root().to_path_buf();

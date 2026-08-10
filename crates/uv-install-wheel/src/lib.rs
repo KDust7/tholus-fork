@@ -47,7 +47,7 @@ pub enum Error {
     InvalidWheel(String),
     /// Doesn't follow file name schema
     #[error("Failed to move data files")]
-    WalkDir(#[from] walkdir::Error),
+    WalkDir(#[from] uv_vfs::walk::Error),
     // This shouldn't be possible anymore, we keep it for better error reporting.
     #[error(
         "RECORD file doesn't match wheel contents, could not find entry for: {} ({})",

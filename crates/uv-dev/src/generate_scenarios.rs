@@ -9,7 +9,7 @@ use anyhow::{Context, Result, bail};
 use clap::ValueEnum;
 use itertools::Itertools;
 use pretty_assertions::StrComparison;
-use walkdir::WalkDir;
+use uv_vfs::walk::WalkDir;
 
 use uv_normalize::PackageName;
 use uv_pep440::Version;

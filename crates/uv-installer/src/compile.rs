@@ -11,7 +11,7 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command};
 use tokio::sync::oneshot;
 use tracing::{debug, instrument};
-use walkdir::WalkDir;
+use uv_vfs::walk::WalkDir;
 
 use uv_configuration::Concurrency;
 use uv_fs::Simplified;
@@ -28,7 +28,7 @@ type WorkerHandle = oneshot::Receiver<WorkerOutcome>;
 #[derive(Debug, Error)]
 pub enum CompileError {
     #[error("Failed to list files in `site-packages`")]
-    Walkdir(#[from] walkdir::Error),
+    Walkdir(#[from] uv_vfs::walk::Error),
     #[error("Failed to send task to worker")]
     WorkerDisappeared(SendError<PathBuf>),
     #[error("Failed to identify Python source files")]

@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use rustc_hash::FxHashMap;
 use tracing::debug;
 use uv_warnings::warn_user_once;
-use walkdir::WalkDir;
+use uv_vfs::walk::WalkDir;
 
 /// The method to use when linking.
 ///
@@ -287,7 +287,7 @@ pub enum LinkError {
     WalkDir {
         path: PathBuf,
         #[source]
-        err: walkdir::Error,
+        err: uv_vfs::walk::Error,
     },
     #[error("Failed to copy to `{}`", to.display())]
     Copy {

@@ -11,7 +11,7 @@ use std::str::{self, FromStr};
 use tracing::{debug, trace, warn};
 use uv_warnings::warn_user_once;
 use version_ranges::Ranges;
-use walkdir::WalkDir;
+use uv_vfs::walk::WalkDir;
 
 use uv_fs::Simplified;
 use uv_globfilter::{GlobDirFilter, PortableGlobParser};

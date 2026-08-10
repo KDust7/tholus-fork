@@ -14,7 +14,7 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::{io, mem};
 use tracing::{debug, trace};
-use walkdir::WalkDir;
+use uv_vfs::walk::WalkDir;
 
 use uv_distribution_filename::WheelFilename;
 use uv_fs::{Simplified, normalize_path};
@@ -1042,7 +1042,7 @@ mod test {
     use uv_normalize::PackageName;
     use uv_pep440::Version;
     use uv_platform_tags::{AbiTag, PlatformTag};
-    use walkdir::WalkDir;
+    use uv_vfs::walk::WalkDir;
 
     #[test]
     fn test_wheel() {
