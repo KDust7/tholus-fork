@@ -33,8 +33,6 @@ use crate::commands::project::{ProjectError, ProjectInterpreter, UniversalState,
 use crate::commands::{ExitStatus, diagnostics};
 use crate::printer::Printer;
 use crate::settings::ResolverSettings;
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 /// A dependency requirement selected for upgrading.
 struct UpgradableRequirement {

@@ -8,8 +8,6 @@ use uv_normalize::PackageName;
 use uv_pep440::Version;
 use uv_pypi_types::{HashDigest, ParsedUrl};
 use uv_redacted::DisplaySafeUrl;
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 /// A unique identifier for a package. A package can either be identified by a name (e.g., `black`)
 /// or a URL (e.g., `git+https://github.com/psf/black`).

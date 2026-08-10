@@ -21,8 +21,6 @@ use uv_redacted::DisplaySafeUrl;
 use crate::{
     BuildInfo, DistributionMetadata, InstalledMetadata, InstalledVersion, Name, VersionOrUrlRef,
 };
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 #[derive(Error, Debug)]
 pub enum InstalledDistError {
