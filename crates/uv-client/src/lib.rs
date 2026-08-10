@@ -14,6 +14,7 @@ pub use registry_client::{
 pub(crate) use retry::UvRetryableStrategy;
 pub use retry::{RetriableError, RetryState, retryable_on_request_failure};
 pub use rkyvutil::OwnedArchive;
+#[cfg(not(target_family = "wasm"))]
 pub use tls::{CertificateFileError, Certificates};
 
 mod base_client;
@@ -28,4 +29,5 @@ mod registry_client;
 mod remote_metadata;
 mod retry;
 mod rkyvutil;
+#[cfg(not(target_family = "wasm"))]
 mod tls;

@@ -33,7 +33,8 @@ impl std::error::Error for OfflineError {}
 /// A middleware that always returns an error indicating that the client is offline.
 pub(crate) struct OfflineMiddleware;
 
-#[async_trait::async_trait]
+#[cfg_attr(not(target_family = "wasm"), async_trait::async_trait)]
+#[cfg_attr(target_family = "wasm", async_trait::async_trait(?Send))]
 impl Middleware for OfflineMiddleware {
     async fn handle(
         &self,

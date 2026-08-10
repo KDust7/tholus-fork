@@ -1,7 +1,9 @@
 use std::env;
 use std::fmt::{Debug, Write};
 use std::num::ParseIntError;
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
+#[cfg(not(target_family = "wasm"))]
+use std::sync::OnceLock;
 use std::time::{Duration, SystemTimeError};
 
 use anyhow::anyhow;
@@ -10,9 +12,9 @@ use http::header::{
     PROXY_AUTHORIZATION, REFERER, TRANSFER_ENCODING, WWW_AUTHENTICATE,
 };
 use http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode};
-use reqwest::{
-    Certificate, Client, ClientBuilder, IntoUrl, NoProxy, Proxy, Request, Response, multipart,
-};
+use reqwest::{Client, ClientBuilder, IntoUrl, Request, Response, multipart};
+#[cfg(not(target_family = "wasm"))]
+use reqwest::{Certificate, NoProxy, Proxy};
 use reqwest_middleware::{ClientWithMiddleware, Middleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::{Jitter, RetryTransientMiddleware};
@@ -21,9 +23,10 @@ use tracing::{debug, warn};
 use url::ParseError;
 use url::Url;
 
-use uv_auth::{
-    AuthMiddleware, Credentials, CredentialsCache, CredentialsFromUrlError, Indexes, PyxTokenStore,
-};
+use uv_auth::{Credentials, CredentialsCache, CredentialsFromUrlError, Indexes};
+#[cfg(not(target_family = "wasm"))]
+use uv_auth::{AuthMiddleware, PyxTokenStore};
+#[cfg(not(target_family = "wasm"))]
 use uv_configuration::ProxyUrlKind;
 use uv_configuration::{Concurrency, KeyringProviderType, ProxyUrl, TrustedHost};
 use uv_distribution_types::IndexCredentialsError;
@@ -39,6 +42,7 @@ use uv_warnings::warn_user_once;
 
 use crate::linehaul::LineHaul;
 use crate::middleware::OfflineMiddleware;
+#[cfg(not(target_family = "wasm"))]
 use crate::tls::{Certificates, read_identity};
 use crate::{Connectivity, RetriableError, RetryState, UvRetryableStrategy};
 
@@ -90,9 +94,11 @@ pub enum AuthIntegration {
 #[derive(Debug, Clone)]
 pub struct BaseClientBuilder<'a> {
     keyring: KeyringProviderType,
+    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     preview: Preview,
     allow_insecure_host: Vec<TrustedHost>,
     system_certs: bool,
+    #[cfg(not(target_family = "wasm"))]
     custom_certificates: Option<Certificates>,
     retries: u32,
     pub connectivity: Connectivity,
@@ -105,6 +111,7 @@ pub struct BaseClientBuilder<'a> {
     read_timeout: Duration,
     connect_timeout: Duration,
     extra_middleware: Option<ExtraMiddleware>,
+    #[cfg(not(target_family = "wasm"))]
     proxies: Vec<Proxy>,
     http_proxy: Option<ProxyUrl>,
     https_proxy: Option<ProxyUrl>,
@@ -212,6 +219,7 @@ pub enum RedirectPolicy {
 }
 
 impl RedirectPolicy {
+    #[cfg(not(target_family = "wasm"))]
     fn reqwest_policy(self) -> reqwest::redirect::Policy {
         match self {
             Self::BypassMiddleware => reqwest::redirect::Policy::default(),
@@ -240,6 +248,7 @@ impl Default for BaseClientBuilder<'_> {
             preview: Preview::default(),
             allow_insecure_host: vec![],
             system_certs: false,
+            #[cfg(not(target_family = "wasm"))]
             custom_certificates: None,
             connectivity: Connectivity::Online,
             retries: DEFAULT_RETRIES,
@@ -251,6 +260,7 @@ impl Default for BaseClientBuilder<'_> {
             read_timeout: DEFAULT_READ_TIMEOUT,
             connect_timeout: DEFAULT_CONNECT_TIMEOUT,
             extra_middleware: None,
+            #[cfg(not(target_family = "wasm"))]
             proxies: vec![],
             http_proxy: None,
             https_proxy: None,
@@ -343,6 +353,7 @@ impl<'a> BaseClientBuilder<'a> {
     }
 
     /// Use custom certificate authorities for TLS verification.
+    #[cfg(not(target_family = "wasm"))]
     #[must_use]
     pub fn custom_certificates(mut self, certificates: Certificates) -> Self {
         self.custom_certificates = Some(certificates);
@@ -391,6 +402,7 @@ impl<'a> BaseClientBuilder<'a> {
         self
     }
 
+    #[cfg(not(target_family = "wasm"))]
     #[must_use]
     pub fn proxy(mut self, proxy: Proxy) -> Self {
         self.proxies.push(proxy);
@@ -555,6 +567,30 @@ impl<'a> BaseClientBuilder<'a> {
         }
     }
 
+    #[cfg(target_family = "wasm")]
+    fn create_secure_and_insecure_clients(
+        &self,
+        _read_timeout: Duration,
+        _connect_timeout: Duration,
+    ) -> Result<(Client, Client, CertificateSource), ClientBuildError> {
+        if !self.allow_insecure_host.is_empty() {
+            warn_user_once!(
+                "Ignoring `--allow-insecure-host`: the browser verifies every certificate and offers no way to opt out"
+            );
+        }
+
+        let mut user_agent_string = format!("uv/{}", version());
+        let linehaul = LineHaul::new(self.markers, self.platform, self.subcommand.clone());
+        if let Ok(output) = serde_json::to_string(&linehaul) {
+            let _ = write!(user_agent_string, " {output}");
+        }
+
+        let client = self.create_client(&user_agent_string)?;
+
+        Ok((client.clone(), client, CertificateSource::Unknown))
+    }
+
+    #[cfg(not(target_family = "wasm"))]
     fn create_secure_and_insecure_clients(
         &self,
         read_timeout: Duration,
@@ -604,6 +640,15 @@ impl<'a> BaseClientBuilder<'a> {
         Ok((raw_client, raw_dangerous_client, certificate_source))
     }
 
+    #[cfg(target_family = "wasm")]
+    fn create_client(&self, user_agent: &str) -> Result<Client, ClientBuildError> {
+        ClientBuilder::new()
+            .user_agent(user_agent)
+            .build()
+            .map_err(Into::into)
+    }
+
+    #[cfg(not(target_family = "wasm"))]
     fn create_client(
         &self,
         user_agent: &str,
@@ -685,6 +730,7 @@ impl<'a> BaseClientBuilder<'a> {
         match self.connectivity {
             Connectivity::Online => {
                 // Create a base client to using in the authentication middleware.
+                #[cfg(not(target_family = "wasm"))]
                 let base_client = {
                     let mut client = reqwest_middleware::ClientBuilder::new(client.clone());
 
@@ -728,34 +774,39 @@ impl<'a> BaseClientBuilder<'a> {
                 }
 
                 // Initialize the authentication middleware to set headers.
-                match self.auth_integration {
-                    AuthIntegration::Default => {
-                        let mut auth_middleware = AuthMiddleware::new()
-                            .with_cache_arc(self.credentials_cache.clone())
-                            .with_base_client(base_client)
-                            .with_indexes(self.indexes.clone())
-                            .with_keyring(self.keyring.to_provider())
-                            .with_preview(self.preview);
-                        if let Ok(token_store) = PyxTokenStore::from_settings() {
-                            auth_middleware = auth_middleware.with_pyx_token_store(token_store);
+                #[cfg(not(target_family = "wasm"))]
+                {
+                    match self.auth_integration {
+                        AuthIntegration::Default => {
+                            let mut auth_middleware = AuthMiddleware::new()
+                                .with_cache_arc(self.credentials_cache.clone())
+                                .with_base_client(base_client)
+                                .with_indexes(self.indexes.clone())
+                                .with_keyring(self.keyring.to_provider())
+                                .with_preview(self.preview);
+                            if let Ok(token_store) = PyxTokenStore::from_settings() {
+                                auth_middleware =
+                                    auth_middleware.with_pyx_token_store(token_store);
+                            }
+                            client = client.with(auth_middleware);
                         }
-                        client = client.with(auth_middleware);
-                    }
-                    AuthIntegration::OnlyAuthenticated => {
-                        let mut auth_middleware = AuthMiddleware::new()
-                            .with_cache_arc(self.credentials_cache.clone())
-                            .with_base_client(base_client)
-                            .with_indexes(self.indexes.clone())
-                            .with_keyring(self.keyring.to_provider())
-                            .with_preview(self.preview)
-                            .with_only_authenticated(true);
-                        if let Ok(token_store) = PyxTokenStore::from_settings() {
-                            auth_middleware = auth_middleware.with_pyx_token_store(token_store);
+                        AuthIntegration::OnlyAuthenticated => {
+                            let mut auth_middleware = AuthMiddleware::new()
+                                .with_cache_arc(self.credentials_cache.clone())
+                                .with_base_client(base_client)
+                                .with_indexes(self.indexes.clone())
+                                .with_keyring(self.keyring.to_provider())
+                                .with_preview(self.preview)
+                                .with_only_authenticated(true);
+                            if let Ok(token_store) = PyxTokenStore::from_settings() {
+                                auth_middleware =
+                                    auth_middleware.with_pyx_token_store(token_store);
+                            }
+                            client = client.with(auth_middleware);
                         }
-                        client = client.with(auth_middleware);
-                    }
-                    AuthIntegration::NoAuthMiddleware => {
-                        // The downstream code uses custom auth logic.
+                        AuthIntegration::NoAuthMiddleware => {
+                            // The downstream code uses custom auth logic.
+                        }
                     }
                 }
 
@@ -801,6 +852,7 @@ pub struct BaseClient {
 
 /// The certificate roots used by a [`BaseClient`].
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub(crate) enum CertificateSource {
     /// The system certificate roots.
     System,
@@ -812,6 +864,7 @@ pub(crate) enum CertificateSource {
     Unknown,
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[derive(Debug, Clone, Copy)]
 enum Security {
     /// The client should use secure settings, i.e., valid certificates.

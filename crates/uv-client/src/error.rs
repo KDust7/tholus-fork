@@ -644,6 +644,12 @@ impl WrappedReqwestError {
     /// * client error (Connect)
     /// * dns error: failed to lookup address information: Name or service not known
     /// * failed to lookup address information: Name or service not known
+    #[cfg(target_family = "wasm")]
+    fn is_likely_offline(&self) -> bool {
+        false
+    }
+
+    #[cfg(not(target_family = "wasm"))]
     fn is_likely_offline(&self) -> bool {
         if let Some(reqwest_err) = self.inner() {
             if !reqwest_err.is_connect() {
@@ -664,6 +670,12 @@ impl WrappedReqwestError {
 
     /// Check if the error chain contains a `reqwest` error that looks like this:
     /// * invalid peer certificate: `UnknownIssuer`
+    #[cfg(target_family = "wasm")]
+    fn is_ssl(&self) -> bool {
+        false
+    }
+
+    #[cfg(not(target_family = "wasm"))]
     fn is_ssl(&self) -> bool {
         if let Some(reqwest_err) = self.inner() {
             if !reqwest_err.is_connect() {

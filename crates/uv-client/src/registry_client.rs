@@ -8,13 +8,17 @@ use async_http_range_reader::AsyncHttpRangeReader;
 use futures::{FutureExt, StreamExt, TryStreamExt};
 use http::{HeaderMap, StatusCode};
 use itertools::Either;
-use reqwest::{Proxy, Response};
+#[cfg(not(target_family = "wasm"))]
+use reqwest::Proxy;
+use reqwest::Response;
 use rustc_hash::FxHashMap;
 use tokio::sync::{Mutex, Semaphore};
 use tracing::{Instrument, debug, info_span, instrument, trace, warn};
 use url::Url;
 
-use uv_auth::{CredentialsCache, Indexes, PyxTokenStore};
+use uv_auth::{CredentialsCache, Indexes};
+#[cfg(not(target_family = "wasm"))]
+use uv_auth::PyxTokenStore;
 use uv_cache::{Cache, CacheBucket, CacheEntry, WheelCache};
 use uv_configuration::IndexStrategy;
 use uv_configuration::KeyringProviderType;
@@ -125,6 +129,7 @@ impl<'a> RegistryClientBuilder<'a> {
         self
     }
 
+    #[cfg(not(target_family = "wasm"))]
     #[must_use]
     pub fn proxy(mut self, proxy: Proxy) -> Self {
         self.base_client_builder = self.base_client_builder.proxy(proxy);
@@ -206,6 +211,7 @@ impl<'a> RegistryClientBuilder<'a> {
             client,
             read_timeout,
             flat_indexes: Arc::default(),
+            #[cfg(not(target_family = "wasm"))]
             pyx_token_store: PyxTokenStore::from_settings().ok(),
         })
     }
@@ -232,6 +238,7 @@ pub struct RegistryClient {
     flat_indexes: Arc<Mutex<FlatIndexCache>>,
     /// The pyx token store to use for persistent credentials.
     // TODO(charlie): The token store is only needed for `is_known_url`; can we avoid storing it here?
+    #[cfg(not(target_family = "wasm"))]
     pyx_token_store: Option<PyxTokenStore>,
 }
 
@@ -589,6 +596,20 @@ impl RegistryClient {
     }
 
     /// Fetch the [`SimpleDetailMetadata`] from a remote URL, using the PEP 503 Simple Repository API.
+    /// Whether the given index is served by pyx, Astral's hosted index.
+    #[cfg(not(target_family = "wasm"))]
+    fn is_pyx_index(&self, index: &IndexUrl) -> bool {
+        self.pyx_token_store
+            .as_ref()
+            .is_some_and(|token_store| token_store.is_known_url(index.url()))
+    }
+
+    /// The pyx token store is unavailable in the browser, so no index is ever known to be pyx.
+    #[cfg(target_family = "wasm")]
+    fn is_pyx_index(&self, _index: &IndexUrl) -> bool {
+        false
+    }
+
     async fn fetch_remote_simple_detail(
         &self,
         package_name: &PackageName,
@@ -600,11 +621,7 @@ impl RegistryClient {
         // In theory, we should be able to pass `MediaType::all()` to all registries, and as
         // unsupported media types should be ignored by the server. For now, we implement this
         // defensively to avoid issues with misconfigured servers.
-        let accept = if self
-            .pyx_token_store
-            .as_ref()
-            .is_some_and(|token_store| token_store.is_known_url(index.url()))
-        {
+        let accept = if self.is_pyx_index(index) {
             MediaType::all()
         } else {
             MediaType::pypi()
@@ -786,11 +803,7 @@ impl RegistryClient {
         // In theory, we should be able to pass `MediaType::all()` to all registries, and as
         // unsupported media types should be ignored by the server. For now, we implement this
         // defensively to avoid issues with misconfigured servers.
-        let accept = if self
-            .pyx_token_store
-            .as_ref()
-            .is_some_and(|token_store| token_store.is_known_url(index.url()))
-        {
+        let accept = if self.is_pyx_index(index) {
             MediaType::all()
         } else {
             MediaType::pypi()
