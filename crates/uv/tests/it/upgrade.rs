@@ -6,8 +6,6 @@ use url::Url;
 use uv_static::EnvVars;
 use uv_test::packse::PackseServer;
 use uv_test::{TestContext, uv_snapshot};
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 fn assert_project_unchanged(context: &TestContext, expected: &str) -> Result<()> {
     assert_eq!(

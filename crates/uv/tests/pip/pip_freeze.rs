@@ -5,8 +5,6 @@ use assert_fs::prelude::*;
 use url::Url;
 
 use uv_test::uv_snapshot;
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 #[test]
 fn freeze_many() -> Result<()> {

@@ -32,8 +32,6 @@ use uv_static::EnvVars;
 use uv_test::packse::PackseServer;
 use uv_test::packse::scenario::{Package, PackageMetadata, Scenario};
 use uv_test::{DEFAULT_PYTHON_VERSION, TestContext, download_to_disk, uv_snapshot};
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 fn write_tar_gz(file: File, entries: &[(&str, &str)]) -> Result<()> {
     let enc = GzEncoder::new(file, flate2::Compression::default());

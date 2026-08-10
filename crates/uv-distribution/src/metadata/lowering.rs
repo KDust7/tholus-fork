@@ -27,9 +27,9 @@ use uv_workspace::pyproject::{PyProjectToml, Source, Sources, WorkspaceReference
 use uv_workspace::{DiscoveryOptions, Workspace, WorkspaceCache, WorkspaceError};
 
 use crate::metadata::GitWorkspaceMember;
+use uv_vfs::VfsPathExt as _;
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
-use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, Clone)]
 pub struct LoweredRequirement(Requirement);

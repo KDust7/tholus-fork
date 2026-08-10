@@ -27,8 +27,6 @@ use uv_fs::Simplified;
 use uv_static::EnvVars;
 
 use uv_test::{uv_snapshot, venv_bin_path};
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 /// Add a PyPI requirement.
 #[test]

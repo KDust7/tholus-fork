@@ -16,8 +16,6 @@ use uv_static::EnvVars;
 use uv_test::find_links::FindLinksServer;
 use uv_test::packse::PackseServer;
 use uv_test::{download_to_disk, site_packages_path, uv_snapshot};
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 #[test]
 fn missing_requirements_txt() {

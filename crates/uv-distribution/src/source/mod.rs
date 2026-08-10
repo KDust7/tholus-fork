@@ -55,9 +55,9 @@ use crate::metadata::{ArchiveMetadata, GitWorkspaceMember, Metadata};
 use crate::source::built_wheel_metadata::{BuiltWheelFile, BuiltWheelMetadata};
 use crate::source::revision::Revision;
 use crate::{Reporter, RequiresDist};
+use uv_vfs::VfsPathExt as _;
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
-use uv_vfs::VfsPathExt as _;
 
 mod built_wheel_metadata;
 mod revision;

@@ -5,8 +5,6 @@ use url::Url;
 use uv_static::EnvVars;
 
 use uv_test::{capture_uv_snapshot, diff_uv_snapshot, uv_snapshot};
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 /// Add shared arguments to a command.
 ///

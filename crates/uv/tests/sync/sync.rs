@@ -17,8 +17,6 @@ use uv_static::EnvVars;
 use uv_test::packse::PackseServer;
 
 use uv_test::{TestContext, download_to_disk, uv_snapshot, venv_bin_path};
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 #[test]
 fn sync() -> Result<()> {

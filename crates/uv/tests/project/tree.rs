@@ -12,8 +12,6 @@ use uv_static::EnvVars;
 #[cfg(feature = "test-universal")]
 use uv_test::TestContext;
 use uv_test::uv_snapshot;
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 /// The workspace discovered while resolving settings is reused by `uv tree`.
 #[test]

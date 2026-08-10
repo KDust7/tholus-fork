@@ -16,9 +16,9 @@ use uv_small_str::SmallString;
 use crate::cached_client::{CacheControl, CachedClientError};
 use crate::html::SimpleDetailHTML;
 use crate::{CachedClient, Connectivity, Error, ErrorKind, OwnedArchive};
+use uv_vfs::VfsPathExt as _;
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
-use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FlatIndexError {

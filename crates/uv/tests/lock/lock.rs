@@ -24,8 +24,6 @@ use uv_test::uv_snapshot;
 use uv_test::{READ_ONLY_GITHUB_TOKEN, decode_token};
 #[cfg(feature = "test-universal")]
 use uv_test::{download_to_disk, venv_bin_path};
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 /// Generate the preview lock without package metadata.
 #[cfg(feature = "test-universal")]

@@ -10,8 +10,6 @@ use url::Url;
 
 use uv_static::EnvVars;
 use uv_test::{copy_dir_ignore, uv_snapshot};
-#[cfg(target_family = "wasm")]
-use uv_vfs::UrlFilePathExt as _;
 
 fn write_wheel(
     path: &Path,

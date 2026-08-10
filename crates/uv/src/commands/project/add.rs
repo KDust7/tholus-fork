@@ -65,9 +65,9 @@ use crate::commands::reporters::{PythonDownloadReporter, ResolverReporter};
 use crate::commands::{ExitStatus, ScriptPath, diagnostics, project};
 use crate::printer::Printer;
 use crate::settings::{FrozenSource, LockCheck, ResolverInstallerSettings};
+use uv_vfs::VfsPathExt as _;
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
-use uv_vfs::VfsPathExt as _;
 
 /// Add one or more packages to the project requirements.
 #[expect(clippy::fn_params_excessive_bools)]

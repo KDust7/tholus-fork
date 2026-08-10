@@ -62,9 +62,9 @@ use uv_redacted::DisplaySafeUrlError;
 use crate::requirement::EditableError;
 pub use crate::requirement::RequirementsTxtRequirement;
 use crate::shquote::unquote;
+use uv_vfs::VfsPathExt as _;
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
-use uv_vfs::VfsPathExt as _;
 
 mod requirement;
 mod shquote;

@@ -47,9 +47,9 @@ use crate::installation::PythonInstallationKey;
 use crate::managed::ManagedPythonInstallation;
 use crate::python_version::{BuildVersionError, python_build_version_from_env};
 use crate::{Interpreter, PythonRequest, PythonVersion, VersionRequest};
+use uv_vfs::VfsPathExt as _;
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
-use uv_vfs::VfsPathExt as _;
 
 #[derive(Error, Debug)]
 pub enum Error {
