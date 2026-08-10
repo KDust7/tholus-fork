@@ -1,5 +1,6 @@
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use rustc_hash::FxHashMap;
 
@@ -32,10 +33,14 @@ thread_local! {
     static HELD: RefCell<FxHashMap<PathBuf, LockState>> = RefCell::new(FxHashMap::default());
 }
 
-pub(super) type Holding = Cell<Option<LockKind>>;
+pub(super) type Holding = Mutex<Option<LockKind>>;
+
+pub(super) fn guard<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex.lock().unwrap_or_else(PoisonError::into_inner)
+}
 
 pub(super) fn release(path: &Path, holding: &Holding) {
-    let Some(kind) = holding.take() else {
+    let Some(kind) = guard(holding).take() else {
         return;
     };
     HELD.with_borrow_mut(|locks| {
@@ -63,7 +68,7 @@ pub(super) fn acquire(path: &Path, holding: &Holding, kind: LockKind) -> bool {
             LockKind::Shared => state.shared += 1,
             LockKind::Exclusive => state.exclusive = true,
         }
-        holding.set(Some(kind));
+        *guard(holding) = Some(kind);
         true
     })
 }

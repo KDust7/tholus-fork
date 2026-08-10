@@ -1,6 +1,6 @@
-use std::cell::{Cell, RefCell};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use web_time::SystemTime;
 
@@ -345,7 +345,7 @@ impl OpenOptions {
 pub struct File {
     path: PathBuf,
     writable: bool,
-    state: RefCell<FileState>,
+    state: Mutex<FileState>,
     holding: Holding,
 }
 
@@ -355,6 +355,11 @@ struct FileState {
     cursor: u64,
     dirty: bool,
 }
+
+const _: () = {
+    const fn assert_send_sync<T: Send + Sync>() {}
+    assert_send_sync::<File>();
+};
 
 impl File {
     pub fn open(path: impl AsRef<Path>) -> io::Result<Self> {
@@ -404,8 +409,8 @@ impl File {
         Ok(Self {
             path: normalized,
             writable,
-            state: RefCell::new(FileState { buffer, cursor, dirty: false }),
-            holding: Cell::new(None),
+            state: Mutex::new(FileState { buffer, cursor, dirty: false }),
+            holding: Holding::new(None),
         })
     }
 
@@ -425,7 +430,7 @@ impl File {
         self.require_writable()?;
         let size = usize::try_from(size).unwrap_or(usize::MAX);
         {
-            let mut state = self.state.borrow_mut();
+            let mut state = advisory_locks::guard(&self.state);
             state.buffer.resize(size, 0);
             state.cursor = state.cursor.min(size as u64);
             state.dirty = true;
@@ -442,7 +447,7 @@ impl File {
     }
 
     fn flush_state(&self) -> io::Result<()> {
-        let mut state = self.state.borrow_mut();
+        let mut state = advisory_locks::guard(&self.state);
         if !state.dirty {
             return Ok(());
         }
@@ -505,7 +510,7 @@ impl File {
 
 impl Read for &File {
     fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
-        let mut state = self.state.borrow_mut();
+        let mut state = advisory_locks::guard(&self.state);
         let start = usize::try_from(state.cursor).unwrap_or(usize::MAX).min(state.buffer.len());
         let count = (state.buffer.len() - start).min(out.len());
         out[..count].copy_from_slice(&state.buffer[start..start + count]);
@@ -517,7 +522,7 @@ impl Read for &File {
 impl Write for &File {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
         self.require_writable()?;
-        let mut state = self.state.borrow_mut();
+        let mut state = advisory_locks::guard(&self.state);
         let start = usize::try_from(state.cursor).unwrap_or(usize::MAX);
         if start > state.buffer.len() {
             state.buffer.resize(start, 0);
@@ -539,7 +544,7 @@ impl Write for &File {
 
 impl Seek for &File {
     fn seek(&mut self, position: SeekFrom) -> io::Result<u64> {
-        let mut state = self.state.borrow_mut();
+        let mut state = advisory_locks::guard(&self.state);
         let length = state.buffer.len() as i64;
         let target = match position {
             SeekFrom::Start(offset) => i64::try_from(offset).unwrap_or(i64::MAX),
