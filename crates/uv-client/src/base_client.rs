@@ -126,12 +126,14 @@ pub struct BaseClientBuilder<'a> {
     cache_read_runtime: Arc<CacheReadRuntime>,
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[derive(Debug)]
-struct CacheReadRuntime {
+pub(crate) struct CacheReadRuntime {
     workers: usize,
     runtime: OnceLock<tokio::runtime::Runtime>,
 }
 
+#[cfg(not(target_family = "wasm"))]
 impl CacheReadRuntime {
     fn new(workers: usize) -> Self {
         Self {
@@ -150,8 +152,17 @@ impl CacheReadRuntime {
                 .expect("Failed building the cache-read Runtime")
         })
     }
+
+    pub(crate) fn spawn_blocking<F, R>(&self, task: F) -> tokio::task::JoinHandle<R>
+    where
+        F: FnOnce() -> R + Send + 'static,
+        R: Send + 'static,
+    {
+        self.get().spawn_blocking(task)
+    }
 }
 
+#[cfg(not(target_family = "wasm"))]
 impl Drop for CacheReadRuntime {
     fn drop(&mut self) {
         if let Some(runtime) = self.runtime.take() {
@@ -159,6 +170,31 @@ impl Drop for CacheReadRuntime {
             // runtime to shut down is not permitted.
             runtime.shutdown_background();
         }
+    }
+}
+
+/// The browser worker owns a single thread, so there is no blocking pool to hand work to and
+/// [`tokio::runtime::Builder`] would panic trying to spawn one. Cache reads run inline instead,
+/// keeping the awaited shape the call sites expect.
+#[cfg(target_family = "wasm")]
+#[derive(Debug)]
+pub(crate) struct CacheReadRuntime;
+
+#[cfg(target_family = "wasm")]
+impl CacheReadRuntime {
+    fn new(_workers: usize) -> Self {
+        Self
+    }
+
+    pub(crate) fn spawn_blocking<F, R>(
+        &self,
+        task: F,
+    ) -> std::future::Ready<Result<R, tokio::task::JoinError>>
+    where
+        F: FnOnce() -> R + Send + 'static,
+        R: Send + 'static,
+    {
+        std::future::ready(Ok(task()))
     }
 }
 
@@ -785,8 +821,8 @@ enum Security {
 }
 
 impl BaseClient {
-    pub(crate) fn cache_read_runtime(&self) -> &tokio::runtime::Runtime {
-        self.cache_read_runtime.get()
+    pub(crate) fn cache_read_runtime(&self) -> &CacheReadRuntime {
+        &self.cache_read_runtime
     }
 
     /// Selects the appropriate client based on the host's trustworthiness.

@@ -16,6 +16,23 @@ use crate::base_client::CertificateSource;
 use crate::httpcache::{AfterResponse, BeforeRequest, CachePolicy, CachePolicyBuilder};
 use crate::{BaseClient, Error, ErrorKind, OwnedArchive, ProblemDetails, RetryState};
 
+/// How many times the retry middleware retried before this response arrived.
+///
+/// The browser `fetch` API returns a [`Response`] with no extension map, so the retry middleware has
+/// nowhere to record the count on that target. The retries themselves still happen.
+#[cfg(not(target_family = "wasm"))]
+fn recorded_retry_count(response: &Response) -> Option<u32> {
+    response
+        .extensions()
+        .get::<reqwest_retry::RetryCount>()
+        .map(|retries| retries.value())
+}
+
+#[cfg(target_family = "wasm")]
+fn recorded_retry_count(_response: &Response) -> Option<u32> {
+    None
+}
+
 /// A trait the generalizes (de)serialization at a high level.
 ///
 /// The main purpose of this trait is to make the `CachedClient` work for
@@ -452,11 +469,7 @@ impl CachedClient {
     ) -> Result<Payload::Target, CachedClientError<CallBackError>> {
         let new_cache = info_span!("new_cache", file = %cache_entry.path().display());
         // Capture retries from the retry middleware
-        let retries = response
-            .extensions()
-            .get::<reqwest_retry::RetryCount>()
-            .map(|retries| retries.value())
-            .unwrap_or_default();
+        let retries = recorded_retry_count(&response).unwrap_or_default();
         let data = response_callback(response)
             .boxed_local()
             .await
@@ -677,10 +690,7 @@ impl CachedClient {
                 .insert(http::header::CACHE_CONTROL, header.clone());
         }
 
-        let retry_count = response
-            .extensions()
-            .get::<reqwest_retry::RetryCount>()
-            .map(|retries| retries.value());
+        let retry_count = recorded_retry_count(&response);
 
         if let Err(status_error) = response.error_for_status_ref() {
             let problem_details = ProblemDetails::try_from_response(response).await;
@@ -889,7 +899,7 @@ impl DataWithCachePolicy {
     /// file given fails, then this returns an error.
     async fn from_path_async(
         path: &Path,
-        runtime: &tokio::runtime::Runtime,
+        runtime: &crate::base_client::CacheReadRuntime,
     ) -> Result<Self, Error> {
         let path = path.to_path_buf();
         runtime
