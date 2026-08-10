@@ -4,12 +4,14 @@ exclude = [
   "scripts",
   # Needs nightly
   "crates/uv-trampoline",
+  "patches/astral-async-http-range-reader",
   "patches/astral-reqwest-retry",
   "patches/astral-tokio-tar",
 ]
 resolver = "2"
 
 [patch.crates-io]
+astral_async_http_range_reader = { path = "patches/astral-async-http-range-reader" }
 astral-reqwest-retry = { path = "patches/astral-reqwest-retry" }
 astral-tokio-tar = { path = "patches/astral-tokio-tar" }
 

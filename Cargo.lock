@@ -300,8 +300,6 @@ dependencies = [
 [[package]]
 name = "astral_async_http_range_reader"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a8647866aee8d9707ae6ccc35205803a6df47c0ba83c5339ea6061b79131e4f"
 dependencies = [
  "astral-reqwest-middleware",
  "futures",
@@ -314,6 +312,7 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tracing",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
