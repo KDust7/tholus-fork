@@ -7,15 +7,18 @@ use async_zip::base::read::seek::ZipFileReader;
 use async_zip::error::ZipError;
 use futures::executor::block_on;
 use futures::io::{AllowStdIo, AsyncReadExt, AsyncWriteExt};
+#[cfg(not(target_family = "wasm"))]
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 use tracing::warn;
+#[cfg(not(target_family = "wasm"))]
 use uv_configuration::initialize_rayon_once;
 
 /// Unzip a `.zip` archive into the target directory.
 ///
 /// Returns the list of unpacked files and their sizes.
 pub fn unzip(reader: uv_vfs::fs::File, target: &Path) -> Result<Vec<(PathBuf, u64)>, Error> {
+    #[cfg(not(target_family = "wasm"))]
     let (reader, _) = reader.into_parts();
 
     // Parse the central directory once, then clone the archive reader per Rayon worker so
@@ -26,9 +29,13 @@ pub fn unzip(reader: uv_vfs::fs::File, target: &Path) -> Result<Vec<(PathBuf, u6
     let directories = Mutex::new(FxHashSet::default());
     let skip_validation = insecure_no_validate();
     // Initialize the threadpool with the user settings.
+    #[cfg(not(target_family = "wasm"))]
     initialize_rayon_once();
-    (0..archive.file().entries().len())
-        .into_par_iter()
+    #[cfg(not(target_family = "wasm"))]
+    let entries = (0..archive.file().entries().len()).into_par_iter();
+    #[cfg(target_family = "wasm")]
+    let entries = 0..archive.file().entries().len();
+    entries
         .map(|file_number| {
             let mut archive = archive.clone();
             let entry = archive.file().entries()[file_number].clone();
