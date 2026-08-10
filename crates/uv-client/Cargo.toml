@@ -80,6 +80,14 @@ tracing = { workspace = true }
 url = { workspace = true }
 webpki-root-certs = { workspace = true }
 
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+reqwest = { workspace = true, features = [
+  "zstd",
+  "system-proxy",
+  "rustls",
+  "http2",
+] }
+
 [dev-dependencies]
 anyhow = { workspace = true }
 http-body-util = { workspace = true }

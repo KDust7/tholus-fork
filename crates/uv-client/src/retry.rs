@@ -9,6 +9,7 @@ use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::{
     RetryPolicy, Retryable, RetryableStrategy, default_on_request_error, default_on_request_success,
 };
+#[cfg(not(target_family = "wasm"))]
 use rustls::{AlertDescription, Error as RustlsError};
 use tracing::{debug, trace};
 use url::Url;
@@ -190,7 +191,7 @@ pub fn retryable_on_request_failure(err: &(dyn Error + 'static)) -> Option<Retry
             }
 
             trace!("Fatal nested reqwest error");
-        } else if source.downcast_ref::<h2::Error>().is_some() {
+        } else if is_h2_error(source) {
             // All h2 errors look like errors that should be retried
             // https://github.com/astral-sh/uv/issues/15916
             trace!("Transient nested h2 error");
@@ -260,6 +261,14 @@ fn is_retryable_status_error(reqwest_err: &reqwest::Error) -> bool {
         || status == StatusCode::TOO_MANY_REQUESTS
 }
 
+/// The browser terminates TLS itself and reports a failed handshake as an opaque network error, so
+/// there is no certificate error to recognise on this target.
+#[cfg(target_family = "wasm")]
+fn is_tls_certificate_error(_reqwest_err: &reqwest::Error) -> bool {
+    false
+}
+
+#[cfg(not(target_family = "wasm"))]
 fn is_tls_certificate_error(reqwest_err: &reqwest::Error) -> bool {
     let Some(rustls_error) = find_source::<RustlsError>(reqwest_err) else {
         return false;
@@ -286,6 +295,18 @@ fn is_tls_certificate_error(reqwest_err: &reqwest::Error) -> bool {
         ),
         _ => false,
     }
+}
+
+/// HTTP/2 is the browser's concern rather than uv's, and the `http2` feature is off on this target,
+/// so no `h2` error can reach here.
+#[cfg(target_family = "wasm")]
+fn is_h2_error(_source: &(dyn Error + 'static)) -> bool {
+    false
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn is_h2_error(source: &(dyn Error + 'static)) -> bool {
+    source.downcast_ref::<h2::Error>().is_some()
 }
 
 /// Find the first source error of a specific type, including errors wrapped by [`io::Error`].

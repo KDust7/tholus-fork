@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
+#[cfg(not(target_family = "wasm"))]
 use reqwest::Proxy;
 use serde::{Deserialize, Deserializer, Serialize};
 use url::Url;
@@ -29,6 +30,7 @@ impl ProxyUrl {
     }
 
     /// Constructs a [`reqwest::Proxy`] from this [`ProxyUrl`] for the given [`ProxyUrlKind`].
+    #[cfg(not(target_family = "wasm"))]
     pub fn as_proxy(&self, kind: ProxyUrlKind) -> Proxy {
         // SAFETY: Constructing a [`Proxy`] from a [`Url`] is infallible.
         match kind {

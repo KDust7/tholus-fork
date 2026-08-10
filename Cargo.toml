@@ -4,8 +4,12 @@ exclude = [
   "scripts",
   # Needs nightly
   "crates/uv-trampoline",
+  "patches/astral-reqwest-retry",
 ]
 resolver = "2"
+
+[patch.crates-io]
+astral-reqwest-retry = { path = "patches/astral-reqwest-retry" }
 
 [workspace.package]
 edition = "2024"
@@ -213,13 +217,9 @@ reqwest = { version = "0.13.1", default-features = false, features = [
   "json",
   "gzip",
   "deflate",
-  "zstd",
   "stream",
-  "system-proxy",
-  "rustls",
   "socks",
   "multipart",
-  "http2",
   "query",
   "form",
 ] }
