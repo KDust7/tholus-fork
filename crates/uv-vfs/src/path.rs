@@ -1,18 +1,26 @@
+use std::ffi::OsStr;
 use std::path::{Component, Path, PathBuf};
 
 pub fn normalize(path: &Path) -> PathBuf {
-    let mut normalized = PathBuf::from("/");
+    let mut segments: Vec<&OsStr> = Vec::new();
     for component in path.components() {
         match component {
-            Component::Prefix(_) | Component::RootDir => {}
-            Component::CurDir => {}
+            Component::Prefix(_) | Component::RootDir | Component::CurDir => {}
             Component::ParentDir => {
-                normalized.pop();
+                segments.pop();
             }
-            Component::Normal(segment) => normalized.push(segment),
+            Component::Normal(segment) => segments.push(segment),
         }
     }
-    normalized
+
+    let mut normalized = String::from("/");
+    for (index, segment) in segments.iter().enumerate() {
+        if index > 0 {
+            normalized.push('/');
+        }
+        normalized.push_str(&segment.to_string_lossy());
+    }
+    PathBuf::from(normalized)
 }
 
 pub fn parent_of(path: &Path) -> Option<PathBuf> {
@@ -37,6 +45,17 @@ mod tests {
     #[test]
     fn makes_relative_paths_absolute() {
         assert_eq!(normalize(Path::new("work/project")), PathBuf::from("/work/project"));
+    }
+
+    #[test]
+    fn joins_with_posix_separators_on_every_host() {
+        assert_eq!(normalize(Path::new("/work/a/b")).display().to_string(), "/work/a/b");
+    }
+
+    #[test]
+    fn rewrites_a_host_separator_into_a_posix_one() {
+        assert_eq!(normalize(Path::new("/work")).join("a"), PathBuf::from("/work/a"));
+        assert_eq!(normalize(&Path::new("/work").join("a")).display().to_string(), "/work/a");
     }
 
     #[test]

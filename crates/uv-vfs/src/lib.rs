@@ -11,6 +11,7 @@ pub mod path;
 pub mod path_ext;
 pub mod temp;
 pub mod url;
+pub mod walk;
 
 pub use memory::MemoryFs;
 pub use path_ext::VfsPathExt;
