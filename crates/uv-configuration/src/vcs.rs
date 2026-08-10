@@ -1,14 +1,20 @@
+#[cfg(not(target_family = "wasm"))]
 use std::io::Write;
 use std::path::{Path, PathBuf};
+#[cfg(not(target_family = "wasm"))]
 use std::process::Stdio;
 
 use serde::Deserialize;
+#[cfg(not(target_family = "wasm"))]
 use uv_git::GIT;
 
 #[derive(Debug, thiserror::Error)]
 pub enum VersionControlError {
     #[error("Attempted to initialize a Git repository, but `git` was not found in PATH")]
     GitNotInstalled,
+    #[cfg(target_family = "wasm")]
+    #[error("Initializing a Git repository is not supported in the browser")]
+    GitUnsupported,
     #[error("Failed to initialize Git repository at `{0}`\nstdout: {1}\nstderr: {2}")]
     GitInit(PathBuf, String, String),
     #[error("`git` command failed")]
@@ -34,44 +40,53 @@ impl VersionControlSystem {
     /// Initializes the VCS system based on the provided path.
     pub fn init(&self, path: &Path) -> Result<(), VersionControlError> {
         match self {
-            Self::Git => {
-                let Ok(git) = GIT.as_ref() else {
-                    return Err(VersionControlError::GitNotInstalled);
-                };
-
-                let output = git
-                    .build_command()
-                    .arg("init")
-                    .current_dir(path)
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped())
-                    .output()
-                    .map_err(VersionControlError::GitCommand)?;
-                if !output.status.success() {
-                    let stdout = String::from_utf8_lossy(&output.stdout);
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    return Err(VersionControlError::GitInit(
-                        path.to_path_buf(),
-                        stdout.to_string(),
-                        stderr.to_string(),
-                    ));
-                }
-
-                // Create the `.gitignore`, if it doesn't exist.
-                match uv_vfs::fs::OpenOptions::new()
-                    .write(true)
-                    .create_new(true)
-                    .open(path.join(".gitignore"))
-                {
-                    Ok(mut file) => file.write_all(GITIGNORE.as_bytes())?,
-                    Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => (),
-                    Err(err) => return Err(err.into()),
-                }
-
-                Ok(())
-            }
+            Self::Git => Self::init_git(path),
             Self::None => Ok(()),
         }
+    }
+
+    /// The browser has neither a `git` binary nor a way to spawn one.
+    #[cfg(target_family = "wasm")]
+    fn init_git(_path: &Path) -> Result<(), VersionControlError> {
+        Err(VersionControlError::GitUnsupported)
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    fn init_git(path: &Path) -> Result<(), VersionControlError> {
+        let Ok(git) = GIT.as_ref() else {
+            return Err(VersionControlError::GitNotInstalled);
+        };
+
+        let output = git
+            .build_command()
+            .arg("init")
+            .current_dir(path)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .map_err(VersionControlError::GitCommand)?;
+        if !output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(VersionControlError::GitInit(
+                path.to_path_buf(),
+                stdout.to_string(),
+                stderr.to_string(),
+            ));
+        }
+
+        // Create the `.gitignore`, if it doesn't exist.
+        match uv_vfs::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path.join(".gitignore"))
+        {
+            Ok(mut file) => file.write_all(GITIGNORE.as_bytes())?,
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => (),
+            Err(err) => return Err(err.into()),
+        }
+
+        Ok(())
     }
 }
 
@@ -84,6 +99,7 @@ impl std::fmt::Display for VersionControlSystem {
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
 const GITIGNORE: &str = "# Python-generated files
 __pycache__/
 *.py[oc]

@@ -21,7 +21,6 @@ uv-auth = { workspace = true }
 uv-cache = { workspace = true }
 uv-cache-info = { workspace = true }
 uv-distribution-types = { workspace = true }
-uv-git = { workspace = true }
 uv-normalize = { workspace = true }
 uv-pep440 = { workspace = true }
 uv-pep508 = { workspace = true }
@@ -58,3 +57,6 @@ schemars = [
   "uv-pep508/schemars",
   "uv-redacted/schemars",
 ]
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+uv-git = { workspace = true }
