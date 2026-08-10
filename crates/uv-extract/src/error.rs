@@ -10,6 +10,9 @@ pub enum Error {
     AsyncZip(#[source] async_zip::error::ZipError),
     #[error("Invalid tar file")]
     Tar(#[from] tokio_tar::TarError),
+    #[cfg(target_family = "wasm")]
+    #[error("Zstd-compressed archives are not supported in the browser")]
+    ZstdUnsupported,
     #[error(
         "The top-level of the archive must only contain a list directory, but it contains: {0:?}"
     )]

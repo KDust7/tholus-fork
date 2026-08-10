@@ -2,12 +2,14 @@ use itertools::Itertools;
 mod metadata;
 mod serde_verbatim;
 mod settings;
+#[cfg(not(target_family = "wasm"))]
 mod source_dist;
 mod wheel;
 
 pub(crate) use metadata::PyProjectToml;
 pub use metadata::check_direct_build;
 pub use settings::{BuildBackendSettings, WheelDataIncludes};
+#[cfg(not(target_family = "wasm"))]
 pub use source_dist::{build_source_dist, list_source_dist};
 use uv_warnings::warn_user_once;
 pub use wheel::{build_editable, build_wheel, list_wheel, metadata};

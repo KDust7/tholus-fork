@@ -666,11 +666,23 @@ async fn untar_gz<R: tokio::io::AsyncRead + Unpin>(
         .map_err(Error::io_or_compression)
 }
 
+/// Report that a `.tar.zst` archive cannot be unpacked.
+///
+/// The browser build has no zstd decoder, since `zstd-sys` cannot be built for this target.
+#[cfg(target_family = "wasm")]
+pub async fn untar_zst<R: tokio::io::AsyncRead + Unpin>(
+    _reader: R,
+    _target: impl AsRef<Path>,
+) -> Result<Vec<(PathBuf, u64)>, Error> {
+    Err(Error::ZstdUnsupported)
+}
+
 /// Unpack a `.tar.zst` archive into the target directory, without requiring `Seek`.
 ///
 /// This is useful for unpacking files as they're being downloaded.
 ///
 /// Returns the list of unpacked files and their sizes.
+#[cfg(not(target_family = "wasm"))]
 pub async fn untar_zst<R: tokio::io::AsyncRead + Unpin>(
     reader: R,
     target: impl AsRef<Path>,
