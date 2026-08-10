@@ -870,7 +870,7 @@ impl Cache {
     ///
     /// On Windows, we write structured data ([`Link`]) to a file containing the archive ID and
     /// version. On Unix, we create a symlink to the target directory.
-    #[cfg(unix)]
+    #[cfg(any(unix, target_family = "wasm"))]
     fn create_link(&self, id: &ArchiveId, dst: impl AsRef<Path>) -> io::Result<()> {
         let dst = dst.as_ref();
         let dst_parent = dst.parent().expect("Cache entry to have parent");
@@ -898,7 +898,7 @@ impl Cache {
     /// Resolve an archive link, returning the fully-resolved path.
     ///
     /// Returns an error if the link target does not exist.
-    #[cfg(unix)]
+    #[cfg(any(unix, target_family = "wasm"))]
     pub fn resolve_link(&self, path: impl AsRef<Path>) -> io::Result<PathBuf> {
         path.as_ref().vfs_canonicalize()
     }
