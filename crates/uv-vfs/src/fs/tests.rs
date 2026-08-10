@@ -260,7 +260,7 @@ fn truncating_discards_previous_contents() {
 fn set_len_resizes_the_file() {
     fresh();
     write("/work/a.txt", b"hello").expect("write");
-    let mut file = OpenOptions::new().write(true).open("/work/a.txt").expect("open");
+    let file = OpenOptions::new().write(true).open("/work/a.txt").expect("open");
     file.set_len(2).expect("set_len");
     drop(file);
     assert_eq!(read("/work/a.txt").expect("read"), b"he");
@@ -629,4 +629,28 @@ async fn an_async_file_records_a_modification_time() {
     let file = afs::File::open("/work/a.txt").await.expect("open");
     file.set_modified(stamp).await.expect("set_modified");
     assert_eq!(metadata("/work/a.txt").expect("metadata").modified().expect("modified"), stamp);
+}
+
+#[test]
+fn a_shared_handle_writes_seeks_and_reads() {
+    fresh();
+    let file = File::create("/work/a.txt").expect("create");
+    let mut handle = &file;
+    handle.write_all(b"hello").expect("write");
+    handle.flush().expect("flush");
+    handle.seek(SeekFrom::Start(0)).expect("seek");
+    let mut text = String::new();
+    handle.read_to_string(&mut text).expect("read");
+    assert_eq!(text, "hello");
+    assert_eq!(read("/work/a.txt").expect("read"), b"hello");
+}
+
+#[test]
+fn a_shared_handle_truncates_and_syncs() {
+    fresh();
+    let file = File::create("/work/a.txt").expect("create");
+    (&file).write_all(b"hello world").expect("write");
+    file.set_len(5).expect("set_len");
+    file.sync_all().expect("sync");
+    assert_eq!(read("/work/a.txt").expect("read"), b"hello");
 }

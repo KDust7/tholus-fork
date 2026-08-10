@@ -121,15 +121,22 @@ impl NamedTempFile {
         self.file.as_mut().expect("the handle is present until persist consumes it")
     }
 
-    pub fn persist(mut self, destination: impl AsRef<Path>) -> io::Result<File> {
-        self.persist = true;
-        let mut handle = self.file.take();
-        if let Some(file) = handle.as_mut() {
-            io::Write::flush(file)?;
+    pub fn persist(mut self, destination: impl AsRef<Path>) -> Result<File, PersistError> {
+        if let Some(file) = self.file.as_mut() {
+            if let Err(error) = io::Write::flush(file) {
+                return Err(PersistError { error, file: self });
+            }
         }
-        drop(handle);
-        global().rename(&self.path, destination.as_ref())?;
-        File::open(destination.as_ref())
+        self.file = None;
+        if let Err(error) = global().rename(&self.path, destination.as_ref()) {
+            self.file = File::open(&self.path).ok();
+            return Err(PersistError { error, file: self });
+        }
+        self.persist = true;
+        match File::open(destination.as_ref()) {
+            Ok(file) => Ok(file),
+            Err(error) => Err(PersistError { error, file: self }),
+        }
     }
 
     pub fn into_temp_path(mut self) -> TempPath {
@@ -181,6 +188,30 @@ impl Drop for NamedTempFile {
             self.file = None;
             let _ = global().remove_file(&self.path);
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct PersistError {
+    pub error: io::Error,
+    pub file: NamedTempFile,
+}
+
+impl std::fmt::Display for PersistError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "failed to persist temporary file: {}", self.error)
+    }
+}
+
+impl std::error::Error for PersistError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.error)
+    }
+}
+
+impl From<PersistError> for io::Error {
+    fn from(error: PersistError) -> Self {
+        error.error
     }
 }
 

@@ -206,3 +206,18 @@ fn a_named_temporary_file_can_be_passed_to_path_taking_apis() {
     crate::fs::vfs_backed::write(&file, b"payload").expect("write");
     assert_eq!(crate::fs::vfs_backed::read(file.path()).expect("read"), b"payload");
 }
+
+#[test]
+fn a_failed_persist_hands_the_handle_back() {
+    let fs = fresh();
+    fs.create_dir_all(Path::new("/work")).expect("create");
+
+    let mut file = NamedTempFile::new().expect("tempfile");
+    file.write_all(b"payload").expect("write");
+    let temp_path = file.path().to_path_buf();
+
+    let error = file.persist("/missing/final.txt").expect_err("persist should fail");
+    assert_eq!(error.error.kind(), std::io::ErrorKind::NotFound);
+    assert_eq!(error.file.path(), temp_path);
+    assert!(fs.exists(&temp_path));
+}

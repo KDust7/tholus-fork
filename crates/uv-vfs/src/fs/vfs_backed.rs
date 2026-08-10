@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
@@ -344,11 +344,16 @@ impl OpenOptions {
 #[derive(Debug)]
 pub struct File {
     path: PathBuf,
+    writable: bool,
+    state: RefCell<FileState>,
+    holding: Holding,
+}
+
+#[derive(Debug)]
+struct FileState {
     buffer: Vec<u8>,
     cursor: u64,
-    writable: bool,
     dirty: bool,
-    holding: Holding,
 }
 
 impl File {
@@ -398,10 +403,8 @@ impl File {
 
         Ok(Self {
             path: normalized,
-            buffer,
-            cursor,
             writable,
-            dirty: false,
+            state: RefCell::new(FileState { buffer, cursor, dirty: false }),
             holding: Cell::new(None),
         })
     }
@@ -418,21 +421,34 @@ impl File {
         global().set_modified(&self.path, time)
     }
 
-    pub fn set_len(&mut self, size: u64) -> io::Result<()> {
+    pub fn set_len(&self, size: u64) -> io::Result<()> {
         self.require_writable()?;
         let size = usize::try_from(size).unwrap_or(usize::MAX);
-        self.buffer.resize(size, 0);
-        self.cursor = self.cursor.min(size as u64);
-        self.dirty = true;
-        self.flush()
+        {
+            let mut state = self.state.borrow_mut();
+            state.buffer.resize(size, 0);
+            state.cursor = state.cursor.min(size as u64);
+            state.dirty = true;
+        }
+        self.flush_state()
     }
 
-    pub fn sync_all(&mut self) -> io::Result<()> {
-        self.flush()
+    pub fn sync_all(&self) -> io::Result<()> {
+        self.flush_state()
     }
 
-    pub fn sync_data(&mut self) -> io::Result<()> {
-        self.flush()
+    pub fn sync_data(&self) -> io::Result<()> {
+        self.flush_state()
+    }
+
+    fn flush_state(&self) -> io::Result<()> {
+        let mut state = self.state.borrow_mut();
+        if !state.dirty {
+            return Ok(());
+        }
+        global().write(&self.path, &state.buffer)?;
+        state.dirty = false;
+        Ok(())
     }
 
     pub fn lock(&self) -> io::Result<()> {
@@ -487,52 +503,49 @@ impl File {
     }
 }
 
-impl Read for File {
+impl Read for &File {
     fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
-        let start = usize::try_from(self.cursor).unwrap_or(usize::MAX).min(self.buffer.len());
-        let available = &self.buffer[start..];
-        let count = available.len().min(out.len());
-        out[..count].copy_from_slice(&available[..count]);
-        self.cursor += count as u64;
+        let mut state = self.state.borrow_mut();
+        let start = usize::try_from(state.cursor).unwrap_or(usize::MAX).min(state.buffer.len());
+        let count = (state.buffer.len() - start).min(out.len());
+        out[..count].copy_from_slice(&state.buffer[start..start + count]);
+        state.cursor += count as u64;
         Ok(count)
     }
 }
 
-impl Write for File {
+impl Write for &File {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
         self.require_writable()?;
-        let start = usize::try_from(self.cursor).unwrap_or(usize::MAX);
-        if start > self.buffer.len() {
-            self.buffer.resize(start, 0);
+        let mut state = self.state.borrow_mut();
+        let start = usize::try_from(state.cursor).unwrap_or(usize::MAX);
+        if start > state.buffer.len() {
+            state.buffer.resize(start, 0);
         }
         let end = start + data.len();
-        if end > self.buffer.len() {
-            self.buffer.resize(end, 0);
+        if end > state.buffer.len() {
+            state.buffer.resize(end, 0);
         }
-        self.buffer[start..end].copy_from_slice(data);
-        self.cursor = end as u64;
-        self.dirty = true;
+        state.buffer[start..end].copy_from_slice(data);
+        state.cursor = end as u64;
+        state.dirty = true;
         Ok(data.len())
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        if !self.dirty {
-            return Ok(());
-        }
-        global().write(&self.path, &self.buffer)?;
-        self.dirty = false;
-        Ok(())
+        self.flush_state()
     }
 }
 
-impl Seek for File {
+impl Seek for &File {
     fn seek(&mut self, position: SeekFrom) -> io::Result<u64> {
-        let length = self.buffer.len() as i64;
+        let mut state = self.state.borrow_mut();
+        let length = state.buffer.len() as i64;
         let target = match position {
             SeekFrom::Start(offset) => i64::try_from(offset).unwrap_or(i64::MAX),
             SeekFrom::End(offset) => length.saturating_add(offset),
             SeekFrom::Current(offset) => {
-                i64::try_from(self.cursor).unwrap_or(i64::MAX).saturating_add(offset)
+                i64::try_from(state.cursor).unwrap_or(i64::MAX).saturating_add(offset)
             }
         };
         if target < 0 {
@@ -541,14 +554,36 @@ impl Seek for File {
                 "cannot seek before the start of the file",
             ));
         }
-        self.cursor = target as u64;
-        Ok(self.cursor)
+        state.cursor = target as u64;
+        Ok(state.cursor)
+    }
+}
+
+impl Read for File {
+    fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
+        (&*self).read(out)
+    }
+}
+
+impl Write for File {
+    fn write(&mut self, data: &[u8]) -> io::Result<usize> {
+        (&*self).write(data)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        (&*self).flush()
+    }
+}
+
+impl Seek for File {
+    fn seek(&mut self, position: SeekFrom) -> io::Result<u64> {
+        (&*self).seek(position)
     }
 }
 
 impl Drop for File {
     fn drop(&mut self) {
-        let _ = self.flush();
+        let _ = self.flush_state();
         advisory_locks::release(&self.path, &self.holding);
     }
 }
