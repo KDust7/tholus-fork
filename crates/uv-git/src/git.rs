@@ -8,7 +8,6 @@ use std::sync::LazyLock;
 
 use anyhow::{Context, Result, anyhow};
 use cargo_util::{ProcessBuilder, ProcessError, paths};
-use owo_colors::OwoColorize;
 use tracing::{debug, instrument, warn};
 use url::Url;
 
@@ -19,25 +18,11 @@ use uv_static::EnvVars;
 use uv_warnings::warn_user_once;
 use uv_vfs::VfsPathExt as _;
 
+use crate::error::GitError;
+
 /// A file indicates that if present, `git reset` has been done and a repo
 /// checkout is ready to go. See [`GitCheckout::reset`] for why we need this.
 const CHECKOUT_READY_LOCK: &str = ".ok";
-
-#[derive(Debug, thiserror::Error)]
-pub enum GitError {
-    #[error("Git executable not found. Ensure that Git is installed and available.")]
-    GitNotFound,
-    #[error("Git LFS extension not found. Ensure that Git LFS is installed and available.")]
-    GitLfsNotFound,
-    #[error("Is Git LFS configured? Run `{}` to initialize Git LFS.", "git lfs install".green())]
-    GitLfsNotConfigured,
-    #[error(transparent)]
-    Other(#[from] which::Error),
-    #[error(
-        "Remote Git fetches are not allowed because network connectivity is disabled (i.e., with `--offline`)"
-    )]
-    TransportNotAllowed,
-}
 
 /// A global cache of the result of `which git` as a command
 ///

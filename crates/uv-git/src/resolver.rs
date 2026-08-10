@@ -1,21 +1,29 @@
+#[cfg(not(target_family = "wasm"))]
 use std::borrow::Cow;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 
+#[cfg(not(target_family = "wasm"))]
 use uv_vfs::fs::tokio as fs;
 use papaya::{HashMap, ResizeMode};
 use reqwest_middleware::ClientWithMiddleware;
 use tracing::debug;
 
-use uv_cache_key::{RepositoryUrl, cache_digest};
-use uv_fs::{LockedFile, LockedFileError, LockedFileMode};
+#[cfg(not(target_family = "wasm"))]
+use uv_cache_key::cache_digest;
+use uv_cache_key::RepositoryUrl;
+use uv_fs::LockedFileError;
+#[cfg(not(target_family = "wasm"))]
+use uv_fs::{LockedFile, LockedFileMode};
 use uv_git_types::{GitHubRepository, GitOid, GitReference, GitUrl};
 use uv_static::EnvVars;
 use uv_version::version;
 
+#[cfg(not(target_family = "wasm"))]
+use crate::GitSource;
 use crate::{
-    Fetch, GitSource, Reporter,
+    Fetch, Reporter,
     rate_limit::{GITHUB_RATE_LIMIT_STATUS, is_github_rate_limited},
 };
 
@@ -29,6 +37,9 @@ pub enum GitResolverError {
     Join(#[from] tokio::task::JoinError),
     #[error("Git operation failed")]
     Git(#[source] anyhow::Error),
+    #[cfg(target_family = "wasm")]
+    #[error("Fetching a Git repository is not supported in the browser")]
+    GitUnsupported,
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
     #[error(transparent)]
@@ -172,7 +183,19 @@ impl GitResolver {
         Ok(Some(precise))
     }
 
+    #[cfg(target_family = "wasm")]
+    pub async fn fetch(
+        &self,
+        _url: &GitUrl,
+        _http_settings: GitHttpSettings,
+        _cache: PathBuf,
+        _reporter: Option<Arc<dyn Reporter>>,
+    ) -> Result<Fetch, GitResolverError> {
+        Err(GitResolverError::GitUnsupported)
+    }
+
     /// Fetch a remote Git repository.
+    #[cfg(not(target_family = "wasm"))]
     pub async fn fetch(
         &self,
         url: &GitUrl,

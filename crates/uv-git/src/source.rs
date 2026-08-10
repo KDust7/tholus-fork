@@ -3,7 +3,7 @@
 //! Source: <https://github.com/rust-lang/cargo/blob/23eb492cf920ce051abfc56bbaf838514dc8365c/src/cargo/sources/git/source.rs>
 
 use std::borrow::Cow;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -11,9 +11,9 @@ use tracing::{debug, instrument};
 
 use uv_cache_key::cache_digest;
 use uv_git_types::{GitOid, GitReference, GitUrl};
-use uv_redacted::DisplaySafeUrl;
 
 use crate::credentials::GIT_STORE;
+use crate::fetch::{Fetch, Reporter};
 use crate::git::{GitDatabase, GitRemote};
 
 /// A remote Git source that can be checked out locally.
@@ -182,33 +182,3 @@ impl GitSource {
     }
 }
 
-pub struct Fetch {
-    /// The [`GitUrl`] reference that was fetched.
-    git: GitUrl,
-    /// The path to the checked out repository.
-    path: PathBuf,
-    /// Git LFS artifacts have been initialized (if requested).
-    lfs_ready: bool,
-}
-
-impl Fetch {
-    pub fn git(&self) -> &GitUrl {
-        &self.git
-    }
-
-    pub fn path(&self) -> &Path {
-        &self.path
-    }
-
-    pub fn lfs_ready(&self) -> &bool {
-        &self.lfs_ready
-    }
-}
-
-pub trait Reporter: Send + Sync {
-    /// Callback to invoke when a repository checkout begins.
-    fn on_checkout_start(&self, url: &DisplaySafeUrl, rev: &str) -> usize;
-
-    /// Callback to invoke when a repository checkout completes.
-    fn on_checkout_complete(&self, url: &DisplaySafeUrl, rev: &str, index: usize);
-}

@@ -21,6 +21,7 @@ impl GitStore {
     }
 
     /// Get the [`Credentials`] for the given URL, if they exist.
+    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     pub(crate) fn get(&self, url: &RepositoryUrl) -> Option<Arc<Credentials>> {
         self.0.read().unwrap().get(url).cloned()
     }
