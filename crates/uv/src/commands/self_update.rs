@@ -1,7 +1,8 @@
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::time::{Duration, SystemTimeError};
+use std::time::Duration;
+use web_time::SystemTimeError;
 
 use anyhow::{Context, Result};
 use axoupdater::{

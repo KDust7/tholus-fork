@@ -19,6 +19,7 @@ doctest = false
 workspace = true
 
 [dependencies]
+web-time = { workspace = true }
 uv-wasm-compat = { workspace = true }
 uv-vfs = { workspace = true }
 uv-auth = { workspace = true }

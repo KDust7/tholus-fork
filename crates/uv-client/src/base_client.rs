@@ -4,7 +4,8 @@ use std::num::ParseIntError;
 use std::sync::Arc;
 #[cfg(not(target_family = "wasm"))]
 use std::sync::OnceLock;
-use std::time::{Duration, SystemTimeError};
+use std::time::Duration;
+use web_time::SystemTimeError;
 
 use anyhow::anyhow;
 use http::header::{

@@ -5,7 +5,9 @@ use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::str::FromStr;
 use std::task::{Context, Poll};
-use std::time::{Duration, Instant, SystemTimeError};
+use std::time::Duration;
+use web_time::SystemTimeError;
+use web_time::Instant;
 use std::{env, io};
 
 use futures::TryStreamExt;
@@ -1813,6 +1815,19 @@ where
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
+fn recorded_retry_count(response: &Response) -> Option<u32> {
+    response
+        .extensions()
+        .get::<reqwest_retry::RetryCount>()
+        .map(|retries| retries.value())
+}
+
+#[cfg(target_family = "wasm")]
+fn recorded_retry_count(_response: &Response) -> Option<u32> {
+    None
+}
+
 /// Convert a [`Url`] into an [`AsyncRead`] stream.
 async fn read_url(
     url: &DisplaySafeUrl,
@@ -1837,10 +1852,7 @@ async fn read_url(
             .await
             .map_err(|err| Error::from_reqwest_middleware(url.clone(), err))?;
 
-        let retry_count = response
-            .extensions()
-            .get::<reqwest_retry::RetryCount>()
-            .map(|retries| retries.value());
+        let retry_count = recorded_retry_count(&response);
 
         // Check the status code.
         let response = response

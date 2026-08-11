@@ -10,7 +10,8 @@ use std::path::PathBuf;
 use std::pin::Pin;
 use std::str::FromStr;
 use std::task::{Context, Poll};
-use std::time::{Duration, SystemTimeError};
+use std::time::Duration;
+use web_time::SystemTimeError;
 
 use futures::{StreamExt, TryStreamExt};
 use reqwest_retry::Retryable;
@@ -774,6 +775,19 @@ async fn bin_install_from_urls(
     Ok(path)
 }
 
+#[cfg(not(target_family = "wasm"))]
+fn recorded_retry_count(response: &reqwest::Response) -> Option<u32> {
+    response
+        .extensions()
+        .get::<reqwest_retry::RetryCount>()
+        .map(|retries| retries.value())
+}
+
+#[cfg(target_family = "wasm")]
+fn recorded_retry_count(_response: &reqwest::Response) -> Option<u32> {
+    None
+}
+
 /// Download and unpack a binary from a single URL.
 ///
 /// Use [`bin_install_from_urls`] (via [`fetch_with_url_fallback`]) to get URL-fallback and retry.
@@ -801,10 +815,7 @@ async fn download_and_unpack(
             source: err,
         })?;
 
-    let inner_retries = response
-        .extensions()
-        .get::<reqwest_retry::RetryCount>()
-        .map(|retries| retries.value());
+    let inner_retries = recorded_retry_count(&response);
 
     if let Err(status_error) = response.error_for_status_ref() {
         let err = Error::Download {

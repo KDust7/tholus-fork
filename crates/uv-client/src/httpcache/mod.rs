@@ -135,7 +135,8 @@ actually need to make an HTTP request).
 * HTTP caching (obsoletes RFC 7234): <https://www.rfc-editor.org/rfc/rfc9111.html>
 */
 
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
+use web_time::SystemTime;
 
 use http::header::HeaderValue;
 

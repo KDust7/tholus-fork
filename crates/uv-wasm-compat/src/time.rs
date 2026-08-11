@@ -9,6 +9,19 @@ use web_time::Duration;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Elapsed;
 
+#[cfg(not(target_family = "wasm"))]
+pub fn to_std_system_time(time: web_time::SystemTime) -> std::time::SystemTime {
+    time
+}
+
+#[cfg(target_family = "wasm")]
+pub fn to_std_system_time(time: web_time::SystemTime) -> std::time::SystemTime {
+    std::time::UNIX_EPOCH
+        + time
+            .duration_since(web_time::UNIX_EPOCH)
+            .unwrap_or_default()
+}
+
 impl std::fmt::Display for Elapsed {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(formatter, "the operation timed out")

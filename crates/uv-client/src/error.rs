@@ -1,7 +1,8 @@
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use web_time::Instant;
 
 use async_http_range_reader::AsyncHttpRangeReaderError;
 use async_zip::error::ZipError;

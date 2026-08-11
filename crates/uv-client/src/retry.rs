@@ -1,5 +1,7 @@
 use std::error::Error;
-use std::time::{Duration, SystemTime, SystemTimeError};
+use std::time::Duration;
+use web_time::SystemTimeError;
+use web_time::SystemTime;
 use std::{io, iter};
 
 use http::status::StatusCode;
@@ -100,10 +102,11 @@ impl RetryState {
                 // Capture `now` before calling the policy so that `execute_after`
                 // (computed from a `SystemTime::now()` inside the library) is always
                 // >= `now`, making `duration_since` reliable.
-                let now = SystemTime::now();
-                let retry_decision = self
-                    .retry_policy
-                    .should_retry(self.start_time, self.total_retries);
+                let now = uv_wasm_compat::time::to_std_system_time(SystemTime::now());
+                let retry_decision = self.retry_policy.should_retry(
+                    uv_wasm_compat::time::to_std_system_time(self.start_time),
+                    self.total_retries,
+                );
                 if let reqwest_retry::RetryDecision::Retry { execute_after } = retry_decision {
                     let duration = execute_after
                         .duration_since(now)

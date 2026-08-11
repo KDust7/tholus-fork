@@ -238,7 +238,8 @@ impl From<&Self> for ResourceId {
 
 #[cfg(test)]
 mod tests {
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::time::UNIX_EPOCH;
+    use web_time::SystemTime;
 
     use uv_vfs::fs as fs;
 

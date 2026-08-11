@@ -1,6 +1,7 @@
 use std::convert::Infallible;
 use std::io;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use web_time::Instant;
 
 use assert_fs::fixture::{ChildPath, FileWriteStr, PathChild};
 use bytes::Bytes;
