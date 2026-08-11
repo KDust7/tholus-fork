@@ -8,6 +8,7 @@ use path_slash::PathExt;
 use uv_vfs::VfsPathExt as _;
 
 /// The current working directory.
+#[cfg(not(target_family = "wasm"))]
 #[expect(clippy::print_stderr)]
 pub static CWD: LazyLock<PathBuf> = LazyLock::new(|| {
     std::env::current_dir().unwrap_or_else(|_e| {
@@ -15,6 +16,38 @@ pub static CWD: LazyLock<PathBuf> = LazyLock::new(|| {
         std::process::exit(1);
     })
 });
+
+#[cfg(target_family = "wasm")]
+static WASM_ROOT_DIR: LazyLock<PathBuf> = LazyLock::new(|| PathBuf::from("/"));
+
+#[cfg(target_family = "wasm")]
+thread_local! {
+    static CURRENT_DIR: std::cell::Cell<Option<&'static PathBuf>> =
+        const { std::cell::Cell::new(None) };
+}
+
+#[cfg(target_family = "wasm")]
+pub fn set_current_dir(path: impl AsRef<Path>) {
+    let directory: &'static PathBuf = Box::leak(Box::new(path.as_ref().to_path_buf()));
+    CURRENT_DIR.with(|current| current.set(Some(directory)));
+}
+
+#[cfg(target_family = "wasm")]
+pub struct Cwd;
+
+#[cfg(target_family = "wasm")]
+impl std::ops::Deref for Cwd {
+    type Target = PathBuf;
+
+    fn deref(&self) -> &Self::Target {
+        CURRENT_DIR
+            .with(std::cell::Cell::get)
+            .unwrap_or(&WASM_ROOT_DIR)
+    }
+}
+
+#[cfg(target_family = "wasm")]
+pub static CWD: Cwd = Cwd;
 
 pub trait Simplified {
     /// Simplify a [`Path`].
