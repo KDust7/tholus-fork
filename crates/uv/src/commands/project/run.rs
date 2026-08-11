@@ -13,7 +13,7 @@ use futures::StreamExt;
 use itertools::Itertools;
 use owo_colors::OwoColorize;
 use thiserror::Error;
-use tokio::process::Command;
+use uv_wasm_compat::process::Command;
 use tracing::{debug, trace, warn};
 use url::Url;
 
@@ -2035,7 +2035,7 @@ enum CopyEntrypointError {
 /// This is a no-op if the target already exists.
 ///
 /// Note on Windows, the entrypoints do not use shebangs and require a rewrite of the trampoline.
-#[cfg(unix)]
+#[cfg(any(unix, target_family = "wasm"))]
 fn copy_entrypoint(
     source: &Path,
     target: &Path,
@@ -2043,8 +2043,10 @@ fn copy_entrypoint(
     python_executable: &Path,
 ) -> Result<(), CopyEntrypointError> {
     use std::io::{Seek, Write};
+    #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
 
+    #[cfg(unix)]
     use uv_vfs::fs::os::unix::fs::OpenOptionsExt;
 
     let mut file = uv_vfs::fs::File::open(source)?;
@@ -2110,12 +2112,11 @@ fn copy_entrypoint(
     };
 
     let contents = format!("#!{}\n{}", python_executable.display(), contents);
-    let mode = uv_vfs::fs::metadata(source)?.permissions().mode();
-    let mut file = uv_vfs::fs::OpenOptions::new()
-        .create_new(true)
-        .write(true)
-        .mode(mode)
-        .open(target)?;
+    let mut options = uv_vfs::fs::OpenOptions::new();
+    options.create_new(true).write(true);
+    #[cfg(unix)]
+    options.mode(uv_vfs::fs::metadata(source)?.permissions().mode());
+    let mut file = options.open(target)?;
     file.write_all(contents.as_bytes())?;
 
     trace!("Updated entrypoint at {}", target.user_display());

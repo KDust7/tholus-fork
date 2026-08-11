@@ -23,7 +23,9 @@ use rustc_hash::FxHashMap;
 use serde::de::{self, IntoDeserializer, SeqAccess, Visitor, value};
 use serde::{Deserialize, Deserializer};
 use uv_vfs::temp::TempDir;
+#[cfg(not(target_family = "wasm"))]
 use tokio::io::AsyncBufReadExt;
+#[cfg(not(target_family = "wasm"))]
 use tokio::process::Command;
 use tokio::sync::{Mutex, Semaphore};
 use tracing::{Instrument, debug, info_span, instrument, warn};
@@ -1180,7 +1182,9 @@ async fn create_pep517_build_environment(
 /// concurrency limit.
 #[derive(Debug)]
 struct PythonRunner {
+    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     concurrent_build_slots: Arc<Semaphore>,
+    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     level: BuildOutput,
 }
 
@@ -1205,7 +1209,20 @@ impl PythonRunner {
     /// If the concurrency limit has been reached this method will wait until a pending
     /// script completes before spawning this one.
     ///
+    #[cfg(target_family = "wasm")]
+    async fn run_script(
+        &self,
+        _venv: &PythonEnvironment,
+        _script: &str,
+        _source_tree: &Path,
+        _environment_variables: &FxHashMap<OsString, OsString>,
+        _modified_path: &OsString,
+    ) -> Result<PythonRunnerOutput, Error> {
+        Err(Error::PythonSubprocessUnsupported)
+    }
+
     /// Note: It is the caller's responsibility to create an informative span.
+    #[cfg(not(target_family = "wasm"))]
     async fn run_script(
         &self,
         venv: &PythonEnvironment,

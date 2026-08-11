@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use anyhow::{Context, Result};
-use tokio::process::Command;
+use uv_wasm_compat::process::Command;
 use tracing::debug;
 
 use uv_bin_install::{BinVersion, Binary, ResolvedVersion, bin_install, find_matching_version};

@@ -8,7 +8,7 @@ use anyhow::{Context, bail};
 use console::Term;
 use itertools::Itertools;
 use owo_colors::OwoColorize;
-use tokio::process::Command;
+use uv_wasm_compat::process::Command;
 use tracing::{debug, warn};
 
 use uv_cache::{Cache, Refresh};

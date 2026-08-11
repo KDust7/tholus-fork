@@ -1,28 +1,47 @@
+#[cfg(not(target_family = "wasm"))]
 use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
+#[cfg(not(target_family = "wasm"))]
 use std::process::Stdio;
 use std::time::Duration;
-use std::{env, io, panic};
+use std::io;
+#[cfg(not(target_family = "wasm"))]
+use std::{env, panic};
 
-use async_channel::{Receiver, SendError};
+use async_channel::SendError;
+#[cfg(not(target_family = "wasm"))]
+use async_channel::Receiver;
+#[cfg(not(target_family = "wasm"))]
 use uv_vfs::temp::tempdir_in;
 use thiserror::Error;
+#[cfg(not(target_family = "wasm"))]
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
+#[cfg(not(target_family = "wasm"))]
 use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command};
+#[cfg(not(target_family = "wasm"))]
 use tokio::sync::oneshot;
+#[cfg(not(target_family = "wasm"))]
 use tracing::{debug, instrument};
+#[cfg(not(target_family = "wasm"))]
 use uv_vfs::walk::WalkDir;
 
 use uv_configuration::Concurrency;
+#[cfg(not(target_family = "wasm"))]
 use uv_fs::Simplified;
+#[cfg(not(target_family = "wasm"))]
 use uv_static::EnvVars;
+#[cfg(not(target_family = "wasm"))]
 use uv_warnings::warn_user;
 
+#[cfg(not(target_family = "wasm"))]
 const COMPILEALL_SCRIPT: &str = include_str!("pip_compileall.py");
 /// This is longer than any compilation should ever take.
+#[cfg(not(target_family = "wasm"))]
 const DEFAULT_COMPILE_TIMEOUT: Duration = Duration::from_mins(1);
 
+#[cfg(not(target_family = "wasm"))]
 type WorkerOutcome = std::thread::Result<Result<(), CompileError>>;
+#[cfg(not(target_family = "wasm"))]
 type WorkerHandle = oneshot::Receiver<WorkerOutcome>;
 
 #[derive(Debug, Error)]
@@ -62,8 +81,12 @@ pub enum CompileError {
     StartupTimeout(Duration),
     #[error("Got invalid value from environment for {var}: {message}.")]
     EnvironmentError { var: &'static str, message: String },
+    #[cfg(target_family = "wasm")]
+    #[error("Bytecode compilation requires running a Python interpreter, which is unavailable in the browser")]
+    Unsupported,
 }
 
+#[cfg(not(target_family = "wasm"))]
 fn compile_timeout() -> Result<Option<Duration>, CompileError> {
     let timeout = match env::var(EnvVars::UV_COMPILE_BYTECODE_TIMEOUT) {
         Ok(value) => match value.as_str() {
@@ -91,6 +114,7 @@ fn compile_timeout() -> Result<Option<Duration>, CompileError> {
     Ok(timeout)
 }
 
+#[cfg(not(target_family = "wasm"))]
 fn spawn_workers(
     dir: &Path,
     python_executable: &Path,
@@ -136,6 +160,7 @@ fn spawn_workers(
 }
 
 /// Wait for all workers to exit so worker failures are not hidden by channel send errors.
+#[cfg(not(target_family = "wasm"))]
 async fn wait_for_workers(
     worker_handles: Vec<WorkerHandle>,
     send_error: Option<SendError<PathBuf>>,
@@ -169,6 +194,27 @@ async fn wait_for_workers(
 /// > Uninstallers should be smart enough to remove .pyc even if it is not mentioned in RECORD.
 ///
 /// We've confirmed that both uv and pip (as of 24.0.0) remove the `__pycache__` directory.
+#[cfg(target_family = "wasm")]
+pub async fn compile_tree(
+    _dir: &Path,
+    _python_executable: &Path,
+    _concurrency: &Concurrency,
+    _cache: &Path,
+) -> Result<usize, CompileError> {
+    Err(CompileError::Unsupported)
+}
+
+#[cfg(target_family = "wasm")]
+pub async fn compile_files(
+    _files: impl IntoIterator<Item = anyhow::Result<PathBuf>>,
+    _python_executable: &Path,
+    _concurrency: &Concurrency,
+    _cache: &Path,
+) -> Result<usize, CompileError> {
+    Err(CompileError::Unsupported)
+}
+
+#[cfg(not(target_family = "wasm"))]
 #[instrument(skip(python_executable))]
 pub async fn compile_tree(
     dir: &Path,
@@ -249,6 +295,7 @@ pub async fn compile_tree(
 ///
 /// All paths must be absolute. Compilation errors are muted (like pip), while failures to launch
 /// or communicate with the Python workers are returned.
+#[cfg(not(target_family = "wasm"))]
 #[instrument(skip(files, python_executable))]
 pub async fn compile_files(
     files: impl IntoIterator<Item = anyhow::Result<PathBuf>>,
@@ -314,6 +361,7 @@ pub async fn compile_files(
     Ok(source_files)
 }
 
+#[cfg(not(target_family = "wasm"))]
 async fn worker(
     dir: PathBuf,
     interpreter: PathBuf,
@@ -398,6 +446,7 @@ async fn worker(
 }
 
 /// Returns the child and stdin/stdout/stderr on a successful launch or `None` for a broken interpreter state.
+#[cfg(not(target_family = "wasm"))]
 async fn launch_bytecode_compiler(
     dir: &Path,
     interpreter: &Path,
@@ -472,6 +521,7 @@ async fn launch_bytecode_compiler(
 /// We use stdin/stdout as a sort of bounded channel. We write one path to stdin, then wait until
 /// we get the same path back from stdout. This way we ensure one worker is only working on one
 /// piece of work at the same time.
+#[cfg(not(target_family = "wasm"))]
 async fn worker_main_loop(
     receiver: Receiver<PathBuf>,
     mut child_stdin: ChildStdin,

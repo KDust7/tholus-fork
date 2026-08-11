@@ -1,4 +1,4 @@
-use tokio::process::Child;
+use uv_wasm_compat::process::Child;
 use tracing::debug;
 
 use crate::commands::ExitStatus;
@@ -273,12 +273,15 @@ pub(crate) async fn run_to_completion(mut handle: Child) -> anyhow::Result<ExitS
 
     // On Windows, we just ignore the console CTRL_C_EVENT and assume it will always be sent to the
     // child by the console. There's not a clear programmatic way to forward the signal anyway.
-    #[cfg(not(unix))]
+    #[cfg(all(not(unix), not(target_family = "wasm")))]
     let status = {
         let _ctrl_c_handler =
             tokio::spawn(async { while tokio::signal::ctrl_c().await.is_ok() {} });
         handle.wait().await?
     };
+
+    #[cfg(target_family = "wasm")]
+    let status = handle.wait().await?;
 
     // Exit based on the result of the command.
     if let Some(code) = status.code() {

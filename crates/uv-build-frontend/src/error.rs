@@ -60,6 +60,11 @@ pub enum Error {
         "Extra build requirement `{0}` was declared with `match-runtime = true`, but `{1}` does not declare static metadata, making runtime-matching impossible"
     )]
     UnmatchedRuntime(PackageName, PackageName),
+    #[cfg(target_family = "wasm")]
+    #[error(
+        "Running a build backend requires starting a Python subprocess, which is unavailable in the browser"
+    )]
+    PythonSubprocessUnsupported,
 }
 
 impl IsBuildBackendError for Error {
@@ -79,6 +84,8 @@ impl IsBuildBackendError for Error {
             | Self::NoSourceDistBuilds
             | Self::CyclicBuildDependency(_)
             | Self::UnmatchedRuntime(_, _) => false,
+            #[cfg(target_family = "wasm")]
+            Self::PythonSubprocessUnsupported => false,
             Self::CommandFailed(_, _)
             | Self::BuildBackend(_)
             | Self::MissingHeader(_)

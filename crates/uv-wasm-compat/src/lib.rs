@@ -1,4 +1,5 @@
 pub mod locks;
+pub mod process;
 pub mod prompt;
 pub mod spawn;
 pub mod term;
