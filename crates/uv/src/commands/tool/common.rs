@@ -26,7 +26,7 @@ use uv_distribution_types::{
     RequiresPython, Resolution, UnresolvedRequirement,
 };
 use uv_errors::{ErrorWithHints, Hint, Hints};
-#[cfg(unix)]
+#[cfg(any(unix, target_family = "wasm"))]
 use uv_fs::replace_symlink;
 use uv_fs::{CWD, Simplified};
 use uv_git::GitResolver;
@@ -898,7 +898,7 @@ pub(crate) fn finalize_tool_install(
         for (name, src, target) in target_entrypoints {
             debug!("Installing executable: `{name}`");
 
-            #[cfg(unix)]
+            #[cfg(any(unix, target_family = "wasm"))]
             replace_symlink(src, &target).context("Failed to install executable")?;
 
             #[cfg(windows)]

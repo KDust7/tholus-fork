@@ -118,7 +118,7 @@ pub(crate) fn create(
         Ok(metadata)
             if metadata.is_dir()
                 && location
-                    .read_dir()
+                    .vfs_read_dir()
                     .is_ok_and(|mut dir| dir.next().is_none()) =>
         {
             // If it's an empty directory, we can proceed
@@ -261,7 +261,7 @@ pub(crate) fn create(
     uv_vfs::fs::create_dir_all(&scripts)?;
     let executable = scripts.join(format!("python{EXE_SUFFIX}"));
 
-    #[cfg(unix)]
+    #[cfg(any(unix, target_family = "wasm"))]
     {
         uv_fs::replace_symlink(&executable_target, &executable)?;
         uv_fs::replace_symlink(
@@ -447,7 +447,7 @@ pub(crate) fn create(
         }
     }
 
-    #[cfg(not(any(unix, windows)))]
+    #[cfg(not(any(unix, windows, target_family = "wasm")))]
     {
         compile_error!("Only Windows and Unix are supported")
     }
@@ -586,7 +586,7 @@ pub(crate) fn create(
 
     // If necessary, create a symlink from `lib64` to `lib`.
     // See: https://github.com/python/cpython/blob/b228655c227b2ca298a8ffac44d14ce3d22f6faa/Lib/venv/__init__.py#L135C11-L135C16
-    #[cfg(unix)]
+    #[cfg(any(unix, target_family = "wasm"))]
     if interpreter.pointer_size().is_64()
         && interpreter.markers().os_name() == "posix"
         && interpreter.markers().sys_platform() != "darwin"

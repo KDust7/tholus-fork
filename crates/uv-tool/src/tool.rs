@@ -130,7 +130,7 @@ impl Display for ToolEntrypoint {
                         .replace('/', "\\")
                 )
             },
-            unix => {
+            any(unix, target_family = "wasm") => {
                 write!(
                     f,
                     "{} ({})",

@@ -755,7 +755,7 @@ impl PythonMinorVersionLink {
             .expect("Executable should have parent directory");
 
         // The home directory of the Python installation
-        let target_directory = if cfg!(unix) {
+        let target_directory = if cfg!(any(unix, target_family = "wasm")) {
             if parent
                 .components()
                 .next_back()
@@ -832,7 +832,7 @@ impl PythonMinorVersionLink {
         };
 
         cfg_select! {
-            unix => {
+            any(unix, target_family = "wasm") => {
                 self.symlink_directory
                     .vfs_symlink_metadata()
                     .is_ok_and(|metadata| metadata.file_type().is_symlink())
@@ -891,7 +891,7 @@ pub fn create_link_to_executable(link: &Path, executable: &Path) -> Result<(), E
     let link_parent = link.parent().ok_or(Error::NoExecutableDirectory)?;
     uv_vfs::fs::create_dir_all(link_parent).map_err(Error::ExecutableDirectory)?;
 
-    if cfg!(unix) {
+    if cfg!(any(unix, target_family = "wasm")) {
         // Note this will never copy on Unix — we use it here to allow compilation on Windows
         match symlink_or_copy_file(executable, link) {
             Ok(()) => Ok(()),
@@ -928,7 +928,7 @@ pub fn replace_link_to_executable(link: &Path, executable: &Path) -> Result<(), 
     let link_parent = link.parent().ok_or(Error::NoExecutableDirectory)?;
     uv_vfs::fs::create_dir_all(link_parent).map_err(Error::ExecutableDirectory)?;
 
-    if cfg!(unix) {
+    if cfg!(any(unix, target_family = "wasm")) {
         replace_symlink(executable, link).map_err(Error::LinkExecutable)
     } else if cfg!(windows) {
         use uv_trampoline_builder::windows_python_launcher;

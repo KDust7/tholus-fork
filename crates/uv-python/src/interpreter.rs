@@ -560,7 +560,7 @@ impl Interpreter {
     /// `python-build-standalone`.
     ///
     /// See: <https://github.com/astral-sh/python-build-standalone/issues/382>
-    #[cfg(unix)]
+    #[cfg(any(unix, target_family = "wasm"))]
     pub fn is_standalone(&self) -> bool {
         self.standalone
     }
@@ -716,7 +716,7 @@ pub fn canonicalize_executable(path: impl AsRef<Path>) -> std::io::Result<PathBu
         }
     }
 
-    #[cfg(unix)]
+    #[cfg(any(unix, target_family = "wasm"))]
     uv_vfs::fs::canonicalize(path)
 }
 

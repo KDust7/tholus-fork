@@ -782,7 +782,7 @@ impl Cache {
                     let entry = entry?;
 
                     // On Unix, archive references use symlinks.
-                    if cfg!(unix) {
+                    if cfg!(any(unix, target_family = "wasm")) {
                         if !entry.file_type().is_symlink() {
                             continue;
                         }
