@@ -149,6 +149,83 @@ pub async fn run(cli: Cli, global_initialization: GlobalInitialization) -> Resul
     .await
 }
 
+#[doc(hidden)]
+pub fn parse_cli<I, T>(args: I) -> std::result::Result<Cli, Error>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<OsString> + Clone,
+{
+    Cli::try_parse_from(args).map_err(|mut err| {
+        suggest_subcommand(&mut err);
+        err
+    })
+}
+
+#[doc(hidden)]
+pub fn report_parse_error(err: &Error) -> ExitStatus {
+    let rendered = err.render().ansi().to_string();
+    if err.use_stderr() {
+        uv_wasm_compat::io::stderr(&rendered);
+        ExitStatus::Error
+    } else {
+        uv_wasm_compat::io::stdout(&rendered);
+        ExitStatus::Success
+    }
+}
+
+#[doc(hidden)]
+pub async fn run_and_report(cli: Cli, global_initialization: GlobalInitialization) -> ExitStatus {
+    let printer = Printer::new(
+        cli.top_level.global_args.quiet,
+        cli.top_level.global_args.verbose,
+        cli.top_level.global_args.no_progress,
+    );
+    match run(cli, global_initialization).await {
+        Ok(status) => status,
+        Err(err) => report_error(err, printer),
+    }
+}
+
+fn report_error(err: anyhow::Error, printer: Printer) -> ExitStatus {
+    let error = match err.downcast::<UvError>() {
+        Ok(error) => error,
+        Err(err) if err.is::<ArgumentError>() => UvError::argument(err),
+        Err(err)
+            if matches!(
+                err.downcast_ref::<ProjectError>(),
+                Some(ProjectError::LockFormat(..))
+            ) =>
+        {
+            UvError::User(err)
+        }
+        Err(err) => UvError::unexpected(err),
+    };
+    match error {
+        UvError::User(err) => {
+            commands::diagnostics::write_error_chain(&err, printer)
+                .expect("writing to stderr should not fail");
+            ExitStatus::Failure
+        }
+        UvError::Argument(err) => {
+            commands::diagnostics::write_error_chain(&err, printer)
+                .expect("writing to stderr should not fail");
+            ExitStatus::Error
+        }
+        UvError::Unexpected(err) => {
+            trace!(
+                "Error chain:\n{}",
+                uv_errors::debug_error_chain(err.as_ref())
+            );
+            if err.backtrace().status() == std::backtrace::BacktraceStatus::Captured {
+                trace!("Error backtrace:\n{}", err.backtrace());
+            }
+            commands::diagnostics::write_error_chain(&err, printer)
+                .expect("writing to stderr should not fail");
+            ExitStatus::Error
+        }
+    }
+}
+
 #[instrument(name = "run", skip_all)]
 async fn run_with_workspace_cache(
     cli: Cli,
@@ -3079,12 +3156,9 @@ where
 
     // `std::env::args` is not `Send` so we parse before passing to our runtime
     // https://github.com/rust-lang/rust/pull/48005
-    let cli = match Cli::try_parse_from(args) {
+    let cli = match parse_cli(args) {
         Ok(cli) => cli,
-        Err(mut err) => {
-            suggest_subcommand(&mut err);
-            err.exit()
-        }
+        Err(err) => return report_parse_error(&err).into(),
     };
 
     // Configure a printer for failures that escape command execution. The resolved `no_progress`
@@ -3133,44 +3207,111 @@ where
 
     match result {
         Ok(code) => code.into(),
-        Err(err) => {
-            let error = match err.downcast::<UvError>() {
-                Ok(error) => error,
-                Err(err) if err.is::<ArgumentError>() => UvError::argument(err),
-                Err(err)
-                    if matches!(
-                        err.downcast_ref::<ProjectError>(),
-                        Some(ProjectError::LockFormat(..))
-                    ) =>
-                {
-                    UvError::User(err)
-                }
-                Err(err) => UvError::unexpected(err),
-            };
-            match error {
-                UvError::User(err) => {
-                    commands::diagnostics::write_error_chain(&err, printer)
-                        .expect("writing to stderr should not fail");
-                    ExitStatus::Failure.into()
-                }
-                UvError::Argument(err) => {
-                    commands::diagnostics::write_error_chain(&err, printer)
-                        .expect("writing to stderr should not fail");
-                    ExitStatus::Error.into()
-                }
-                UvError::Unexpected(err) => {
-                    trace!(
-                        "Error chain:\n{}",
-                        uv_errors::debug_error_chain(err.as_ref())
-                    );
-                    if err.backtrace().status() == std::backtrace::BacktraceStatus::Captured {
-                        trace!("Error backtrace:\n{}", err.backtrace());
-                    }
-                    commands::diagnostics::write_error_chain(&err, printer)
-                        .expect("writing to stderr should not fail");
-                    ExitStatus::Error.into()
-                }
+        Err(err) => report_error(err, printer).into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    use uv_wasm_compat::io::{Sink, Stream, clear_sink, set_sink};
+
+    use super::{ExitStatus, parse_cli, report_parse_error};
+
+    #[derive(Debug, Clone, Default)]
+    struct Captured {
+        stdout: Rc<RefCell<Vec<u8>>>,
+        stderr: Rc<RefCell<Vec<u8>>>,
+    }
+
+    impl Captured {
+        fn stdout(&self) -> String {
+            String::from_utf8(self.stdout.borrow().clone()).unwrap()
+        }
+
+        fn stderr(&self) -> String {
+            String::from_utf8(self.stderr.borrow().clone()).unwrap()
+        }
+    }
+
+    impl Sink for Captured {
+        fn write(&mut self, stream: Stream, bytes: &[u8]) {
+            match stream {
+                Stream::Stdout => self.stdout.borrow_mut().extend_from_slice(bytes),
+                Stream::Stderr => self.stderr.borrow_mut().extend_from_slice(bytes),
             }
         }
+    }
+
+    fn refuse(argv: &[&str]) -> (ExitStatus, Captured) {
+        let err = parse_cli(argv.iter().copied())
+            .err()
+            .unwrap_or_else(|| panic!("{argv:?} should not have parsed"));
+        let captured = Captured::default();
+        set_sink(Box::new(captured.clone()));
+        let status = report_parse_error(&err);
+        clear_sink();
+        (status, captured)
+    }
+
+    #[test]
+    fn a_version_request_succeeds_on_stdout() {
+        let (status, captured) = refuse(&["uv", "--version"]);
+        assert_eq!(status.code(), 0);
+        assert!(captured.stderr().is_empty());
+        assert!(captured.stdout().starts_with("uv "), "{:?}", captured.stdout());
+    }
+
+    #[test]
+    fn a_help_request_succeeds_on_stdout() {
+        let (status, captured) = refuse(&["uv", "--help"]);
+        assert_eq!(status.code(), 0);
+        assert!(captured.stderr().is_empty());
+        assert!(captured.stdout().contains("Usage: uv"), "{:?}", captured.stdout());
+    }
+
+    #[test]
+    fn a_subcommand_help_request_reaches_stdout() {
+        let (status, captured) = refuse(&["uv", "pip", "--help"]);
+        assert_eq!(status.code(), 0);
+        assert!(
+            captured.stdout().contains("Usage: uv pip"),
+            "{:?}",
+            captured.stdout()
+        );
+    }
+
+    #[test]
+    fn an_unknown_flag_is_a_usage_error_on_stderr() {
+        let (status, captured) = refuse(&["uv", "--nonesuch"]);
+        assert_eq!(status.code(), 2);
+        assert!(captured.stdout().is_empty());
+        assert!(captured.stderr().contains("--nonesuch"), "{:?}", captured.stderr());
+    }
+
+    #[test]
+    fn rendering_without_a_terminal_carries_no_escape_sequences() {
+        let (_, captured) = refuse(&["uv", "--help"]);
+        assert!(!captured.stdout().contains('\u{1b}'));
+        let (_, captured) = refuse(&["uv", "--nonesuch"]);
+        assert!(!captured.stderr().contains('\u{1b}'));
+    }
+
+    #[test]
+    fn a_bare_install_suggests_the_pip_subcommand() {
+        let (status, captured) = refuse(&["uv", "install"]);
+        assert_eq!(status.code(), 2);
+        assert!(
+            captured.stderr().contains("uv pip install"),
+            "{:?}",
+            captured.stderr()
+        );
+    }
+
+    #[test]
+    fn a_well_formed_command_line_parses() {
+        assert!(parse_cli(["uv", "pip", "list"]).is_ok());
     }
 }

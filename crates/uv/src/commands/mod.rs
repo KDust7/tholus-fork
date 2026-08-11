@@ -241,14 +241,20 @@ fn read_env_files<'a>(
     Ok(environment)
 }
 
+impl ExitStatus {
+    pub fn code(self) -> u8 {
+        match self {
+            Self::Success => 0,
+            Self::Failure => 1,
+            Self::Error => 2,
+            Self::External(code) => code,
+        }
+    }
+}
+
 impl From<ExitStatus> for ExitCode {
     fn from(status: ExitStatus) -> Self {
-        match status {
-            ExitStatus::Success => Self::from(0),
-            ExitStatus::Failure => Self::from(1),
-            ExitStatus::Error => Self::from(2),
-            ExitStatus::External(code) => Self::from(code),
-        }
+        Self::from(status.code())
     }
 }
 
