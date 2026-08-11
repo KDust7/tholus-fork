@@ -5,7 +5,6 @@ pub use cache::CredentialsCache;
 pub use credentials::{Credentials, CredentialsFromUrlError, Username};
 pub use index::{AuthPolicy, Index, Indexes};
 pub use keyring::KeyringProvider;
-#[cfg(not(target_family = "wasm"))]
 pub use middleware::AuthMiddleware;
 pub use pyx::{
     DEFAULT_TOLERANCE_SECS, PyxJwt, PyxOAuthTokens, PyxTokenStore, PyxTokens, TokenStoreError,
@@ -20,9 +19,7 @@ mod cache;
 mod credentials;
 mod index;
 mod keyring;
-#[cfg(not(target_family = "wasm"))]
 mod middleware;
-#[cfg(not(target_family = "wasm"))]
 mod providers;
 mod pyx;
 mod realm;

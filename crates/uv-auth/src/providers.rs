@@ -1,9 +1,13 @@
+#[cfg(not(target_family = "wasm"))]
 use std::borrow::Cow;
 use std::sync::LazyLock;
 
 use anyhow::{Context, Result};
+#[cfg(not(target_family = "wasm"))]
 use reqsign::aws::DefaultSigner as AwsDefaultSigner;
+#[cfg(not(target_family = "wasm"))]
 use reqsign::azure::DefaultSigner as AzureDefaultSigner;
+#[cfg(not(target_family = "wasm"))]
 use reqsign::google::DefaultSigner as GcsDefaultSigner;
 use tracing::debug;
 use url::{ParseError, Url};
@@ -94,6 +98,7 @@ impl S3EndpointProvider {
     ///
     /// This is potentially expensive as it may invoke credential helpers, so the result
     /// should be cached.
+    #[cfg(not(target_family = "wasm"))]
     pub(crate) fn create_signer() -> AwsDefaultSigner {
         // TODO(charlie): Can `reqsign` infer the region for us? Profiles, for example,
         // often have a region set already.
@@ -144,6 +149,7 @@ impl GcsEndpointProvider {
     ///
     /// This is potentially expensive as it may invoke credential helpers, so the result
     /// should be cached.
+    #[cfg(not(target_family = "wasm"))]
     pub(crate) fn create_signer() -> GcsDefaultSigner {
         reqsign::google::default_signer("storage.googleapis.com")
     }
@@ -185,6 +191,7 @@ impl AzureEndpointProvider {
     ///
     /// This is potentially expensive as it may invoke credential helpers, so the result
     /// should be cached.
+    #[cfg(not(target_family = "wasm"))]
     pub(crate) fn create_signer() -> AzureDefaultSigner {
         reqsign::azure::default_signer()
     }

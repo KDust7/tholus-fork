@@ -289,7 +289,6 @@ impl Credentials {
     /// Parse [`Credentials`] from an HTTP request, if any.
     ///
     /// Only HTTP Basic Authentication is supported.
-    #[cfg(not(target_family = "wasm"))]
     pub(crate) fn from_request(request: &Request) -> Result<Option<Self>, CredentialsFromUrlError> {
         // First, attempt to retrieve the credentials from the URL
         if let Some(credentials) = Self::from_url(request.url())? {
@@ -424,7 +423,6 @@ pub(crate) enum Authentication {
 }
 
 #[derive(Debug, Error)]
-#[cfg(not(target_family = "wasm"))]
 pub(crate) enum AuthenticationError {
     #[error("Failed to convert request URL to URI")]
     InvalidUri(#[from] http::uri::InvalidUri),
@@ -436,6 +434,7 @@ pub(crate) enum AuthenticationError {
         source: http::Error,
     },
 
+    #[cfg(not(target_family = "wasm"))]
     #[error("Failed to sign request with {provider} credentials")]
     Sign {
         provider: &'static str,
@@ -549,13 +548,13 @@ impl Authentication {
     /// Apply the authentication to the given request.
     ///
     /// Any existing credentials will be overridden.
-    #[cfg(not(target_family = "wasm"))]
     pub(crate) async fn authenticate(
         &self,
-        mut request: Request,
+        #[cfg_attr(target_family = "wasm", allow(unused_mut))] mut request: Request,
     ) -> Result<Request, AuthenticationError> {
         match self {
             Self::Credentials(credentials) => Ok(credentials.authenticate(request)),
+            #[cfg(not(target_family = "wasm"))]
             Self::AwsSigner(signer) => {
                 // Build an `http::Request` from the `reqwest::Request`.
                 let uri = Uri::from_str(request.url().as_str())?;
@@ -588,6 +587,7 @@ impl Authentication {
                 }
                 Ok(request)
             }
+            #[cfg(not(target_family = "wasm"))]
             Self::GcsSigner(signer) => {
                 // Build an `http::Request` from the `reqwest::Request`.
                 let uri = Uri::from_str(request.url().as_str())?;
@@ -620,6 +620,7 @@ impl Authentication {
                 }
                 Ok(request)
             }
+            #[cfg(not(target_family = "wasm"))]
             Self::AzureSigner(signer) => {
                 // Build an `http::Request` from the `reqwest::Request`.
                 let uri = Uri::from_str(request.url().as_str())?;

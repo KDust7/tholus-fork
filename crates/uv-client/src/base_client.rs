@@ -25,7 +25,6 @@ use url::ParseError;
 use url::Url;
 
 use uv_auth::{Credentials, CredentialsCache, CredentialsFromUrlError, Indexes};
-#[cfg(not(target_family = "wasm"))]
 use uv_auth::{AuthMiddleware, PyxTokenStore};
 #[cfg(not(target_family = "wasm"))]
 use uv_configuration::ProxyUrlKind;
@@ -731,7 +730,6 @@ impl<'a> BaseClientBuilder<'a> {
         match self.connectivity {
             Connectivity::Online => {
                 // Create a base client to using in the authentication middleware.
-                #[cfg(not(target_family = "wasm"))]
                 let base_client = {
                     let mut client = reqwest_middleware::ClientBuilder::new(client.clone());
 
@@ -775,39 +773,34 @@ impl<'a> BaseClientBuilder<'a> {
                 }
 
                 // Initialize the authentication middleware to set headers.
-                #[cfg(not(target_family = "wasm"))]
-                {
-                    match self.auth_integration {
-                        AuthIntegration::Default => {
-                            let mut auth_middleware = AuthMiddleware::new()
-                                .with_cache_arc(self.credentials_cache.clone())
-                                .with_base_client(base_client)
-                                .with_indexes(self.indexes.clone())
-                                .with_keyring(self.keyring.to_provider())
-                                .with_preview(self.preview);
-                            if let Ok(token_store) = PyxTokenStore::from_settings() {
-                                auth_middleware =
-                                    auth_middleware.with_pyx_token_store(token_store);
-                            }
-                            client = client.with(auth_middleware);
+                match self.auth_integration {
+                    AuthIntegration::Default => {
+                        let mut auth_middleware = AuthMiddleware::new()
+                            .with_cache_arc(self.credentials_cache.clone())
+                            .with_base_client(base_client)
+                            .with_indexes(self.indexes.clone())
+                            .with_keyring(self.keyring.to_provider())
+                            .with_preview(self.preview);
+                        if let Ok(token_store) = PyxTokenStore::from_settings() {
+                            auth_middleware = auth_middleware.with_pyx_token_store(token_store);
                         }
-                        AuthIntegration::OnlyAuthenticated => {
-                            let mut auth_middleware = AuthMiddleware::new()
-                                .with_cache_arc(self.credentials_cache.clone())
-                                .with_base_client(base_client)
-                                .with_indexes(self.indexes.clone())
-                                .with_keyring(self.keyring.to_provider())
-                                .with_preview(self.preview)
-                                .with_only_authenticated(true);
-                            if let Ok(token_store) = PyxTokenStore::from_settings() {
-                                auth_middleware =
-                                    auth_middleware.with_pyx_token_store(token_store);
-                            }
-                            client = client.with(auth_middleware);
+                        client = client.with(auth_middleware);
+                    }
+                    AuthIntegration::OnlyAuthenticated => {
+                        let mut auth_middleware = AuthMiddleware::new()
+                            .with_cache_arc(self.credentials_cache.clone())
+                            .with_base_client(base_client)
+                            .with_indexes(self.indexes.clone())
+                            .with_keyring(self.keyring.to_provider())
+                            .with_preview(self.preview)
+                            .with_only_authenticated(true);
+                        if let Ok(token_store) = PyxTokenStore::from_settings() {
+                            auth_middleware = auth_middleware.with_pyx_token_store(token_store);
                         }
-                        AuthIntegration::NoAuthMiddleware => {
-                            // The downstream code uses custom auth logic.
-                        }
+                        client = client.with(auth_middleware);
+                    }
+                    AuthIntegration::NoAuthMiddleware => {
+                        // The downstream code uses custom auth logic.
                     }
                 }
 

@@ -12,6 +12,8 @@ use uv_preview::{Preview, PreviewFeature};
 use uv_redacted::DisplaySafeUrl;
 use uv_static::EnvVars;
 use uv_warnings::owo_colors::OwoColorize;
+#[cfg(target_family = "wasm")]
+use uv_warnings::warn_user_once;
 
 use crate::providers::{
     AzureEndpointProvider, GcsEndpointProvider, HuggingFaceProvider, S3EndpointProvider,
@@ -327,7 +329,8 @@ impl AuthMiddleware {
     }
 }
 
-#[async_trait::async_trait]
+#[cfg_attr(not(target_family = "wasm"), async_trait::async_trait)]
+#[cfg_attr(target_family = "wasm", async_trait::async_trait(?Send))]
 impl Middleware for AuthMiddleware {
     /// Handle authentication for a request.
     ///
@@ -743,6 +746,7 @@ impl AuthMiddleware {
             return Ok(Some(credentials));
         }
 
+        #[cfg(not(target_family = "wasm"))]
         if is_s3_endpoint {
             let mut s3_state = self.s3_credential_state.lock().await;
 
@@ -765,6 +769,7 @@ impl AuthMiddleware {
             }
         }
 
+        #[cfg(not(target_family = "wasm"))]
         if is_gcs_endpoint {
             let mut gcs_state = self.gcs_credential_state.lock().await;
 
@@ -787,6 +792,7 @@ impl AuthMiddleware {
             }
         }
 
+        #[cfg(not(target_family = "wasm"))]
         if is_azure_endpoint {
             let mut azure_state = self.azure_credential_state.lock().await;
 
@@ -807,6 +813,13 @@ impl AuthMiddleware {
                 self.cache().fetches.done(key, Some(credentials.clone()));
                 return Ok(Some(credentials));
             }
+        }
+
+        #[cfg(target_family = "wasm")]
+        if is_s3_endpoint || is_gcs_endpoint || is_azure_endpoint {
+            warn_user_once!(
+                "Cloud storage request signing is not supported in the browser; requests to `{url}` will be sent unsigned"
+            );
         }
 
         // If this is a known URL, authenticate it via the token store.
