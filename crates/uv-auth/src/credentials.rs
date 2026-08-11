@@ -17,7 +17,6 @@ use reqsign::aws::DefaultSigner as AwsDefaultSigner;
 use reqsign::azure::DefaultSigner as AzureDefaultSigner;
 #[cfg(not(target_family = "wasm"))]
 use reqsign::google::DefaultSigner as GcsDefaultSigner;
-#[cfg(not(target_family = "wasm"))]
 use reqwest::Request;
 #[cfg(not(target_family = "wasm"))]
 use http::header::HeaderName;
@@ -398,7 +397,6 @@ impl Credentials {
     ///
     /// Any existing credentials will be overridden.
     #[must_use]
-    #[cfg(not(target_family = "wasm"))]
     pub fn authenticate(&self, mut request: Request) -> Request {
         request
             .headers_mut()

@@ -7,7 +7,6 @@ pub use index::{AuthPolicy, Index, Indexes};
 pub use keyring::KeyringProvider;
 #[cfg(not(target_family = "wasm"))]
 pub use middleware::AuthMiddleware;
-#[cfg(not(target_family = "wasm"))]
 pub use pyx::{
     DEFAULT_TOLERANCE_SECS, PyxJwt, PyxOAuthTokens, PyxTokenStore, PyxTokens, TokenStoreError,
     is_default_pyx_domain,
@@ -25,7 +24,6 @@ mod keyring;
 mod middleware;
 #[cfg(not(target_family = "wasm"))]
 mod providers;
-#[cfg(not(target_family = "wasm"))]
 mod pyx;
 mod realm;
 mod service;

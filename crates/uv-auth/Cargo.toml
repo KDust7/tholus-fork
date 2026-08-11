@@ -37,6 +37,8 @@ etcetera = { workspace = true }
 http = { workspace = true }
 jiff = { workspace = true }
 percent-encoding = { workspace = true }
+reqwest = { workspace = true }
+reqwest-middleware = { workspace = true }
 rustc-hash = { workspace = true }
 schemars = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
@@ -55,6 +57,4 @@ wiremock = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 reqsign = { workspace = true }
-reqwest = { workspace = true }
-reqwest-middleware = { workspace = true }
 tokio = { workspace = true, features = ["process"] }
