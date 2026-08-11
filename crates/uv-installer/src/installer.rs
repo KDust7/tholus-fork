@@ -2,11 +2,13 @@ use std::convert;
 use std::sync::Arc;
 
 use anyhow::{Context, Error, Result};
+#[cfg(not(target_family = "wasm"))]
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use tokio::sync::oneshot;
 use tracing::{instrument, warn};
 
 use uv_cache::Cache;
+#[cfg(not(target_family = "wasm"))]
 use uv_configuration::initialize_rayon_once;
 use uv_distribution_types::CachedDist;
 use uv_install_wheel::{Layout, LinkMode};
@@ -107,9 +109,7 @@ impl<'a> Installer<'a> {
 
         let layout = venv.interpreter().layout();
         let relocatable = venv.relocatable();
-        // Initialize the threadpool with the user settings.
-        initialize_rayon_once();
-        rayon::spawn(move || {
+        let task = move || {
             let result = install(
                 wheels,
                 &layout,
@@ -123,7 +123,16 @@ impl<'a> Installer<'a> {
 
             // This may fail if the main task was cancelled.
             let _ = tx.send(result);
-        });
+        };
+
+        // Initialize the threadpool with the user settings.
+        #[cfg(not(target_family = "wasm"))]
+        {
+            initialize_rayon_once();
+            rayon::spawn(task);
+        }
+        #[cfg(target_family = "wasm")]
+        task();
 
         rx.await
             .map_err(|_| anyhow::anyhow!("`install_blocking` task panicked"))
@@ -167,9 +176,14 @@ fn install(
     preview: Preview,
 ) -> Result<Vec<CachedDist>> {
     // Initialize the threadpool with the user settings.
+    #[cfg(not(target_family = "wasm"))]
     initialize_rayon_once();
     let state = uv_install_wheel::InstallState::new(preview);
-    wheels.par_iter().try_for_each(|wheel| {
+    #[cfg(not(target_family = "wasm"))]
+    let entries = wheels.par_iter();
+    #[cfg(target_family = "wasm")]
+    let mut entries = wheels.iter();
+    entries.try_for_each(|wheel| {
         uv_install_wheel::install_wheel(
             layout,
             relocatable,

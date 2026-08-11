@@ -1,4 +1,5 @@
 use itertools::{Either, Itertools};
+#[cfg(not(target_family = "wasm"))]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use regex::Regex;
 use rustc_hash::{FxBuildHasher, FxHashSet};
@@ -822,8 +823,11 @@ fn python_installations_from_executables<'a>(
         })),
         QueryStrategy::Parallel => {
             let items: Vec<Result<(PythonSource, PathBuf), Error>> = executables.collect();
+            #[cfg(not(target_family = "wasm"))]
+            let items = items.into_par_iter();
+            #[cfg(target_family = "wasm")]
+            let items = items.into_iter();
             let results: Vec<Result<PythonInstallation, Error>> = items
-                .into_par_iter()
                 .map(|result| match result {
                     Ok((source, path)) => python_installation_from_executable(source, path, cache),
                     Err(err) => Err(err),
