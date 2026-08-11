@@ -85,9 +85,17 @@ pub(crate) fn base_client_builder<'a>(globals: &GlobalSettings) -> BaseClientBui
     .https_proxy(globals.network_settings.https_proxy.clone())
     .no_proxy(globals.network_settings.no_proxy.clone());
 
-    if let Some(certificates) = &globals.network_settings.custom_certificates {
-        client_builder.custom_certificates(certificates.clone())
-    } else {
+    #[cfg(not(target_family = "wasm"))]
+    {
+        if let Some(certificates) = &globals.network_settings.custom_certificates {
+            client_builder.custom_certificates(certificates.clone())
+        } else {
+            client_builder
+        }
+    }
+
+    #[cfg(target_family = "wasm")]
+    {
         client_builder
     }
 }

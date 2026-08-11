@@ -32,7 +32,9 @@ use uv_cli::{
         resolver_installer_options, resolver_options,
     },
 };
-use uv_client::{Certificates, Connectivity};
+#[cfg(not(target_family = "wasm"))]
+use uv_client::Certificates;
+use uv_client::Connectivity;
 use uv_configuration::{
     BuildIsolation, BuildOptions, Concurrency, DependencyGroups, DevMode, DryRun, EditableMode,
     EnvFile, ExcludeDependency, ExportFormat, ExtrasSpecification, GitLfsSetting, HashCheckingMode,
@@ -275,6 +277,7 @@ pub(crate) struct NetworkSettings {
     pub(super) connectivity: Connectivity,
     pub(super) offline: Flag,
     pub(super) system_certs: bool,
+    #[cfg(not(target_family = "wasm"))]
     pub(super) custom_certificates: Option<Certificates>,
     pub(super) http_proxy: Option<ProxyUrl>,
     pub(super) https_proxy: Option<ProxyUrl>,
@@ -392,15 +395,23 @@ impl NetworkSettings {
         let https_proxy = workspace.and_then(|workspace| workspace.globals.https_proxy.clone());
         let no_proxy = workspace.and_then(|workspace| workspace.globals.no_proxy.clone());
 
+        #[cfg(not(target_family = "wasm"))]
         let custom_certificates = custom_certificate_file
             .map(Certificates::from_file)
             .transpose()?
             .or_else(Certificates::from_env);
+        #[cfg(target_family = "wasm")]
+        if custom_certificate_file.is_some() {
+            warn_user_once!(
+                "Ignoring custom certificates: the browser owns the TLS trust store"
+            );
+        }
 
         Ok(Self {
             connectivity,
             offline,
             system_certs,
+            #[cfg(not(target_family = "wasm"))]
             custom_certificates,
             http_proxy,
             https_proxy,
