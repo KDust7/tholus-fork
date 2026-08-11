@@ -386,11 +386,13 @@ impl PyProjectToml {
         Ok(pyproject_toml)
     }
 
+    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     pub(crate) fn readme(&self) -> Option<&Readme> {
         self.project.readme.as_ref()
     }
 
     /// The license files that need to be included in the source distribution.
+    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     pub(crate) fn license_files_source_dist(&self) -> impl Iterator<Item = &str> {
         let license_file = self
             .project
@@ -1035,6 +1037,7 @@ pub(crate) enum Readme {
 
 impl Readme {
     /// If the readme is a file, return the path to the file.
+    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     pub(crate) fn path(&self) -> Option<&Path> {
         match self {
             Self::String(path) => Some(path),
@@ -1064,6 +1067,7 @@ pub(crate) enum License {
 }
 
 impl License {
+    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     fn file(&self) -> Option<&str> {
         if let Self::File { file } = self {
             Some(file)

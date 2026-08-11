@@ -14,6 +14,25 @@ pub use source_dist::{build_source_dist, list_source_dist};
 use uv_warnings::warn_user_once;
 pub use wheel::{build_editable, build_wheel, list_wheel, metadata};
 
+#[cfg(target_family = "wasm")]
+pub fn build_source_dist(
+    _source_tree: &Path,
+    _source_dist_directory: &Path,
+    _uv_version: &str,
+    _show_warnings: bool,
+) -> Result<uv_distribution_filename::SourceDistFilename, Error> {
+    Err(Error::SourceDistUnsupported)
+}
+
+#[cfg(target_family = "wasm")]
+pub fn list_source_dist(
+    _source_tree: &Path,
+    _uv_version: &str,
+    _show_warnings: bool,
+) -> Result<(uv_distribution_filename::SourceDistFilename, FileList), Error> {
+    Err(Error::SourceDistUnsupported)
+}
+
 use rustc_hash::FxHashSet;
 use std::collections::HashSet;
 use std::ffi::OsStr;
@@ -34,6 +53,11 @@ use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, Error)]
 pub enum Error {
+    #[cfg(target_family = "wasm")]
+    #[error(
+        "Building a source distribution requires writing a tar archive, which is unsupported in the browser"
+    )]
+    SourceDistUnsupported,
     #[error(transparent)]
     Io(#[from] io::Error),
     #[error("Failed to persist temporary file to {}", _0.user_display())]
