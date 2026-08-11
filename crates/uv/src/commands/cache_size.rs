@@ -2,6 +2,7 @@ use std::fmt::Write;
 
 use anstream::stream::IsTerminal;
 use anyhow::Result;
+#[cfg(not(target_family = "wasm"))]
 use diskus::DiskUsage;
 
 use crate::commands::{ExitStatus, human_readable_bytes};
@@ -11,6 +12,22 @@ use uv_cli::CacheSizeOutputFormat;
 use uv_preview::{Preview, PreviewFeature};
 use uv_warnings::warn_user;
 use uv_vfs::VfsPathExt as _;
+
+#[cfg(not(target_family = "wasm"))]
+fn cache_total_bytes(root: &std::path::Path) -> u64 {
+    DiskUsage::new(vec![root.to_path_buf()]).count_ignoring_errors()
+}
+
+#[cfg(target_family = "wasm")]
+fn cache_total_bytes(root: &std::path::Path) -> u64 {
+    uv_vfs::walk::WalkDir::new(root)
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_type().is_file())
+        .filter_map(|entry| entry.metadata().ok())
+        .map(|metadata| metadata.len())
+        .sum()
+}
 
 /// Display the total size of the cache.
 pub(crate) fn cache_size(
@@ -41,9 +58,7 @@ pub(crate) fn cache_size(
         return Ok(ExitStatus::Success);
     }
 
-    let disk_usage = DiskUsage::new(vec![cache.root().to_path_buf()]);
-
-    let total_bytes = disk_usage.count_ignoring_errors();
+    let total_bytes = cache_total_bytes(cache.root());
 
     if human_readable {
         let (bytes, unit) = human_readable_bytes(total_bytes);

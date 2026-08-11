@@ -15,6 +15,13 @@ fn exec_spawn(cmd: &mut Command) -> std::io::Result<Infallible> {
             Err(err)
         },
         windows => uv_windows::spawn_child(cmd, false),
+        target_family = "wasm" => {
+            let _ = cmd;
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Unsupported,
+                "the browser has no process to exec into",
+            ))
+        },
     }
 }
 

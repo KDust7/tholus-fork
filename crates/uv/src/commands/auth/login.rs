@@ -177,6 +177,16 @@ pub(crate) async fn login(
     Ok(ExitStatus::Success)
 }
 
+#[cfg(not(target_family = "wasm"))]
+fn open_in_browser(url: &str) -> std::io::Result<()> {
+    open::that(url)
+}
+
+#[cfg(target_family = "wasm")]
+fn open_in_browser(_url: &str) -> std::io::Result<()> {
+    Err(std::io::Error::from(std::io::ErrorKind::Unsupported))
+}
+
 /// Log in via the [`PyxTokenStore`].
 pub(crate) async fn pyx_login_with_browser(
     store: &PyxTokenStore,
@@ -190,7 +200,7 @@ pub(crate) async fn pyx_login_with_browser(
         url.set_path(&format!("auth/cli/login/{cli_token}"));
         url
     };
-    match open::that(url.as_ref()) {
+    match open_in_browser(url.as_ref()) {
         Ok(()) => {
             writeln!(printer.stderr(), "Logging in with {}", url.cyan().bold())?;
         }

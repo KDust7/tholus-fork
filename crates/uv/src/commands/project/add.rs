@@ -733,6 +733,7 @@ pub(crate) async fn add(
     let target = target.update(&content, &WorkspaceCache::default())?;
 
     // Set the Ctrl-C handler to revert changes on exit.
+    #[cfg(not(target_family = "wasm"))]
     let _ = ctrlc::set_handler({
         let snapshot = snapshot.clone();
         move || {

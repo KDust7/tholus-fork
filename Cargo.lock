@@ -6025,6 +6025,7 @@ dependencies = [
  "uv-redacted",
  "uv-static",
  "uv-vfs",
+ "web-time",
  "wiremock",
 ]
 
@@ -6283,6 +6284,7 @@ dependencies = [
  "uv-vfs",
  "uv-warnings",
  "uv-wasm-compat",
+ "web-time",
  "webpki-root-certs",
  "wiremock",
  "x509-parser",
@@ -6537,6 +6539,7 @@ dependencies = [
  "uv-small-str",
  "uv-vfs",
  "uv-warnings",
+ "web-time",
 ]
 
 [[package]]
@@ -7094,6 +7097,7 @@ dependencies = [
  "uv-trampoline-builder",
  "uv-vfs",
  "uv-warnings",
+ "web-time",
  "which",
  "windows",
  "windows-registry",

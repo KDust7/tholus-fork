@@ -1,13 +1,16 @@
 use std::fmt::Write;
 use std::iter;
 use std::path::{Path, PathBuf};
+#[cfg(not(target_family = "wasm"))]
 use std::process::Stdio;
 use std::str::FromStr;
 
 use anyhow::{Context, Result, bail};
 use owo_colors::OwoColorize;
 use toml_edit::{InlineTable, Value};
-use tracing::{debug, trace, warn};
+use tracing::{debug, warn};
+#[cfg(not(target_family = "wasm"))]
+use tracing::trace;
 
 use uv_cache::Cache;
 use uv_cli::AuthorFrom;
@@ -17,6 +20,7 @@ use uv_configuration::{
 };
 use uv_distribution_types::RequiresPython;
 use uv_fs::{CWD, Simplified};
+#[cfg(not(target_family = "wasm"))]
 use uv_git::GIT;
 use uv_normalize::PackageName;
 use uv_pep440::Version;
@@ -27,6 +31,7 @@ use uv_python::{
 };
 use uv_scripts::{Pep723Script, ScriptTag};
 use uv_settings::PythonInstallMirrors;
+#[cfg(not(target_family = "wasm"))]
 use uv_static::EnvVars;
 use uv_warnings::warn_user_once;
 use uv_workspace::pyproject_mut::{DependencyTarget, PyProjectTomlMut};
@@ -832,6 +837,7 @@ impl InitProjectKind {
 }
 
 #[derive(Debug)]
+#[cfg_attr(target_family = "wasm", allow(dead_code))]
 enum Author {
     Name(String),
     Email(String),
@@ -1171,6 +1177,7 @@ fn generate_package_scripts(
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(target_family = "wasm", allow(dead_code))]
 enum GitDiscoveryResult {
     /// Git is initialized at the path.
     Repository,
@@ -1183,6 +1190,12 @@ enum GitDiscoveryResult {
 }
 
 /// Checks if there is a Git work tree at the given path.
+#[cfg(target_family = "wasm")]
+fn detect_git_repository(_path: &Path) -> GitDiscoveryResult {
+    GitDiscoveryResult::NoGit
+}
+
+#[cfg(not(target_family = "wasm"))]
 fn detect_git_repository(path: &Path) -> GitDiscoveryResult {
     // Determine whether the path is inside a Git work tree.
     let Ok(git) = GIT.as_ref() else {
@@ -1284,6 +1297,12 @@ fn get_author_info(path: &Path, author_from: AuthorFrom) -> Option<Author> {
 }
 
 /// Fetch the default author from git configuration.
+#[cfg(target_family = "wasm")]
+fn get_author_from_git(_path: &Path) -> Result<Author> {
+    anyhow::bail!("`git` not found in PATH")
+}
+
+#[cfg(not(target_family = "wasm"))]
 fn get_author_from_git(path: &Path) -> Result<Author> {
     let Ok(git) = GIT.as_ref() else {
         anyhow::bail!("`git` not found in PATH")
