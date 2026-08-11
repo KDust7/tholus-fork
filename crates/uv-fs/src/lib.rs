@@ -700,7 +700,7 @@ pub fn persist_with_retry_sync(
 pub fn directories(
     path: impl AsRef<Path>,
 ) -> Result<impl Iterator<Item = PathBuf>, std::io::Error> {
-    let entries = match path.as_ref().read_dir() {
+    let entries = match path.as_ref().vfs_read_dir() {
         Ok(entries) => Some(entries),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => None,
         Err(err) => return Err(err),
@@ -723,7 +723,7 @@ pub fn directories(
 ///
 /// If the directory does not exist, returns an empty iterator.
 pub fn entries(path: impl AsRef<Path>) -> Result<impl Iterator<Item = PathBuf>, std::io::Error> {
-    let entries = match path.as_ref().read_dir() {
+    let entries = match path.as_ref().vfs_read_dir() {
         Ok(entries) => Some(entries),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => None,
         Err(err) => return Err(err),
@@ -745,7 +745,7 @@ pub fn entries(path: impl AsRef<Path>) -> Result<impl Iterator<Item = PathBuf>, 
 ///
 /// If the directory does not exist, returns an empty iterator.
 pub fn files(path: impl AsRef<Path>) -> Result<impl Iterator<Item = PathBuf>, std::io::Error> {
-    let entries = match path.as_ref().read_dir() {
+    let entries = match path.as_ref().vfs_read_dir() {
         Ok(entries) => Some(entries),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => None,
         Err(err) => return Err(err),

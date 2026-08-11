@@ -111,7 +111,7 @@ fn find_sysconfigdata(
     }
 
     // Probe the `lib` directory for `_sysconfigdata_`.
-    for entry in lib.read_dir()? {
+    for entry in lib.vfs_read_dir()? {
         let entry = entry?;
 
         if entry.path().extension().is_none_or(|ext| ext != "py") {
@@ -217,7 +217,7 @@ fn find_pkgconfigs(
 ) -> Result<impl Iterator<Item = Result<PathBuf, std::io::Error>>, std::io::Error> {
     let pkgconfig = install_root.join("lib").join("pkgconfig");
 
-    let read_dir = match pkgconfig.read_dir() {
+    let read_dir = match pkgconfig.vfs_read_dir() {
         Ok(read_dir) => read_dir,
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
             return Ok(Either::Left(std::iter::empty()));

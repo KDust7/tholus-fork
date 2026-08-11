@@ -3326,7 +3326,7 @@ pub fn prune(cache: &Cache) -> Result<Removal, Error> {
             if revision.vfs_is_file() {
                 if let Ok(Some(pointer)) = HttpRevisionPointer::read_from(revision) {
                     // Remove all sibling directories that are not referenced by the pointer.
-                    for sibling in entry.path().read_dir().map_err(Error::CacheRead)? {
+                    for sibling in entry.path().vfs_read_dir().map_err(Error::CacheRead)? {
                         let sibling = sibling.map_err(Error::CacheRead)?;
                         if sibling.file_type().map_err(Error::CacheRead)?.is_dir() {
                             let sibling_name = sibling.file_name();
@@ -3350,7 +3350,7 @@ pub fn prune(cache: &Cache) -> Result<Removal, Error> {
             if revision.vfs_is_file() {
                 if let Ok(Some(pointer)) = LocalRevisionPointer::read_from(revision) {
                     // Remove all sibling directories that are not referenced by the pointer.
-                    for sibling in entry.path().read_dir().map_err(Error::CacheRead)? {
+                    for sibling in entry.path().vfs_read_dir().map_err(Error::CacheRead)? {
                         let sibling = sibling.map_err(Error::CacheRead)?;
                         if sibling.file_type().map_err(Error::CacheRead)?.is_dir() {
                             let sibling_name = sibling.file_name();

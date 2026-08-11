@@ -192,7 +192,7 @@ impl PythonEnvironment {
 
         if root
             .as_ref()
-            .read_dir()
+            .vfs_read_dir()
             .is_ok_and(|mut dir| dir.next().is_none())
         {
             return Err(InvalidEnvironment {

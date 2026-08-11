@@ -22,6 +22,7 @@ use crate::commands::python::install::format_executables;
 use crate::commands::python::{ChangeEvent, ChangeEventKind};
 use crate::commands::{ExitStatus, elapsed};
 use crate::printer::Printer;
+use uv_vfs::VfsPathExt as _;
 
 /// Uninstall managed Python versions.
 pub(crate) async fn uninstall(
@@ -154,7 +155,7 @@ async fn do_uninstall(
     let mut uninstalled_executables: FxHashMap<PythonInstallationKey, FxHashSet<PathBuf>> =
         FxHashMap::default();
     for executable in python_executable_dir()?
-        .read_dir()
+        .vfs_read_dir()
         .into_iter()
         .flatten()
         .filter_map(|entry| match entry {

@@ -1896,7 +1896,7 @@ impl ProjectEnvironment {
                         // If it's not a virtual environment, bail
                         (Ok(true), Ok(false)) => {
                             // Unless it's empty, in which case we just ignore it
-                            if root.read_dir().is_ok_and(|mut dir| dir.next().is_none()) {
+                            if root.vfs_read_dir().is_ok_and(|mut dir| dir.next().is_none()) {
                                 false
                             } else if centralized {
                                 // Unless it's the derived cache entry, which is uv-owned and safe to replace
