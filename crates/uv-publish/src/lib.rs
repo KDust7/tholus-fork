@@ -19,6 +19,7 @@ use serde::Deserialize;
 use thiserror::Error;
 use tokio::io::{AsyncReadExt, BufReader};
 use tokio::sync::Semaphore;
+#[cfg(not(target_family = "wasm"))]
 use tokio_util::io::ReaderStream;
 use tracing::{Level, debug, enabled, trace, warn};
 use url::Url;
@@ -846,7 +847,15 @@ pub async fn upload_two_phase(
             let reader = ProgressReader::new(file, move |read| {
                 reporter_clone.on_upload_progress(idx, read as u64);
             });
+            #[cfg(not(target_family = "wasm"))]
             let file_reader = Body::wrap_stream(ReaderStream::new(reader));
+            #[cfg(target_family = "wasm")]
+            let file_reader = buffered_body(reader).await.map_err(|err| {
+                PublishError::PublishPrepare(
+                    group.file.clone(),
+                    Box::new(PublishPrepareError::Io(err)),
+                )
+            })?;
 
             let mut request = s3_client
                 .for_host(&s3_url)
@@ -1309,6 +1318,13 @@ impl<'a> IntoIterator for &'a FormMetadata {
 /// Build the upload request.
 ///
 /// Returns the [`RequestBuilder`] and the reporter progress bar ID.
+#[cfg(target_family = "wasm")]
+async fn buffered_body(mut reader: impl tokio::io::AsyncRead + Unpin) -> Result<Body, io::Error> {
+    let mut buffer = Vec::new();
+    reader.read_to_end(&mut buffer).await?;
+    Ok(Body::from(buffer))
+}
+
 async fn build_upload_request<'a>(
     group: &UploadDistribution,
     registry: &DisplaySafeUrl,
@@ -1330,10 +1346,16 @@ async fn build_upload_request<'a>(
     });
     // Stream wrapping puts a static lifetime requirement on the reader (so the request doesn't have
     // a lifetime) -> callback needs to be static -> reporter reference needs to be Arc'd.
+    #[cfg(not(target_family = "wasm"))]
     let file_reader = Body::wrap_stream(ReaderStream::new(reader));
+    #[cfg(target_family = "wasm")]
+    let file_reader = buffered_body(reader).await?;
     // See [`files_for_publishing`] on `raw_filename`
+    #[cfg(not(target_family = "wasm"))]
     let part =
         Part::stream_with_length(file_reader, file_size).file_name(group.raw_filename.clone());
+    #[cfg(target_family = "wasm")]
+    let part = Part::stream(file_reader).file_name(group.raw_filename.clone());
     form = form.part("content", part);
 
     let mut attestations = vec![];
