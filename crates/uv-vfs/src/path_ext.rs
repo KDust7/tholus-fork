@@ -3,6 +3,12 @@ use std::path::{Path, PathBuf};
 
 use crate::fs::Metadata;
 
+#[cfg(not(target_family = "wasm"))]
+pub type VfsReadDir = std::fs::ReadDir;
+
+#[cfg(target_family = "wasm")]
+pub type VfsReadDir = crate::fs::ReadDir;
+
 pub trait VfsPathExt {
     fn vfs_exists(&self) -> bool;
 
@@ -19,6 +25,8 @@ pub trait VfsPathExt {
     fn vfs_canonicalize(&self) -> io::Result<PathBuf>;
 
     fn vfs_read_link(&self) -> io::Result<PathBuf>;
+
+    fn vfs_read_dir(&self) -> io::Result<VfsReadDir>;
 }
 
 #[cfg(not(target_family = "wasm"))]
@@ -54,6 +62,10 @@ impl VfsPathExt for Path {
     fn vfs_read_link(&self) -> io::Result<PathBuf> {
         self.read_link()
     }
+
+    fn vfs_read_dir(&self) -> io::Result<VfsReadDir> {
+        self.read_dir()
+    }
 }
 
 #[cfg(target_family = "wasm")]
@@ -88,6 +100,10 @@ impl VfsPathExt for Path {
 
     fn vfs_read_link(&self) -> io::Result<PathBuf> {
         crate::fs::read_link(self)
+    }
+
+    fn vfs_read_dir(&self) -> io::Result<VfsReadDir> {
+        crate::fs::read_dir(self)
     }
 }
 

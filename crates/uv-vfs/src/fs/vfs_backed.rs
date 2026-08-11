@@ -374,6 +374,10 @@ impl File {
         Self::open_with(path.as_ref(), options)
     }
 
+    pub fn from_parts<P: Into<PathBuf>>(file: Self, _path: P) -> Self {
+        file
+    }
+
     pub fn options() -> OpenOptions {
         OpenOptions::new()
     }
@@ -776,6 +780,14 @@ pub mod tokio {
     impl File {
         fn new(inner: super::File) -> Self {
             Self { inner, seeked: None }
+        }
+
+        pub fn from_std(file: super::File) -> Self {
+            Self::new(file)
+        }
+
+        pub async fn into_std(self) -> super::File {
+            self.inner
         }
 
         pub async fn open(path: impl AsRef<Path>) -> io::Result<Self> {

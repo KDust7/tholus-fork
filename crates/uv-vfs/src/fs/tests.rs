@@ -560,6 +560,22 @@ async fn an_async_file_reads_what_the_sync_side_wrote() {
 }
 
 #[tokio::test]
+async fn an_async_file_round_trips_through_the_sync_handle() {
+    fresh();
+    write("/work/a.txt", b"hello").expect("write");
+    let sync = File::open("/work/a.txt").expect("open");
+    let mut file = afs::File::from_std(File::from_parts(sync, "/work/a.txt"));
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents).await.expect("read");
+    assert_eq!(contents, b"hello");
+
+    let mut recovered = file.into_std().await;
+    let mut rest = Vec::new();
+    std::io::Read::read_to_end(&mut recovered, &mut rest).expect("read");
+    assert!(rest.is_empty());
+}
+
+#[tokio::test]
 async fn an_async_file_seeks_and_truncates() {
     fresh();
     let mut file = afs::File::create("/work/a.txt").await.expect("create");
