@@ -17,6 +17,7 @@ workspace = true
 
 [dependencies]
 uv-errors = { workspace = true }
+uv-wasm-compat = { workspace = true }
 
 anstream = { workspace = true }
 owo-colors = { workspace = true }

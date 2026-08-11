@@ -8,6 +8,8 @@ use std::sync::{LazyLock, Mutex};
 pub use anstream;
 #[doc(hidden)]
 pub use owo_colors;
+#[doc(hidden)]
+pub use uv_wasm_compat;
 use rustc_hash::FxHashSet;
 use uv_errors::{ErrorOptions, Hints, write_error_chain_with_options};
 
@@ -47,13 +49,16 @@ fn write_warning_chain_with_options<C, W: fmt::Write>(
 #[macro_export]
 macro_rules! warn_user {
     ($($arg:tt)*) => {{
-        use $crate::anstream::eprintln;
         use $crate::owo_colors::OwoColorize;
 
         if $crate::ENABLED.load(std::sync::atomic::Ordering::Relaxed) {
             let message = format!("{}", format_args!($($arg)*));
             let formatted = message.bold();
-            eprintln!("{}{} {formatted}", "warning".yellow().bold(), ":".bold());
+            $crate::uv_wasm_compat::io::stderr(&format!(
+                "{}{} {formatted}\n",
+                "warning".yellow().bold(),
+                ":".bold()
+            ));
         }
     }};
 }
@@ -65,14 +70,18 @@ pub static WARNINGS: LazyLock<Mutex<FxHashSet<String>>> = LazyLock::new(Mutex::d
 #[macro_export]
 macro_rules! warn_user_once {
     ($($arg:tt)*) => {{
-        use $crate::anstream::eprintln;
         use $crate::owo_colors::OwoColorize;
 
         if $crate::ENABLED.load(std::sync::atomic::Ordering::Relaxed) {
             if let Ok(mut states) = $crate::WARNINGS.lock() {
                 let message = format!("{}", format_args!($($arg)*));
                 if states.insert(message.clone()) {
-                    eprintln!("{}{} {}", "warning".yellow().bold(), ":".bold(), message.bold());
+                    $crate::uv_wasm_compat::io::stderr(&format!(
+                        "{}{} {}\n",
+                        "warning".yellow().bold(),
+                        ":".bold(),
+                        message.bold()
+                    ));
                 }
             }
         }

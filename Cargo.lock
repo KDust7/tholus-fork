@@ -7560,12 +7560,14 @@ dependencies = [
  "owo-colors",
  "rustc-hash",
  "uv-errors",
+ "uv-wasm-compat",
 ]
 
 [[package]]
 name = "uv-wasm-compat"
 version = "0.0.70"
 dependencies = [
+ "anstream",
  "futures",
  "getrandom 0.2.16",
  "getrandom 0.3.4",

@@ -1,4 +1,3 @@
-use anstream::{eprint, print};
 use indicatif::ProgressDrawTarget;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -101,7 +100,7 @@ impl std::fmt::Write for Stdout {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         match self {
             Self::Enabled => {
-                print!("{s}");
+                uv_wasm_compat::io::stdout(s);
             }
             Self::Disabled => {}
         }
@@ -120,7 +119,7 @@ impl std::fmt::Write for Stderr {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         match self {
             Self::Enabled => {
-                eprint!("{s}");
+                uv_wasm_compat::io::stderr(s);
             }
             Self::Disabled => {}
         }
