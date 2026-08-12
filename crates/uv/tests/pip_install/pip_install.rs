@@ -9589,7 +9589,7 @@ fn install_incompatible_python_version_interpreter_broken_in_path() -> Result<()
     // Put the broken interpreter _before_ the other interpreters in the PATH
     let path = std::env::join_paths(
         std::iter::once(context.bin_dir.to_path_buf())
-            .chain(std::env::split_paths(&context.python_path())),
+            .chain(uv_vfs::split_paths(&context.python_path())),
     )
     .unwrap();
 
@@ -9613,7 +9613,7 @@ fn install_incompatible_python_version_interpreter_broken_in_path() -> Result<()
 
     // Put the broken interpreter _after_ the other interpreters in the PATH
     let path = std::env::join_paths(
-        std::env::split_paths(&context.python_path())
+        uv_vfs::split_paths(&context.python_path())
             .chain(std::iter::once(context.bin_dir.to_path_buf())),
     )
     .unwrap();

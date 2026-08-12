@@ -9,7 +9,7 @@ pub use shlex::{escape_posix_for_single_quotes, shlex_posix, shlex_windows};
 pub use windows::prepend_path;
 
 use std::borrow::Cow;
-use std::env::home_dir;
+use uv_vfs::home_dir;
 use std::path::{Path, PathBuf};
 
 use uv_fs::Simplified;
@@ -246,7 +246,7 @@ impl Shell {
         std::env::var_os(EnvVars::PATH)
             .as_ref()
             .iter()
-            .flat_map(std::env::split_paths)
+            .flat_map(uv_vfs::split_paths)
             .map(|path| {
                 // If the first component is `~`, expand to the home directory.
                 if let Some(home_dir) = home_dir.as_ref() {
@@ -367,7 +367,7 @@ mod tests {
     use temp_env::with_vars;
     use uv_vfs::temp::tempdir;
 
-    // First option used by std::env::home_dir.
+    // First option used by uv_vfs::home_dir.
     const HOME_DIR_ENV_VAR: &str = if cfg!(windows) {
         EnvVars::USERPROFILE
     } else {

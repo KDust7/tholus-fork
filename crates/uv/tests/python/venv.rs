@@ -314,7 +314,7 @@ async fn create_venv_project_environment_lock() -> Result<()> {
 
     // Simulate another project command holding the environment lock.
     let install_path = dunce::canonicalize(context.temp_dir.path())?;
-    let lock_path = std::env::temp_dir().join(format!("uv-{}.lock", cache_digest(&install_path)));
+    let lock_path = uv_vfs::temp_dir().join(format!("uv-{}.lock", cache_digest(&install_path)));
     let lock = LockedFile::acquire(
         &lock_path,
         LockedFileMode::Exclusive,

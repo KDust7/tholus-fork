@@ -360,7 +360,7 @@ pub(crate) async fn run(
             std::env::var_os(EnvVars::PATH)
                 .as_ref()
                 .iter()
-                .flat_map(std::env::split_paths),
+                .flat_map(uv_vfs::split_paths),
         ),
     )
     .context("Failed to build new PATH variable")?;

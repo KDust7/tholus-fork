@@ -427,7 +427,7 @@ impl SourceBuild {
                 // Prepend the user supplied PATH to the existing PATH
                 Some(env_path) => {
                     let user_path = PathBuf::from(user_path);
-                    let new_path = env::split_paths(&user_path).chain(env::split_paths(&env_path));
+                    let new_path = uv_vfs::split_paths(&user_path).chain(uv_vfs::split_paths(&env_path));
                     Some(env::join_paths(new_path).map_err(Error::BuildScriptPath)?)
                 }
                 // Use the user supplied PATH
@@ -439,7 +439,7 @@ impl SourceBuild {
 
         // Prepend the venv bin directory to the modified path
         let modified_path = if let Some(path) = modified_path {
-            let venv_path = iter::once(venv.scripts().to_path_buf()).chain(env::split_paths(&path));
+            let venv_path = iter::once(venv.scripts().to_path_buf()).chain(uv_vfs::split_paths(&path));
             env::join_paths(venv_path).map_err(Error::BuildScriptPath)?
         } else {
             OsString::from(venv.scripts())
@@ -507,7 +507,7 @@ impl SourceBuild {
         if self.pep517_backend.is_setuptools() {
             debug!("Locking the source tree for setuptools");
             let canonical_source_path = self.source_tree.vfs_canonicalize()?;
-            let lock_path = env::temp_dir().join(format!(
+            let lock_path = uv_vfs::temp_dir().join(format!(
                 "uv-setuptools-{}.lock",
                 cache_digest(&canonical_source_path)
             ));

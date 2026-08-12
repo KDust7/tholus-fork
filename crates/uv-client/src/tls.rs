@@ -340,7 +340,7 @@ impl Certificates {
         }
 
         let (existing, missing): (Vec<_>, Vec<_>) =
-            env::split_paths(ssl_cert_dir).partition(|path| path.vfs_exists());
+            uv_vfs::split_paths(ssl_cert_dir).partition(|path| path.vfs_exists());
 
         if existing.is_empty() {
             let end_note = if missing.len() == 1 {

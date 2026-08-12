@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 use std::str::FromStr;
 use std::sync::OnceLock;
-use std::{env, io};
+use std::io;
 
 use configparser::ini::Ini;
 use uv_vfs::fs as fs;
@@ -688,7 +688,7 @@ impl Interpreter {
         } else {
             // Otherwise, use a global lockfile.
             LockedFile::acquire(
-                env::temp_dir().join(format!("uv-{}.lock", cache_digest(&self.sys_executable))),
+                uv_vfs::temp_dir().join(format!("uv-{}.lock", cache_digest(&self.sys_executable))),
                 LockedFileMode::Exclusive,
                 self.sys_prefix.user_display(),
             )

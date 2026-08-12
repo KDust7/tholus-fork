@@ -62,6 +62,10 @@ impl MemoryFs {
     pub fn new() -> Self {
         let mut nodes = FxHashMap::default();
         nodes.insert(PathBuf::from("/"), Node::Directory { modified: now() });
+        nodes.insert(
+            normalize(Path::new(crate::temp::vfs_backed::TEMP_ROOT)),
+            Node::Directory { modified: now() },
+        );
         Self { nodes: RwLock::new(nodes) }
     }
 
@@ -70,7 +74,7 @@ impl MemoryFs {
         path: &Path,
         follow: bool,
     ) -> io::Result<(PathBuf, Node)> {
-        let mut current = normalize(path);
+        let mut current = named(path)?;
         for _ in 0..SYMLINK_HOP_LIMIT {
             let Some(node) = nodes.get(&current) else {
                 return Err(not_found(&current));
@@ -98,6 +102,13 @@ impl MemoryFs {
             Err(error) => Err(error),
         }
     }
+}
+
+fn named(path: &Path) -> io::Result<PathBuf> {
+    if path.as_os_str().is_empty() {
+        return Err(not_found(path));
+    }
+    Ok(normalize(path))
 }
 
 fn now() -> SystemTime {
@@ -130,7 +141,7 @@ impl Vfs for MemoryFs {
     }
 
     fn write(&self, path: &Path, contents: &[u8]) -> io::Result<()> {
-        let target = normalize(path);
+        let target = named(path)?;
         let mut nodes = self.nodes.write().map_err(poisoned)?;
         if let Some(parent) = parent_of(&target) {
             MemoryFs::require_directory(&nodes, &parent)?;
@@ -170,7 +181,7 @@ impl Vfs for MemoryFs {
     }
 
     fn create_dir_all(&self, path: &Path) -> io::Result<()> {
-        let target = normalize(path);
+        let target = named(path)?;
         let mut nodes = self.nodes.write().map_err(poisoned)?;
 
         let mut cursor = PathBuf::from("/");
@@ -193,7 +204,7 @@ impl Vfs for MemoryFs {
     }
 
     fn remove_file(&self, path: &Path) -> io::Result<()> {
-        let target = normalize(path);
+        let target = named(path)?;
         let mut nodes = self.nodes.write().map_err(poisoned)?;
         match nodes.get(&target) {
             Some(Node::Directory { .. }) => Err(io::Error::new(
@@ -209,7 +220,7 @@ impl Vfs for MemoryFs {
     }
 
     fn remove_dir_all(&self, path: &Path) -> io::Result<()> {
-        let target = normalize(path);
+        let target = named(path)?;
         let mut nodes = self.nodes.write().map_err(poisoned)?;
         if !nodes.contains_key(&target) {
             return Err(not_found(&target));
@@ -219,8 +230,8 @@ impl Vfs for MemoryFs {
     }
 
     fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
-        let source = normalize(from);
-        let destination = normalize(to);
+        let source = named(from)?;
+        let destination = named(to)?;
         let mut nodes = self.nodes.write().map_err(poisoned)?;
 
         if !nodes.contains_key(&source) {
@@ -255,7 +266,7 @@ impl Vfs for MemoryFs {
     }
 
     fn symlink(&self, target: &Path, link: &Path) -> io::Result<()> {
-        let location = normalize(link);
+        let location = named(link)?;
         let mut nodes = self.nodes.write().map_err(poisoned)?;
         if let Some(parent) = parent_of(&location) {
             MemoryFs::require_directory(&nodes, &parent)?;
@@ -278,7 +289,7 @@ impl Vfs for MemoryFs {
     }
 
     fn set_modified(&self, path: &Path, time: SystemTime) -> io::Result<()> {
-        let target = normalize(path);
+        let target = named(path)?;
         let mut nodes = self.nodes.write().map_err(poisoned)?;
         let Some(node) = nodes.get_mut(&target) else {
             return Err(not_found(&target));
@@ -365,6 +376,22 @@ mod tests {
         let entries = fs.read_dir(Path::new("/work/project")).expect("read_dir");
         let names: Vec<&str> = entries.iter().map(|entry| entry.name.as_str()).collect();
         assert_eq!(names, vec!["README.md", "pyproject.toml"]);
+    }
+
+    #[test]
+    fn a_fresh_filesystem_has_a_temp_directory() {
+        let fs = MemoryFs::new();
+        let metadata = fs.metadata(Path::new("/tmp")).expect("temp directory");
+        assert!(metadata.is_dir());
+    }
+
+    #[test]
+    fn an_empty_path_is_not_the_root() {
+        let fs = populated();
+        assert_eq!(fs.metadata(Path::new("")).unwrap_err().kind(), ErrorKind::NotFound);
+        assert_eq!(fs.read_dir(Path::new("")).unwrap_err().kind(), ErrorKind::NotFound);
+        assert_eq!(fs.create_dir_all(Path::new("")).unwrap_err().kind(), ErrorKind::NotFound);
+        assert_eq!(fs.write(Path::new(""), b"x").unwrap_err().kind(), ErrorKind::NotFound);
     }
 
     #[test]

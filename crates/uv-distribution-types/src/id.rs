@@ -311,7 +311,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("uv-version-id-{nonce}"));
+        let root = uv_vfs::temp_dir().join(format!("uv-version-id-{nonce}"));
         let file = root.join("pkg-0.1.0.whl");
         let directory = root.join("pkg");
 

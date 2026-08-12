@@ -600,7 +600,7 @@ fn python_find_venv() {
     #[cfg(not(windows))]
     {
         let path = std::env::join_paths(
-            std::env::split_paths(&context.python_path())
+            uv_vfs::split_paths(&context.python_path())
                 .chain(std::iter::once(child_dir.join(".venv").join("bin"))),
         )
         .unwrap();
@@ -1241,7 +1241,7 @@ fn python_find_search_path() {
 
     // We can use `UV_PYTHON_SEARCH_PATH` to control which Python versions are visible
     let python_path_3_12_only = std::env::join_paths(
-        std::env::split_paths(&context.python_path())
+        uv_vfs::split_paths(&context.python_path())
             .filter(|p| p.to_string_lossy().contains("3.12")),
     )
     .unwrap();
@@ -1253,7 +1253,7 @@ fn python_find_search_path() {
 
     // We can use `UV_PYTHON_SEARCH_PATH` to control the order of Python versions
     let reversed_path = std::env::join_paths(
-        std::env::split_paths(&context.python_path())
+        uv_vfs::split_paths(&context.python_path())
             .collect::<Vec<_>>()
             .into_iter()
             .rev(),

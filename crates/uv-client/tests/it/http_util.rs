@@ -37,7 +37,7 @@ pub(crate) struct SelfSigned {
 ///
 /// See [`TestContext::test_bucket_dir`] for implementation rationale.
 pub(crate) fn test_cert_dir() -> PathBuf {
-    std::env::temp_dir()
+    uv_vfs::temp_dir()
         .simple_canonicalize()
         .expect("failed to canonicalize temp dir")
         .join("uv")

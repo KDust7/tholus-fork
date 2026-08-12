@@ -926,7 +926,7 @@ impl ScriptInterpreter {
         match script {
             Pep723ItemRef::Script(script) => {
                 LockedFile::acquire(
-                    std::env::temp_dir().join(format!("uv-{}.lock", cache_digest(&script.path))),
+                    uv_vfs::temp_dir().join(format!("uv-{}.lock", cache_digest(&script.path))),
                     LockedFileMode::Exclusive,
                     script.path.simplified_display(),
                 )
@@ -934,7 +934,7 @@ impl ScriptInterpreter {
             }
             Pep723ItemRef::Remote(.., url) => {
                 LockedFile::acquire(
-                    std::env::temp_dir().join(format!("uv-{}.lock", cache_digest(url))),
+                    uv_vfs::temp_dir().join(format!("uv-{}.lock", cache_digest(url))),
                     LockedFileMode::Exclusive,
                     url.to_string(),
                 )
@@ -942,7 +942,7 @@ impl ScriptInterpreter {
             }
             Pep723ItemRef::Stdin(metadata) => {
                 LockedFile::acquire(
-                    std::env::temp_dir().join(format!("uv-{}.lock", cache_digest(&metadata.raw))),
+                    uv_vfs::temp_dir().join(format!("uv-{}.lock", cache_digest(&metadata.raw))),
                     LockedFileMode::Exclusive,
                     "stdin".to_string(),
                 )
@@ -1547,7 +1547,7 @@ pub(crate) async fn lock_project_environment(
     workspace: &Workspace,
 ) -> Result<LockedFile, LockedFileError> {
     LockedFile::acquire(
-        std::env::temp_dir().join(format!(
+        uv_vfs::temp_dir().join(format!(
             "uv-{}.lock",
             cache_digest(workspace.install_path())
         )),

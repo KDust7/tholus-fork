@@ -817,7 +817,7 @@ impl TestContext {
     /// returns resolved symlink). This breaks some snapshot tests, since we _don't_ want to
     /// resolve symlinks for user-provided paths.
     pub fn test_bucket_dir() -> PathBuf {
-        std::env::temp_dir()
+        uv_vfs::temp_dir()
             .simple_canonicalize()
             .expect("failed to canonicalize temp dir")
             .join("uv")
@@ -1174,7 +1174,7 @@ impl TestContext {
     pub fn add_shared_env(&self, command: &mut Command, activate_venv: bool) {
         // Push the test context bin to the front of the PATH
         let path = env::join_paths(std::iter::once(self.bin_dir.to_path_buf()).chain(
-            env::split_paths(&env::var(EnvVars::PATH).unwrap_or_default()),
+            uv_vfs::split_paths(&env::var(EnvVars::PATH).unwrap_or_default()),
         ))
         .unwrap();
 

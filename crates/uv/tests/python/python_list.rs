@@ -258,8 +258,8 @@ fn python_list_duplicate_path_entries() {
 
     // Construct a `PATH` with all entries duplicated
     let path = std::env::join_paths(
-        std::env::split_paths(&context.python_path())
-            .chain(std::env::split_paths(&context.python_path())),
+        uv_vfs::split_paths(&context.python_path())
+            .chain(uv_vfs::split_paths(&context.python_path())),
     )
     .unwrap();
 
@@ -273,8 +273,8 @@ fn python_list_duplicate_path_entries() {
     #[cfg(unix)]
     {
         // Construct a `PATH` with symlinks
-        let path = std::env::join_paths(std::env::split_paths(&context.python_path()).chain(
-            std::env::split_paths(&context.python_path()).map(|path| {
+        let path = std::env::join_paths(uv_vfs::split_paths(&context.python_path()).chain(
+            uv_vfs::split_paths(&context.python_path()).map(|path| {
                 let dst = format!("{}-link", path.display());
                 uv_vfs::fs::os::unix::fs::symlink(&path, &dst).unwrap();
                 std::path::PathBuf::from(dst)
@@ -292,7 +292,7 @@ fn python_list_duplicate_path_entries() {
         // Reverse the order so the symlinks are first
         let path = std::env::join_paths(
             {
-                let mut paths = std::env::split_paths(&path).collect::<Vec<_>>();
+                let mut paths = uv_vfs::split_paths(&path).collect::<Vec<_>>();
                 paths.reverse();
                 paths
             }

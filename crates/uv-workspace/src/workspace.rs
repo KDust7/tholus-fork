@@ -2355,7 +2355,7 @@ mod tests {
         folder: &Path,
     ) -> Result<(ProjectWorkspace, String), (WorkspaceError, String)> {
         let root_escaped = regex::escape(folder.to_string_lossy().as_ref());
-        let cache = Cache::from_path(env::temp_dir().join("uv-workspace-cache"));
+        let cache = Cache::from_path(uv_vfs::temp_dir().join("uv-workspace-cache"));
         let project = ProjectWorkspace::discover(
             folder,
             &DiscoveryOptions::default(),
@@ -2733,7 +2733,7 @@ mod tests {
             "#,
             )?;
 
-        let cache = Cache::from_path(env::temp_dir().join("uv-workspace-cache"));
+        let cache = Cache::from_path(uv_vfs::temp_dir().join("uv-workspace-cache"));
         let workspace_cache = WorkspaceCache::default();
         let root_workspace = Workspace::discover(
             root.as_ref(),
@@ -2797,7 +2797,7 @@ mod tests {
             "#,
             )?;
 
-        let cache = Cache::from_path(env::temp_dir().join("uv-workspace-cache"));
+        let cache = Cache::from_path(uv_vfs::temp_dir().join("uv-workspace-cache"));
         let workspace_cache = WorkspaceCache::default();
         let partial_options = DiscoveryOptions {
             members: MemberDiscovery::None,

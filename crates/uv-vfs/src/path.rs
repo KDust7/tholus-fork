@@ -30,6 +30,46 @@ pub fn absolute(path: impl AsRef<Path>) -> std::io::Result<PathBuf> {
     std::path::absolute(path)
 }
 
+pub const PATH_SEPARATOR: char = ':';
+
+pub fn split_posix_path_list(unparsed: &OsStr) -> Vec<PathBuf> {
+    unparsed
+        .to_string_lossy()
+        .split(PATH_SEPARATOR)
+        .map(PathBuf::from)
+        .collect()
+}
+
+#[cfg(target_family = "wasm")]
+pub fn temp_dir() -> PathBuf {
+    normalize(Path::new(crate::temp::vfs_backed::TEMP_ROOT))
+}
+
+#[cfg(not(target_family = "wasm"))]
+pub fn temp_dir() -> PathBuf {
+    std::env::temp_dir()
+}
+
+#[cfg(target_family = "wasm")]
+pub fn home_dir() -> Option<PathBuf> {
+    None
+}
+
+#[cfg(not(target_family = "wasm"))]
+pub fn home_dir() -> Option<PathBuf> {
+    std::env::home_dir()
+}
+
+#[cfg(target_family = "wasm")]
+pub fn split_paths<T: AsRef<OsStr> + ?Sized>(unparsed: &T) -> std::vec::IntoIter<PathBuf> {
+    split_posix_path_list(unparsed.as_ref()).into_iter()
+}
+
+#[cfg(not(target_family = "wasm"))]
+pub fn split_paths<T: AsRef<OsStr> + ?Sized>(unparsed: &T) -> std::env::SplitPaths<'_> {
+    std::env::split_paths(unparsed)
+}
+
 pub fn normalize(path: &Path) -> PathBuf {
     let mut segments: Vec<&OsStr> = Vec::new();
     for component in path.components() {
@@ -68,8 +108,38 @@ pub fn is_within(ancestor: &Path, descendant: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_within, normalize, parent_of};
+    use super::{is_within, normalize, parent_of, split_posix_path_list};
+    use std::ffi::OsStr;
     use std::path::{Path, PathBuf};
+
+    #[test]
+    fn splits_a_path_list_on_colons() {
+        assert_eq!(
+            split_posix_path_list(OsStr::new("/usr/bin:/work/.venv/bin")),
+            vec![PathBuf::from("/usr/bin"), PathBuf::from("/work/.venv/bin")]
+        );
+    }
+
+    #[test]
+    fn an_empty_path_list_is_one_empty_entry() {
+        assert_eq!(split_posix_path_list(OsStr::new("")), vec![PathBuf::new()]);
+    }
+
+    #[test]
+    fn keeps_the_empty_entry_a_trailing_separator_leaves() {
+        assert_eq!(
+            split_posix_path_list(OsStr::new("/usr/bin:")),
+            vec![PathBuf::from("/usr/bin"), PathBuf::new()]
+        );
+    }
+
+    #[test]
+    fn does_not_split_a_windows_path_list() {
+        assert_eq!(
+            split_posix_path_list(OsStr::new("/usr/bin;/work/bin")),
+            vec![PathBuf::from("/usr/bin;/work/bin")]
+        );
+    }
 
     #[test]
     fn makes_relative_paths_absolute() {
