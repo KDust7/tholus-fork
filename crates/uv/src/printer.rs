@@ -1,5 +1,79 @@
 use indicatif::ProgressDrawTarget;
 
+#[cfg(not(target_family = "wasm"))]
+fn stderr_target() -> ProgressDrawTarget {
+    ProgressDrawTarget::stderr()
+}
+
+#[cfg(target_family = "wasm")]
+fn stderr_target() -> ProgressDrawTarget {
+    if uv_wasm_compat::term::is_tty() {
+        ProgressDrawTarget::term_like(Box::new(BrowserTerm))
+    } else {
+        ProgressDrawTarget::hidden()
+    }
+}
+
+#[cfg(target_family = "wasm")]
+#[derive(Debug)]
+struct BrowserTerm;
+
+#[cfg(target_family = "wasm")]
+impl BrowserTerm {
+    fn cursor(&self, count: usize, code: char) -> std::io::Result<()> {
+        if count > 0 {
+            uv_wasm_compat::io::stderr(&format!("\x1b[{count}{code}"));
+        }
+        Ok(())
+    }
+}
+
+#[cfg(target_family = "wasm")]
+impl indicatif::TermLike for BrowserTerm {
+    fn width(&self) -> u16 {
+        uv_wasm_compat::term::columns()
+    }
+
+    fn height(&self) -> u16 {
+        uv_wasm_compat::term::rows()
+    }
+
+    fn move_cursor_up(&self, n: usize) -> std::io::Result<()> {
+        self.cursor(n, 'A')
+    }
+
+    fn move_cursor_down(&self, n: usize) -> std::io::Result<()> {
+        self.cursor(n, 'B')
+    }
+
+    fn move_cursor_right(&self, n: usize) -> std::io::Result<()> {
+        self.cursor(n, 'C')
+    }
+
+    fn move_cursor_left(&self, n: usize) -> std::io::Result<()> {
+        self.cursor(n, 'D')
+    }
+
+    fn write_line(&self, s: &str) -> std::io::Result<()> {
+        uv_wasm_compat::io::stderr(&format!("{s}\n"));
+        Ok(())
+    }
+
+    fn write_str(&self, s: &str) -> std::io::Result<()> {
+        uv_wasm_compat::io::stderr(s);
+        Ok(())
+    }
+
+    fn clear_line(&self) -> std::io::Result<()> {
+        uv_wasm_compat::io::stderr("\r\x1b[2K");
+        Ok(())
+    }
+
+    fn flush(&self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Printer {
     /// A printer that suppresses all output.
@@ -35,7 +109,7 @@ impl Printer {
         match self {
             Self::Silent => ProgressDrawTarget::hidden(),
             Self::Quiet => ProgressDrawTarget::hidden(),
-            Self::Default => ProgressDrawTarget::stderr(),
+            Self::Default => stderr_target(),
             // Confusingly, hide the progress bar when in verbose mode.
             // Otherwise, it gets interleaved with debug messages.
             Self::Verbose => ProgressDrawTarget::hidden(),

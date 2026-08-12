@@ -1,5 +1,11 @@
-use console::{Key, Term, measure_text_width, style};
+use console::Term;
+#[cfg(not(target_family = "wasm"))]
+use console::{Key, measure_text_width, style};
+#[cfg(not(target_family = "wasm"))]
 use std::{cmp::Ordering, iter};
+
+#[cfg(target_family = "wasm")]
+mod browser;
 
 /// Prompt the user for confirmation in the given [`Term`].
 ///
@@ -19,6 +25,17 @@ pub fn confirm_with_hint(
     confirm_inner(message, Some(hint), term, default)
 }
 
+#[cfg(target_family = "wasm")]
+fn confirm_inner(
+    message: &str,
+    hint: Option<&str>,
+    _term: &Term,
+    default: bool,
+) -> std::io::Result<bool> {
+    browser::confirm(message, hint, default)
+}
+
+#[cfg(not(target_family = "wasm"))]
 fn confirm_inner(
     message: &str,
     hint: Option<&str>,
@@ -101,40 +118,68 @@ fn confirm_inner(
 ///
 /// This is a slimmed-down version of `dialoguer::Password`.
 pub fn password(prompt: &str, term: &Term) -> std::io::Result<String> {
-    term.write_str(prompt)?;
-    term.show_cursor()?;
-    term.flush()?;
+    #[cfg(target_family = "wasm")]
+    {
+        let _ = term;
+        return browser::answer(prompt, true);
+    }
+    #[cfg(not(target_family = "wasm"))]
+    {
+        term.write_str(prompt)?;
+        term.show_cursor()?;
+        term.flush()?;
 
-    let input = term.read_secure_line()?;
+        let input = term.read_secure_line()?;
 
-    term.clear_line()?;
+        term.clear_line()?;
 
-    Ok(input)
+        Ok(input)
+    }
 }
 
 /// Prompt the user for username in the given [`Term`].
 pub fn username(prompt: &str, term: &Term) -> std::io::Result<String> {
-    term.write_str(prompt)?;
-    term.show_cursor()?;
-    term.flush()?;
+    #[cfg(target_family = "wasm")]
+    {
+        let _ = term;
+        return browser::answer(prompt, false);
+    }
+    #[cfg(not(target_family = "wasm"))]
+    {
+        term.write_str(prompt)?;
+        term.show_cursor()?;
+        term.flush()?;
 
-    let input = term.read_line()?;
+        let input = term.read_line()?;
 
-    term.clear_line()?;
+        term.clear_line()?;
 
-    Ok(input)
+        Ok(input)
+    }
+}
+
+/// Prompt the user for input text in the given [`Term`].
+pub fn input(prompt: &str, term: &Term) -> std::io::Result<String> {
+    #[cfg(target_family = "wasm")]
+    {
+        let _ = term;
+        return browser::answer(prompt, false);
+    }
+    #[cfg(not(target_family = "wasm"))]
+    return input_interactive(prompt, term);
 }
 
 /// Prompt the user for input text in the given [`Term`].
 ///
 /// This is a slimmed-down version of `dialoguer::Input`.
+#[cfg(not(target_family = "wasm"))]
 #[allow(
     // Suppress Clippy lints triggered by `dialoguer::Input`.
     clippy::cast_possible_truncation,
     clippy::cast_possible_wrap,
     clippy::cast_sign_loss
 )]
-pub fn input(prompt: &str, term: &Term) -> std::io::Result<String> {
+fn input_interactive(prompt: &str, term: &Term) -> std::io::Result<String> {
     term.write_str(prompt)?;
     term.show_cursor()?;
     term.flush()?;

@@ -2,6 +2,7 @@ use std::env::VarError;
 use std::fmt;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
+#[cfg(not(target_family = "wasm"))]
 use std::process;
 use std::str::FromStr;
 use std::time::Duration;
@@ -5271,10 +5272,18 @@ where
 }
 
 /// Prints a parse error and exits the process.
-#[expect(clippy::exit, clippy::print_stderr)]
+#[cfg_attr(not(target_family = "wasm"), expect(clippy::exit))]
 fn parse_failure(name: &str, expected: &str) -> ! {
-    eprintln!("error: invalid value for {name}, expected {expected}");
-    process::exit(1)
+    let message = format!("error: invalid value for {name}, expected {expected}");
+    uv_wasm_compat::io::stderr(&format!("{message}\n"));
+    #[cfg(target_family = "wasm")]
+    {
+        panic!("{message}");
+    }
+    #[cfg(not(target_family = "wasm"))]
+    {
+        process::exit(1);
+    }
 }
 
 #[cfg(test)]
