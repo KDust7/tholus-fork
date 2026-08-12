@@ -6631,6 +6631,7 @@ dependencies = [
  "uv-warnings",
  "uv-wasm-compat",
  "uv-windows",
+ "which",
  "windows",
 ]
 

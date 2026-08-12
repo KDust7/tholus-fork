@@ -29,7 +29,7 @@ const CHECKOUT_READY_LOCK: &str = ".ok";
 /// Caching the command allows us to avoid needing to remove environment
 /// variables everywhere.
 pub static GIT: LazyLock<Result<ProcessBuilder, GitError>> = LazyLock::new(|| {
-    let path = which::which("git").map_err(|err| match err {
+    let path = uv_fs::which::which("git").map_err(|err| match err {
         which::Error::CannotFindBinaryPath => GitError::GitNotFound,
         err => GitError::Other(err),
     })?;

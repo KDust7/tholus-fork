@@ -1,4 +1,45 @@
-use std::path::Path;
+use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
+
+#[cfg(not(target_family = "wasm"))]
+pub fn which<T: AsRef<OsStr>>(binary_name: T) -> Result<PathBuf, which::Error> {
+    which::which(binary_name)
+}
+
+#[cfg(target_family = "wasm")]
+pub fn which<T: AsRef<OsStr>>(_binary_name: T) -> Result<PathBuf, which::Error> {
+    Err(which::Error::CannotFindBinaryPath)
+}
+
+#[cfg(not(target_family = "wasm"))]
+pub fn which_all<T: AsRef<OsStr>>(
+    binary_name: T,
+) -> Result<impl Iterator<Item = PathBuf>, which::Error> {
+    which::which_all(binary_name)
+}
+
+#[cfg(target_family = "wasm")]
+pub fn which_all<T: AsRef<OsStr>>(
+    _binary_name: T,
+) -> Result<impl Iterator<Item = PathBuf>, which::Error> {
+    Ok(std::iter::empty())
+}
+
+#[cfg(not(target_family = "wasm"))]
+pub fn which_in_global<T: AsRef<OsStr>, U: AsRef<OsStr>>(
+    binary_name: T,
+    paths: Option<U>,
+) -> Result<impl Iterator<Item = PathBuf>, which::Error> {
+    which::which_in_global(binary_name, paths)
+}
+
+#[cfg(target_family = "wasm")]
+pub fn which_in_global<T: AsRef<OsStr>, U: AsRef<OsStr>>(
+    _binary_name: T,
+    _paths: Option<U>,
+) -> Result<impl Iterator<Item = PathBuf>, which::Error> {
+    Ok(std::iter::empty())
+}
 
 #[cfg(windows)]
 #[allow(unsafe_code)] // We need to do an FFI call through the windows-* crates.

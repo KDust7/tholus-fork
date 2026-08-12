@@ -23,7 +23,7 @@ use uv_pep440::{
 };
 use uv_static::EnvVars;
 use uv_warnings::{warn_user_once, write_warning_chain};
-use which::{which, which_all};
+use uv_fs::which::{which, which_all};
 
 use crate::downloads::{ManagedPythonDownloadList, PlatformRequest, PythonDownloadRequest};
 use crate::implementation::ImplementationName;
@@ -614,7 +614,7 @@ fn python_executables_from_search_path<'a>(
     // Split and iterate over the paths instead of using `which_all` so we can
     // check multiple names per directory while respecting the search path order and python names
     // precedence.
-    let search_dirs: Vec<_> = env::split_paths(&search_path).collect();
+    let search_dirs: Vec<_> = uv_vfs::split_paths(&search_path).collect();
     let mut seen_dirs = FxHashSet::with_capacity_and_hasher(search_dirs.len(), FxBuildHasher);
     search_dirs
         .into_iter()
@@ -643,7 +643,7 @@ fn python_executables_from_search_path<'a>(
                         .into_iter()
                         .flat_map(move |name| {
                             // Since we're just working with a single directory at a time, we collect to simplify ownership
-                            which::which_in_global(&*name, Some(&dir))
+                            uv_fs::which::which_in_global(&*name, Some(&dir))
                                 .into_iter()
                                 .flatten()
                                 // We have to collect since `which` requires that the regex outlives its
@@ -659,7 +659,7 @@ fn python_executables_from_search_path<'a>(
                             // TODO(zanieb): Consider moving `python.bat` into `possible_names` to avoid a chain
                             cfg!(windows)
                                 .then(move || {
-                                    which::which_in_global("python.bat", Some(&dir_clone))
+                                    uv_fs::which::which_in_global("python.bat", Some(&dir_clone))
                                         .into_iter()
                                         .flatten()
                                         .collect::<Vec<_>>()

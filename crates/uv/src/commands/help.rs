@@ -8,7 +8,7 @@ use anyhow::{Result, anyhow};
 use clap::CommandFactory;
 use itertools::Itertools;
 use owo_colors::OwoColorize;
-use which::which;
+use uv_fs::which::which;
 
 use super::ExitStatus;
 use crate::printer::Printer;
