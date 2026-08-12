@@ -871,7 +871,7 @@ pub fn remove_virtualenv(location: &Path) -> io::Result<()> {
     // won't let you unlink a running executable.
     #[cfg(windows)]
     if let Ok(itself) = std::env::current_exe() {
-        let target = std::path::absolute(location)?;
+        let target = uv_vfs::absolute(location)?;
         if itself.starts_with(&target) {
             debug!("Detected self-delete of executable: {}", itself.display());
             self_replace::self_delete_outside_path(location)?;

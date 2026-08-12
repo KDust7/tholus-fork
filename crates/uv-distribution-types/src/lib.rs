@@ -42,7 +42,6 @@
 use std::borrow::Cow;
 use std::ffi::OsStr;
 use std::fmt::Display;
-use std::path;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -451,7 +450,7 @@ impl Dist {
         ext: DistExtension,
     ) -> Result<Self, Error> {
         // Convert to an absolute path.
-        let install_path = path::absolute(install_path)?;
+        let install_path = uv_vfs::absolute(install_path)?;
 
         // Normalize the path.
         let install_path = normalize_absolute_path(&install_path)?;
@@ -517,7 +516,7 @@ impl Dist {
         r#virtual: Option<bool>,
     ) -> Result<Self, Error> {
         // Convert to an absolute path.
-        let install_path = path::absolute(install_path)?;
+        let install_path = uv_vfs::absolute(install_path)?;
 
         // Normalize the path.
         let install_path = normalize_absolute_path(&install_path)?;

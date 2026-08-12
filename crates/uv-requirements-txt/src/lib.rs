@@ -770,7 +770,7 @@ fn parse_entry(
             .map(Cow::Owned)
             .unwrap_or(Cow::Borrowed(given));
         let expanded = expand_env_vars(given.as_ref());
-        let url = if let Some(path) = std::path::absolute(expanded.as_ref())
+        let url = if let Some(path) = uv_vfs::absolute(expanded.as_ref())
             .ok()
             .filter(|path| path.vfs_exists())
         {
@@ -801,7 +801,7 @@ fn parse_entry(
             .map(Cow::Owned)
             .unwrap_or(Cow::Borrowed(given));
         let expanded = expand_env_vars(given.as_ref());
-        let url = if let Some(path) = std::path::absolute(expanded.as_ref())
+        let url = if let Some(path) = uv_vfs::absolute(expanded.as_ref())
             .ok()
             .filter(|path| path.vfs_exists())
         {
@@ -836,7 +836,7 @@ fn parse_entry(
             .map(Cow::Owned)
             .unwrap_or(Cow::Borrowed(given));
         let expanded = expand_env_vars(given.as_ref());
-        let url = if let Some(path) = std::path::absolute(requirements_dir.join(expanded.as_ref()))
+        let url = if let Some(path) = uv_vfs::absolute(requirements_dir.join(expanded.as_ref()))
             .ok()
             .filter(|path| path.vfs_exists())
         {

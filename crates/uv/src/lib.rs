@@ -306,7 +306,7 @@ async fn run_with_workspace_cache(
     // If `--project` points to a `pyproject.toml` file, resolve to its parent directory,
     // since downstream code (e.g., `FilesystemOptions::find`) expects a directory.
     let project_dir: Cow<'_, Path> = if let Some(project) = &cli.top_level.global_args.project {
-        let path = normalize_path(std::path::absolute(project)?);
+        let path = normalize_path(uv_vfs::absolute(project)?);
         if let Some(name) = path.file_name()
             && name == "pyproject.toml"
             && path.vfs_is_file()
@@ -321,7 +321,7 @@ async fn run_with_workspace_cache(
     {
         // When running a target, discover the workspace starting from the target's directory
         // rather than the current working directory.
-        Cow::Owned(std::path::absolute(dir)?)
+        Cow::Owned(uv_vfs::absolute(dir)?)
     } else {
         Cow::Borrowed(&*CWD)
     };
@@ -693,12 +693,12 @@ async fn run_with_workspace_cache(
     // This check happens after the first (fallible) workspace discovery, which we need to resolve
     // the settings that go into the cache constructor, but the check happens before the first
     // workspace discovery that's used beyond settings discovery.
-    let cache_dir = std::path::absolute(cache.root())?;
+    let cache_dir = uv_vfs::absolute(cache.root())?;
     // PEP 517 hooks run from uv-managed source trees, including source distributions extracted
     // into the cache, and can invoke uv recursively.
     let project_is_in_build_dir =
         std::env::var_os(EnvVars::UV_INTERNAL__BUILD_DIR).is_some_and(|build_dir| {
-            std::path::absolute(build_dir).is_ok_and(|build_dir| {
+            uv_vfs::absolute(build_dir).is_ok_and(|build_dir| {
                 project_dir.starts_with(&build_dir)
                     || uv_vfs::fs::canonicalize(&*project_dir).is_ok_and(|project_dir| {
                         uv_vfs::fs::canonicalize(build_dir)

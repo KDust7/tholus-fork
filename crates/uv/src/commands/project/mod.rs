@@ -1182,7 +1182,7 @@ fn is_path_lexically_within(path: &Path, base: &Path) -> bool {
 ///
 /// This isn't fully robust, and cannot be, as the path may not exist.
 fn is_centralized_environment_path(path: &Path, cache: &Cache) -> bool {
-    let Ok(environments) = std::path::absolute(cache.bucket(CacheBucket::Environments)) else {
+    let Ok(environments) = uv_vfs::absolute(cache.bucket(CacheBucket::Environments)) else {
         return false;
     };
     if is_path_lexically_within(path, &environments) {

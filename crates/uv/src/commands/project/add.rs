@@ -874,7 +874,7 @@ fn edits(
                 (uv_pep508::Requirement::from(requirement), None)
             }
             AddTarget::Script(script, _) => {
-                let script_path = std::path::absolute(&script.path)?;
+                let script_path = uv_vfs::absolute(&script.path)?;
                 let script_dir = script_path.parent().expect("script path has no parent");
 
                 let existing_sources = Some(script.sources());

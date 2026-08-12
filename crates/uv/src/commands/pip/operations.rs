@@ -1223,7 +1223,7 @@ pub(crate) fn report_target_environment(
         root.user_display()
     );
 
-    let Ok(target) = std::path::absolute(&root) else {
+    let Ok(target) = uv_vfs::absolute(&root) else {
         debug!("{}", message);
         return Ok(());
     };
@@ -1243,7 +1243,7 @@ pub(crate) fn report_target_environment(
     }
 
     // Do not report a default environment path
-    if let Ok(default) = std::path::absolute(PathBuf::from(".venv")) {
+    if let Ok(default) = uv_vfs::absolute(PathBuf::from(".venv")) {
         if target == default {
             debug!("{}", message);
             return Ok(());

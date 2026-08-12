@@ -205,7 +205,7 @@ async fn uninstall_tool(
 
         #[cfg(windows)]
         if itself.as_ref().is_some_and(|itself| {
-            std::path::absolute(&entrypoint.install_path).is_ok_and(|target| *itself == target)
+            uv_vfs::absolute(&entrypoint.install_path).is_ok_and(|target| *itself == target)
         }) {
             self_replace::self_delete()?;
             continue;

@@ -134,7 +134,7 @@ impl FilesystemOptions {
                                 Error::UvToml(path.clone(), Box::new(err)),
                             )
                         })?
-                        .relative_to(&std::path::absolute(dir)?)?;
+                        .relative_to(&uv_vfs::absolute(dir)?)?;
 
                 // If the directory also contains a `[tool.uv]` table in a `pyproject.toml` file,
                 // warn.
@@ -183,7 +183,7 @@ impl FilesystemOptions {
                     return Ok(None);
                 };
 
-                let options = options.relative_to(&std::path::absolute(dir)?)?;
+                let options = options.relative_to(&uv_vfs::absolute(dir)?)?;
 
                 tracing::debug!("Found workspace configuration at `{}`", path.display());
                 return Ok(Some(Self(options)));
@@ -224,7 +224,7 @@ fn read_file(path: &Path) -> Result<Options, Error> {
                 Error::UvToml(path.to_path_buf(), Box::new(err)),
             )
         })?;
-    let options = if let Some(parent) = std::path::absolute(path)?.parent() {
+    let options = if let Some(parent) = uv_vfs::absolute(path)?.parent() {
         options.relative_to(parent)?
     } else {
         options

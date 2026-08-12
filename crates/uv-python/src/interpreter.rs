@@ -145,7 +145,7 @@ impl Interpreter {
     /// determining the `home` key for a virtual environment.
     pub fn to_base_python(&self) -> Result<PathBuf, io::Error> {
         let base_executable = self.sys_base_executable().unwrap_or(self.sys_executable());
-        let base_python = std::path::absolute(base_executable)?;
+        let base_python = uv_vfs::absolute(base_executable)?;
         Ok(base_python)
     }
 
@@ -1123,7 +1123,7 @@ impl InterpreterInfo {
     /// unless the Python executable changes, so we use the executable's last modified
     /// time as a cache key.
     fn query_cached(executable: &Path, cache: &Cache) -> Result<Self, Error> {
-        let absolute = std::path::absolute(executable)?;
+        let absolute = uv_vfs::absolute(executable)?;
 
         // Provide a better error message if the link is broken or the file does not exist. Since
         // `canonicalize_executable` does not resolve the file on Windows, we must re-use this logic

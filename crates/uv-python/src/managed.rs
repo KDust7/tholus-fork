@@ -336,7 +336,7 @@ impl ManagedPythonInstallation {
                 .ok_or(Error::NameError("not a valid string".to_string()))?,
         )?;
 
-        let path = std::path::absolute(path)
+        let path = uv_vfs::absolute(path)
             .map_err(|err| Error::AbsolutePath(path.to_path_buf(), err))?;
 
         // Try to read the BUILD file if it exists

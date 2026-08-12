@@ -104,13 +104,13 @@ pub(crate) async fn init(
             // Default to the current directory if a path was not provided.
             let path = match explicit_path {
                 None => project_dir.to_path_buf(),
-                Some(ref path) => std::path::absolute(path)?,
+                Some(ref path) => uv_vfs::absolute(path)?,
             };
 
             // Make sure a project does not already exist in the given directory.
             if path.join("pyproject.toml").vfs_exists() {
                 let path =
-                    std::path::absolute(&path).unwrap_or_else(|_| path.simplified().to_path_buf());
+                    uv_vfs::absolute(&path).unwrap_or_else(|_| path.simplified().to_path_buf());
                 anyhow::bail!(
                     "Project is already initialized in `{}` (`pyproject.toml` file exists)",
                     path.display().cyan()
@@ -184,7 +184,7 @@ pub(crate) async fn init(
                 }
                 // Initialized a project in the given directory.
                 Some(path) => {
-                    let path = std::path::absolute(&path)
+                    let path = uv_vfs::absolute(&path)
                         .unwrap_or_else(|_| path.simplified().to_path_buf());
                     writeln!(
                         printer.stderr(),

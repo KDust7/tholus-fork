@@ -903,7 +903,7 @@ pub(crate) fn finalize_tool_install(
 
             #[cfg(windows)]
             if itself.as_ref().is_some_and(|itself| {
-                std::path::absolute(&target).is_ok_and(|target| *itself == target)
+                uv_vfs::absolute(&target).is_ok_and(|target| *itself == target)
             }) {
                 self_replace::self_replace(src).context("Failed to install entrypoint")?;
             } else {

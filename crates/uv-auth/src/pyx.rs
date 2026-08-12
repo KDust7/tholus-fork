@@ -177,7 +177,7 @@ impl PyxDirectories {
 
         // If the user explicitly set `PYX_CREDENTIALS_DIR`, use that.
         if let Some(root) = std::env::var_os(EnvVars::PYX_CREDENTIALS_DIR) {
-            let root = std::path::absolute(root)?;
+            let root = uv_vfs::absolute(root)?;
             let subdirectory = root.join(&digest);
             return Ok(Self { root, subdirectory });
         }
@@ -185,7 +185,7 @@ impl PyxDirectories {
         // If the user has pyx credentials in their uv credentials directory, read them for
         // backwards compatibility.
         let root = if let Some(tool_dir) = std::env::var_os(EnvVars::UV_CREDENTIALS_DIR) {
-            std::path::absolute(tool_dir)?
+            uv_vfs::absolute(tool_dir)?
         } else {
             StateStore::from_settings(None)?.bucket(StateBucket::Credentials)
         };

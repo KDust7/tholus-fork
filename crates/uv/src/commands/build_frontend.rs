@@ -272,7 +272,7 @@ async fn build_impl(
 
     // Determine the source to build.
     let src = if let Some(src) = src {
-        let src = std::path::absolute(src)?;
+        let src = uv_vfs::absolute(src)?;
         let metadata = match uv_vfs::fs::tokio::metadata(&src).await {
             Ok(metadata) => metadata,
             Err(err) if err.kind() == io::ErrorKind::NotFound => {
@@ -529,7 +529,7 @@ async fn build_package(
     preview: Preview,
 ) -> Result<Vec<BuildMessage>, Error> {
     let output_dir = if let Some(output_dir) = output_dir {
-        Cow::Owned(std::path::absolute(output_dir)?)
+        Cow::Owned(uv_vfs::absolute(output_dir)?)
     } else {
         if let Ok(workspace) = workspace {
             Cow::Owned(workspace.install_path().join("dist"))

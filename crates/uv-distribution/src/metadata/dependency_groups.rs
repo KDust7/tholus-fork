@@ -88,7 +88,7 @@ impl SourcedDependencyGroups {
 
         // The subsequent API takes an absolute path to the dir the pyproject is in
         let empty = PathBuf::new();
-        let absolute_pyproject_path = std::path::absolute(pyproject_path)
+        let absolute_pyproject_path = uv_vfs::absolute(pyproject_path)
             .map_err(|err| WorkspaceError::from(WorkspaceErrorKind::Normalize(err)))?;
         let project_dir = absolute_pyproject_path.parent().unwrap_or(&empty);
         let project =

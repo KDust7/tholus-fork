@@ -122,7 +122,7 @@ impl VerbatimUrl {
                         if let Some(root_dir) = root_dir {
                             Self::from_path_with_fragment(input, Some(root_dir))?
                         } else {
-                            let absolute_path = std::path::absolute(input).map_err(|err| {
+                            let absolute_path = uv_vfs::absolute(input).map_err(|err| {
                                 VerbatimUrlError::Absolute(input.to_string(), err)
                             })?;
                             Self::from_path_with_fragment(absolute_path, None)?
@@ -135,7 +135,7 @@ impl VerbatimUrl {
                 if let Some(root_dir) = root_dir {
                     Self::from_path_with_fragment(input, Some(root_dir))?
                 } else {
-                    let absolute_path = std::path::absolute(input)
+                    let absolute_path = uv_vfs::absolute(input)
                         .map_err(|err| VerbatimUrlError::Absolute(input.to_string(), err))?;
                     Self::from_path_with_fragment(absolute_path, None)?
                 }
@@ -813,7 +813,7 @@ mod tests {
             assert!(url.as_str().ends_with("scripts%23hash=somehash"));
         };
 
-        let path = std::path::absolute("scripts#hash=somehash").unwrap();
+        let path = uv_vfs::absolute("scripts#hash=somehash").unwrap();
         assert_path(VerbatimUrl::from_absolute_path(&path).unwrap(), &path);
         assert_path(VerbatimUrl::from_normalized_path(&path).unwrap(), &path);
 

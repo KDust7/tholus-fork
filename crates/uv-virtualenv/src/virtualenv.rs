@@ -99,7 +99,7 @@ pub(crate) fn create(
         Prompt::Static(value) => Some(value),
         Prompt::None => None,
     };
-    let absolute = std::path::absolute(location)?;
+    let absolute = uv_vfs::absolute(location)?;
 
     // Validate the path before creating the virtual environment, since some filesystems, e.g.,
     // APFS, reject non-UTF-8 paths before the activation scripts are generated.

@@ -49,7 +49,7 @@ pub(crate) fn update_sysconfig(
     suffix: &str,
 ) -> Result<(), Error> {
     // Find the `_sysconfigdata_` file in the Python installation.
-    let real_prefix = std::path::absolute(install_root)?;
+    let real_prefix = uv_vfs::absolute(install_root)?;
     let sysconfigdata = find_sysconfigdata(&real_prefix, major, minor, suffix)?;
     trace!(
         "Discovered `sysconfig` data at: {}",

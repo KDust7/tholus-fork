@@ -1,6 +1,35 @@
 use std::ffi::OsStr;
 use std::path::{Component, Path, PathBuf};
 
+#[cfg(target_family = "wasm")]
+thread_local! {
+    static WORKING_DIRECTORY: std::cell::RefCell<PathBuf> =
+        std::cell::RefCell::new(PathBuf::from("/"));
+}
+
+#[cfg(target_family = "wasm")]
+pub fn working_directory() -> PathBuf {
+    WORKING_DIRECTORY.with(|current| current.borrow().clone())
+}
+
+#[cfg(target_family = "wasm")]
+pub fn set_working_directory(path: &Path) {
+    let resolved = normalize(path);
+    WORKING_DIRECTORY.with(|current| {
+        *current.borrow_mut() = resolved;
+    });
+}
+
+#[cfg(target_family = "wasm")]
+pub fn absolute(path: impl AsRef<Path>) -> std::io::Result<PathBuf> {
+    Ok(normalize(&working_directory().join(path.as_ref())))
+}
+
+#[cfg(not(target_family = "wasm"))]
+pub fn absolute(path: impl AsRef<Path>) -> std::io::Result<PathBuf> {
+    std::path::absolute(path)
+}
+
 pub fn normalize(path: &Path) -> PathBuf {
     let mut segments: Vec<&OsStr> = Vec::new();
     for component in path.components() {

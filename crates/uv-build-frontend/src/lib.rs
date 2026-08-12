@@ -885,7 +885,7 @@ impl SourceBuild {
     #[instrument(skip_all, fields(version_id = self.version_id))]
     pub async fn build(&self, wheel_dir: &Path) -> Result<String, Error> {
         // The build scripts run with the extracted root as cwd, so they need the absolute path.
-        let wheel_dir = std::path::absolute(wheel_dir)?;
+        let wheel_dir = uv_vfs::absolute(wheel_dir)?;
         let filename = self.pep517_build(&wheel_dir).await?;
         Ok(filename)
     }

@@ -88,7 +88,7 @@ impl Pep723ItemRef<'_> {
     /// Determine the working directory for the script.
     pub fn directory(&self) -> Result<PathBuf, io::Error> {
         match self {
-            Self::Script(script) => Ok(std::path::absolute(&script.path)?
+            Self::Script(script) => Ok(uv_vfs::absolute(&script.path)?
                 .parent()
                 .expect("script path has no parent")
                 .to_owned()),
@@ -188,7 +188,7 @@ impl Pep723Script {
         let metadata = Pep723Metadata::from_str(&metadata)?;
 
         Ok(Some(Self {
-            path: std::path::absolute(file)?,
+            path: uv_vfs::absolute(file)?,
             metadata,
             prelude,
             postlude,
@@ -205,7 +205,7 @@ impl Pep723Script {
         let contents = uv_vfs::fs::tokio::read(&file).await?;
         let (prelude, metadata, postlude) = Self::init_metadata(&contents, requires_python)?;
         Ok(Self {
-            path: std::path::absolute(file)?,
+            path: uv_vfs::absolute(file)?,
             metadata,
             prelude,
             postlude,

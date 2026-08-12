@@ -30,6 +30,7 @@ thread_local! {
 pub fn set_current_dir(path: impl AsRef<Path>) {
     let directory: &'static PathBuf = Box::leak(Box::new(path.as_ref().to_path_buf()));
     CURRENT_DIR.with(|current| current.set(Some(directory)));
+    uv_vfs::path::set_working_directory(directory);
 }
 
 #[cfg(target_family = "wasm")]
@@ -466,9 +467,9 @@ pub fn try_relative_to_if(
     should_relativize: bool,
 ) -> Result<PathBuf, std::io::Error> {
     if should_relativize {
-        relative_to(&path, &base).or_else(|_| std::path::absolute(path.as_ref()))
+        relative_to(&path, &base).or_else(|_| uv_vfs::absolute(path.as_ref()))
     } else {
-        std::path::absolute(path.as_ref())
+        uv_vfs::absolute(path.as_ref())
     }
 }
 
@@ -504,7 +505,7 @@ pub fn verbatim_path(path: &Path) -> Cow<'_, Path> {
     }
 
     // Attempt to resolve a fully qualified path just like Win32 path normalization would.
-    // std::path::absolute calls GetFullPathNameW which defeats the purpose of this function
+    // uv_vfs::absolute calls GetFullPathNameW which defeats the purpose of this function
     // as it results in Win32 default path normalization.
     let resolved_path = if path.is_relative() {
         Cow::Owned(CWD.join(path))

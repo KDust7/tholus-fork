@@ -39,7 +39,7 @@ pub(crate) async fn read_pylock_toml(
         let content = response.text().await?;
         (std::env::current_dir()?, content)
     } else {
-        let absolute = std::path::absolute(pylock)?;
+        let absolute = uv_vfs::absolute(pylock)?;
         let install_path = absolute
             .parent()
             .map(Path::to_path_buf)

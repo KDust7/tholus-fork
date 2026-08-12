@@ -328,7 +328,7 @@ impl Workspace {
         cache: &Cache,
         workspace_cache: &WorkspaceCache,
     ) -> Result<Arc<Self>, WorkspaceError> {
-        let path = std::path::absolute(path)
+        let path = uv_vfs::absolute(path)
             .map_err(WorkspaceErrorKind::Normalize)?
             .clone();
         let path = normalize_path(&path);
@@ -1196,7 +1196,7 @@ impl Workspace {
                 if !seen.insert(member_root.clone()) {
                     continue;
                 }
-                let member_root = std::path::absolute(&member_root)
+                let member_root = uv_vfs::absolute(&member_root)
                     .map_err(WorkspaceErrorKind::Normalize)?
                     .clone();
 
@@ -1681,7 +1681,7 @@ impl ProjectWorkspace {
         cache: &Cache,
         workspace_cache: &WorkspaceCache,
     ) -> Result<Self, WorkspaceError> {
-        let project_path = std::path::absolute(install_path)
+        let project_path = uv_vfs::absolute(install_path)
             .map_err(WorkspaceErrorKind::Normalize)?
             .clone();
         let project_path = normalize_path(&project_path);
@@ -2152,7 +2152,7 @@ impl VirtualProject {
         {
             // Otherwise, if it contains a `tool.uv.workspace` table, it's a non-project workspace
             // root.
-            let project_path = std::path::absolute(project_root)
+            let project_path = uv_vfs::absolute(project_root)
                 .map_err(WorkspaceErrorKind::Normalize)?
                 .clone();
 
@@ -2172,7 +2172,7 @@ impl VirtualProject {
         } else {
             // Otherwise it's a pyproject.toml that maybe contains dependency-groups
             // that we want to treat like a project/workspace to handle those uniformly
-            let project_path = std::path::absolute(project_root)
+            let project_path = uv_vfs::absolute(project_root)
                 .map_err(WorkspaceErrorKind::Normalize)?
                 .clone();
 

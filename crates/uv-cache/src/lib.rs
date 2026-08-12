@@ -521,7 +521,7 @@ impl Cache {
         };
 
         Ok(Self {
-            root: std::path::absolute(root).map_err(Error::Absolute)?,
+            root: uv_vfs::absolute(root).map_err(Error::Absolute)?,
             lock_file,
             ..self
         })
@@ -542,7 +542,7 @@ impl Cache {
             return Ok(None);
         };
         Ok(Some(Self {
-            root: std::path::absolute(root).map_err(Error::Absolute)?,
+            root: uv_vfs::absolute(root).map_err(Error::Absolute)?,
             lock_file: Some(Arc::new(lock_file)),
             ..self
         }))

@@ -753,7 +753,7 @@ pub(crate) async fn pip_compile(
             }
 
             // Determine the directory relative to which the output file should be written.
-            let output_file = output_file.map(std::path::absolute).transpose()?;
+            let output_file = output_file.map(uv_vfs::absolute).transpose()?;
             let install_path = if let Some(output_file) = output_file.as_deref() {
                 output_file.parent().unwrap()
             } else {

@@ -89,7 +89,7 @@ async fn setup_mock_update(
     let receipt_dir = context.temp_dir.child("receipt");
     receipt_dir.create_dir_all()?;
 
-    let install_prefix = std::path::absolute(
+    let install_prefix = uv_vfs::absolute(
         get_bin!()
             .parent()
             .expect("uv binary should have a parent directory"),
@@ -169,7 +169,7 @@ async fn test_self_update_uses_custom_path_with_ghe_override() -> Result<()> {
     let receipt_dir = context.temp_dir.child("receipt");
     receipt_dir.create_dir_all()?;
 
-    let install_prefix = std::path::absolute(
+    let install_prefix = uv_vfs::absolute(
         get_bin!()
             .parent()
             .expect("uv binary should have a parent directory"),

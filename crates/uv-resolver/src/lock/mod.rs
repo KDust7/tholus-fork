@@ -5001,7 +5001,7 @@ impl Source {
         root: &Path,
     ) -> Result<Self, LockError> {
         let path = relative_to(&git_dist.install_path, root)
-            .or_else(|_| std::path::absolute(&git_dist.install_path))
+            .or_else(|_| uv_vfs::absolute(&git_dist.install_path))
             .map_err(LockErrorKind::DistributionRelativePath)?;
         Ok(Self::Git(
             UrlString::from(locked_git_url(
@@ -5026,7 +5026,7 @@ impl Source {
         root: &Path,
     ) -> Result<Self, LockError> {
         let path = relative_to(&git_dist.install_path, root)
-            .or_else(|_| std::path::absolute(&git_dist.install_path))
+            .or_else(|_| uv_vfs::absolute(&git_dist.install_path))
             .map_err(LockErrorKind::DistributionRelativePath)?;
         Ok(Self::Git(
             UrlString::from(locked_git_url(

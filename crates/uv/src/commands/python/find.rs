@@ -129,7 +129,7 @@ pub(crate) async fn find(
         let path = if resolve_links {
             dunce::canonicalize(python.interpreter().sys_executable())?
         } else {
-            std::path::absolute(python.interpreter().sys_executable())?
+            uv_vfs::absolute(python.interpreter().sys_executable())?
         };
         writeln!(printer.stdout(), "{}", path.simplified_display())?;
     }
@@ -181,7 +181,7 @@ pub(crate) async fn find_script(
         let path = if resolve_links {
             dunce::canonicalize(interpreter.sys_executable())?
         } else {
-            std::path::absolute(interpreter.sys_executable())?
+            uv_vfs::absolute(interpreter.sys_executable())?
         };
         writeln!(printer.stdout(), "{}", path.simplified_display())?;
     }
