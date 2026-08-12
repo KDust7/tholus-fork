@@ -16,6 +16,7 @@ use uv_install_wheel::read_record;
 use uv_pypi_types::ModuleName;
 
 use crate::installed::{InstalledDist, InstalledDistError};
+use uv_vfs::VfsPathExt as _;
 
 impl InstalledDist {
     /// Read the modules provided by this installed distribution.
@@ -108,7 +109,7 @@ fn record_path_components(path: &str) -> Option<Vec<Box<str>>> {
 
     // `RECORD` can include absolute paths and relative paths that leave the directory containing
     // `.dist-info`, for example installed scripts. Those entries cannot describe modules here.
-    if path.is_absolute() {
+    if path.vfs_is_absolute() {
         return None;
     }
 

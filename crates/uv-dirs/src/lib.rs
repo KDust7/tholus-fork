@@ -7,6 +7,7 @@ use std::{
 use etcetera::BaseStrategy;
 
 use uv_static::EnvVars;
+use uv_vfs::VfsPathExt as _;
 
 /// Returns an appropriate user-level directory for storing executables.
 ///
@@ -106,7 +107,7 @@ fn parse_path(path: OsString) -> Option<PathBuf> {
 /// [XDG Base Directory Specification]: https://specifications.freedesktop.org/basedir-spec/latest/
 fn parse_xdg_path(path: OsString) -> Option<PathBuf> {
     let path = PathBuf::from(path);
-    if path.is_absolute() { Some(path) } else { None }
+    if path.vfs_is_absolute() { Some(path) } else { None }
 }
 
 /// Returns the path to the user configuration directory.
@@ -168,8 +169,6 @@ pub fn system_config_file() -> Option<PathBuf> {
                 .and_then(|system_drive| locate_system_config_windows(format!("{system_drive}\\")))
         },
         _ => {
-            use uv_vfs::VfsPathExt as _;
-
             if let Some(path) =
                 locate_system_config_xdg(env::var(EnvVars::XDG_CONFIG_DIRS).ok().as_deref())
             {

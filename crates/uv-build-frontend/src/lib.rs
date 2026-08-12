@@ -622,7 +622,7 @@ impl SourceBuild {
         if let Some(backend_path) = backend_path {
             let source_tree = uv_vfs::fs::canonicalize(source_tree).map_err(Error::Io)?;
             for path in backend_path.iter() {
-                if Path::new(path).is_absolute() {
+                if Path::new(path).vfs_is_absolute() {
                     return Err(Box::new(Error::BackendPathOutsideSourceTree(
                         path.to_string(),
                     )));

@@ -17,6 +17,7 @@ use crate::lock::{
     SourceDistMetadata, Wheel, WheelWireSource, ZstdWheel,
 };
 use crate::{Lock, LockError};
+use uv_vfs::VfsPathExt as _;
 
 #[derive(Debug, thiserror::Error)]
 enum MetadataErrorKind {
@@ -976,7 +977,7 @@ fn normalize_workspace_relative_path(
     workspace_root: &PortablePathBuf,
     maybe_rel: &std::path::Path,
 ) -> PortablePathBuf {
-    if maybe_rel.is_absolute() {
+    if maybe_rel.vfs_is_absolute() {
         PortablePathBuf::from(maybe_rel)
     } else {
         PortablePathBuf::from(workspace_root.as_ref().join(maybe_rel).as_path())

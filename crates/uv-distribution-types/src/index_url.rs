@@ -18,6 +18,7 @@ use uv_redacted::DisplaySafeUrl;
 use uv_warnings::warn_user;
 
 use crate::{ExcludeNewerOverride, Index, IndexStatusCodeStrategy, Verbatim};
+use uv_vfs::VfsPathExt as _;
 
 pub static PYPI_URL: LazyLock<DisplaySafeUrl> =
     LazyLock::new(|| DisplaySafeUrl::parse("https://pypi.org/simple").unwrap());
@@ -166,7 +167,7 @@ fn is_disambiguated_path(path: &str) -> bool {
             return true;
         }
     }
-    if path.starts_with("./") || path.starts_with("../") || Path::new(path).is_absolute() {
+    if path.starts_with("./") || path.starts_with("../") || Path::new(path).vfs_is_absolute() {
         return true;
     }
     // Check if the path has a scheme (like `file://`)

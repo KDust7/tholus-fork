@@ -1014,7 +1014,7 @@ fn parse_requirement_and_hashes(
     #[expect(clippy::case_sensitive_file_extension_comparisons)]
     if requirement.ends_with(".txt") || requirement.ends_with(".in") {
         let path = Path::new(requirement);
-        let path = if path.is_absolute() {
+        let path = if path.vfs_is_absolute() {
             Cow::Borrowed(path)
         } else {
             Cow::Owned(working_dir.join(path))

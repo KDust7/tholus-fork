@@ -16,6 +16,7 @@ use uv_workspace::{DiscoveryOptions, Workspace, WorkspaceCache};
 
 use crate::commands::ExitStatus;
 use crate::printer::Printer;
+use uv_vfs::VfsPathExt as _;
 
 /// List workspace members or PEP 723 scripts.
 pub(crate) async fn list(
@@ -109,7 +110,7 @@ pub(crate) fn find_scripts(
 ) -> impl Iterator<Item = Result<PathBuf, ScriptDiscoveryError>> {
     // Avoid descending into the cache when it is inside the workspace. If the workspace itself is
     // inside the cache, it is still the requested search root and must not be excluded.
-    let cache_root = if cache.root().is_absolute() {
+    let cache_root = if cache.root().vfs_is_absolute() {
         Cow::Borrowed(cache.root())
     } else {
         Cow::Owned(CWD.join(cache.root()))

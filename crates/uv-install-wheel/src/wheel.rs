@@ -850,7 +850,7 @@ fn write_file_recorded(
     record: &mut Vec<RecordEntry>,
 ) -> Result<(), Error> {
     debug_assert!(
-        !relative_path.is_absolute(),
+        !relative_path.vfs_is_absolute(),
         "Path must be relative: {}",
         relative_path.display()
     );

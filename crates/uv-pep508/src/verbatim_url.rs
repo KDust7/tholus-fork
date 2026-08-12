@@ -19,6 +19,7 @@ use uv_redacted::{DisplaySafeUrl, DisplaySafeUrlError};
 use crate::Pep508Url;
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
+use uv_vfs::VfsPathExt as _;
 
 /// A wrapper around [`Url`] that preserves the original string.
 ///
@@ -150,11 +151,11 @@ impl VerbatimUrl {
         path: impl AsRef<Path>,
         base_dir: impl AsRef<Path>,
     ) -> Result<Self, VerbatimUrlError> {
-        debug_assert!(base_dir.as_ref().is_absolute(), "base dir must be absolute");
+        debug_assert!(base_dir.as_ref().vfs_is_absolute(), "base dir must be absolute");
         let path = path.as_ref();
 
         // Convert the path to an absolute path, if necessary.
-        let path = if path.is_absolute() {
+        let path = if path.vfs_is_absolute() {
             Cow::Borrowed(path)
         } else {
             Cow::Owned(base_dir.as_ref().join(path))
@@ -194,7 +195,7 @@ impl VerbatimUrl {
         let path = path.as_ref();
 
         // Error if the path is relative.
-        let path = if path.is_absolute() {
+        let path = if path.vfs_is_absolute() {
             path
         } else {
             return Err(VerbatimUrlError::WorkingDirectory(path.to_path_buf()));
@@ -222,7 +223,7 @@ impl VerbatimUrl {
         let path = path.as_ref();
 
         // Error if the path is relative.
-        let path = if path.is_absolute() {
+        let path = if path.vfs_is_absolute() {
             path
         } else {
             return Err(VerbatimUrlError::WorkingDirectory(path.to_path_buf()));
@@ -282,7 +283,7 @@ impl VerbatimUrl {
             return parsed_scheme.is_file();
         }
 
-        Path::new(given.as_str()).is_absolute()
+        Path::new(given.as_str()).vfs_is_absolute()
     }
 
     /// Set the "given value contained variables which were expanded" flag.

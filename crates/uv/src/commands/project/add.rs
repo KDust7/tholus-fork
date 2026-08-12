@@ -544,7 +544,7 @@ pub(crate) async fn add(
                 let workspace_root = project.workspace().install_path();
                 requirements.iter().any(|req| {
                     if let RequirementSource::Directory { install_path, .. } = &req.source {
-                        let absolute_path = if install_path.is_absolute() {
+                        let absolute_path = if install_path.vfs_is_absolute() {
                             install_path.to_path_buf()
                         } else {
                             project.root().join(install_path)
@@ -575,7 +575,7 @@ pub(crate) async fn add(
         // Check each requirement to see if it's a path dependency
         for requirement in &requirements {
             if let RequirementSource::Directory { install_path, .. } = &requirement.source {
-                let absolute_path = if install_path.is_absolute() {
+                let absolute_path = if install_path.vfs_is_absolute() {
                     install_path.to_path_buf()
                 } else {
                     project.root().join(install_path)

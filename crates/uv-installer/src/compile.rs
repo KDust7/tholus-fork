@@ -32,6 +32,7 @@ use uv_fs::Simplified;
 use uv_static::EnvVars;
 #[cfg(not(target_family = "wasm"))]
 use uv_warnings::warn_user;
+use uv_vfs::VfsPathExt as _;
 
 #[cfg(not(target_family = "wasm"))]
 const COMPILEALL_SCRIPT: &str = include_str!("pip_compileall.py");
@@ -223,7 +224,7 @@ pub async fn compile_tree(
     cache: &Path,
 ) -> Result<usize, CompileError> {
     debug_assert!(
-        dir.is_absolute(),
+        dir.vfs_is_absolute(),
         "compileall doesn't work with relative paths: `{}`",
         dir.display()
     );
@@ -341,7 +342,7 @@ pub async fn compile_files(
             }
         };
         debug_assert!(
-            file.is_absolute(),
+            file.vfs_is_absolute(),
             "compileall doesn't work with relative paths: `{}`",
             file.display()
         );

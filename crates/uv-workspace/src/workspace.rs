@@ -910,7 +910,7 @@ impl Workspace {
             }
 
             let path = PathBuf::from(value);
-            if path.is_absolute() {
+            if path.vfs_is_absolute() {
                 return Some(path);
             }
 
@@ -927,7 +927,7 @@ impl Workspace {
             }
 
             let path = PathBuf::from(value);
-            if path.is_absolute() {
+            if path.vfs_is_absolute() {
                 return Some(path);
             }
 
@@ -1137,7 +1137,7 @@ impl Workspace {
             .is_none()
             .then(|| {
                 // We may receive an uninitialized cache with a relative cache root.
-                let cache_root = if cache.root().is_absolute() {
+                let cache_root = if cache.root().vfs_is_absolute() {
                     cache.root().to_path_buf()
                 } else {
                     CWD.join(cache.root())
@@ -1537,7 +1537,7 @@ impl ProjectWorkspace {
         workspace_cache: &WorkspaceCache,
     ) -> Result<Self, WorkspaceError> {
         assert!(
-            path.is_absolute(),
+            path.vfs_is_absolute(),
             "project workspace discovery with relative path"
         );
         let project_root = path
@@ -1813,7 +1813,7 @@ async fn find_workspace(
 ) -> Result<Option<(PathBuf, ToolUvWorkspace, PyProjectToml)>, WorkspaceError> {
     let external_cache_root = if options.stop_discovery_at.is_none() {
         // We may receive an uninitialized cache with a relative cache root.
-        let cache_root = if cache.root().is_absolute() {
+        let cache_root = if cache.root().vfs_is_absolute() {
             cache.root().to_path_buf()
         } else {
             CWD.join(cache.root())
@@ -2021,7 +2021,7 @@ impl<'workspace> WorkspaceExclusions<'workspace> {
     ) -> Result<WorkspaceExclusion<'workspace>, WorkspaceError> {
         // Normalize the exclude glob to remove leading `./` and other relative path components.
         let normalized_glob = normalize_path(Path::new(exclude_glob.as_str()));
-        if matches!(&normalized_glob, Cow::Borrowed(_)) && normalized_glob.is_relative() {
+        if matches!(&normalized_glob, Cow::Borrowed(_)) && normalized_glob.vfs_is_relative() {
             return Ok(WorkspaceExclusion::Relative(exclude_glob));
         }
 
@@ -2086,7 +2086,7 @@ impl VirtualProject {
         workspace_cache: &WorkspaceCache,
     ) -> Result<Self, WorkspaceError> {
         assert!(
-            path.is_absolute(),
+            path.vfs_is_absolute(),
             "virtual project discovery with relative path"
         );
         let project_root = path

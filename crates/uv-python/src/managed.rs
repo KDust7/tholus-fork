@@ -280,7 +280,7 @@ impl ManagedPythonInstallations {
     }
 
     pub(crate) fn absolute_root(&self) -> Result<PathBuf, Error> {
-        let root = if self.root.is_absolute() {
+        let root = if self.root.vfs_is_absolute() {
             self.root.clone()
         } else {
             crate::current_dir()?.join(&self.root)

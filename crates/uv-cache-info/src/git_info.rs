@@ -209,7 +209,7 @@ fn read_packed_refs(git_dir: &Path) -> Result<BTreeMap<String, String>, GitInfoE
 
 fn resolve_relative_path(base: &Path, path: &str) -> PathBuf {
     let path = PathBuf::from(path);
-    if path.is_absolute() {
+    if path.vfs_is_absolute() {
         path
     } else {
         base.join(path)

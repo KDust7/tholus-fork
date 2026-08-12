@@ -20,6 +20,7 @@ use crate::lock::{Package, PackageId, Source};
 use crate::{Installable, LockError};
 #[cfg(target_family = "wasm")]
 use uv_vfs::UrlFilePathExt as _;
+use uv_vfs::VfsPathExt as _;
 
 /// An export of a [`Lock`] that renders in `requirements.txt` format.
 #[derive(Debug)]
@@ -131,7 +132,7 @@ impl std::fmt::Display for RequirementsTxtExport<'_> {
                     )?;
                 }
                 Source::Path(path) | Source::Directory(path) => {
-                    if path.is_absolute() {
+                    if path.vfs_is_absolute() {
                         write!(
                             f,
                             "{}",
@@ -150,7 +151,7 @@ impl std::fmt::Display for RequirementsTxtExport<'_> {
                         write!(f, "-e {}", anchor(path).portable_display())?;
                     }
                     Some(false) => {
-                        if path.is_absolute() {
+                        if path.vfs_is_absolute() {
                             write!(
                                 f,
                                 "{}",

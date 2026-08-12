@@ -27,6 +27,10 @@ pub trait VfsPathExt {
     fn vfs_read_link(&self) -> io::Result<PathBuf>;
 
     fn vfs_read_dir(&self) -> io::Result<VfsReadDir>;
+
+    fn vfs_is_absolute(&self) -> bool;
+
+    fn vfs_is_relative(&self) -> bool;
 }
 
 #[cfg(not(target_family = "wasm"))]
@@ -65,6 +69,14 @@ impl VfsPathExt for Path {
 
     fn vfs_read_dir(&self) -> io::Result<VfsReadDir> {
         self.read_dir()
+    }
+
+    fn vfs_is_absolute(&self) -> bool {
+        self.is_absolute()
+    }
+
+    fn vfs_is_relative(&self) -> bool {
+        self.is_relative()
     }
 }
 
@@ -105,6 +117,14 @@ impl VfsPathExt for Path {
     fn vfs_read_dir(&self) -> io::Result<VfsReadDir> {
         crate::fs::read_dir(self)
     }
+
+    fn vfs_is_absolute(&self) -> bool {
+        self.has_root()
+    }
+
+    fn vfs_is_relative(&self) -> bool {
+        !self.has_root()
+    }
 }
 
 #[cfg(all(test, not(target_family = "wasm")))]
@@ -114,6 +134,17 @@ mod tests {
 
     fn sandbox() -> tempfile::TempDir {
         tempfile::tempdir().expect("tempdir")
+    }
+
+    #[test]
+    fn absoluteness_matches_the_inherent_method() {
+        let dir = sandbox();
+        assert_eq!(dir.path().vfs_is_absolute(), dir.path().is_absolute());
+        assert_eq!(dir.path().vfs_is_relative(), dir.path().is_relative());
+
+        let relative = PathBuf::from("a/b.txt");
+        assert!(!relative.vfs_is_absolute());
+        assert!(relative.vfs_is_relative());
     }
 
     #[test]

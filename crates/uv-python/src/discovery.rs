@@ -1884,7 +1884,7 @@ impl PythonRequest {
         // remove this code and use tests at the CLI level so we can change the real
         // directory.
         #[cfg(test)]
-        if value_as_path.is_relative() {
+        if value_as_path.vfs_is_relative() {
             if let Ok(current_dir) = crate::current_dir() {
                 let relative = current_dir.join(&value_as_path);
                 if relative.vfs_is_dir() {

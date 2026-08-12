@@ -55,8 +55,8 @@ impl InstallState {
     /// The first non-self argument is the target path relative to site-packages, the second is the
     /// source path in the unpacked wheel.
     fn register_installed_path(&self, relative: &Path, absolute: &Path, wheel: &WheelFilename) {
-        debug_assert!(!relative.is_absolute());
-        debug_assert!(absolute.is_absolute());
+        debug_assert!(!relative.vfs_is_absolute());
+        debug_assert!(absolute.vfs_is_absolute());
 
         // Only register top level entries, these are the only ones we have reliably as cloning
         // a directory on macOS traverses outside our code.

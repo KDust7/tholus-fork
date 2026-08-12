@@ -512,7 +512,7 @@ pub fn verbatim_path(path: &Path) -> Cow<'_, Path> {
     // Attempt to resolve a fully qualified path just like Win32 path normalization would.
     // uv_vfs::absolute calls GetFullPathNameW which defeats the purpose of this function
     // as it results in Win32 default path normalization.
-    let resolved_path = if path.is_relative() {
+    let resolved_path = if path.vfs_is_relative() {
         Cow::Owned(CWD.join(path))
     } else {
         Cow::Borrowed(path)

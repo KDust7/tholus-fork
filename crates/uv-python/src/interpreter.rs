@@ -72,7 +72,7 @@ impl Interpreter {
         let info = InterpreterInfo::query_cached(executable.as_ref(), cache)?;
 
         debug_assert!(
-            info.sys_executable.is_absolute(),
+            info.sys_executable.vfs_is_absolute(),
             "`sys.executable` is not an absolute Python; Python installation is broken: {}",
             info.sys_executable.display()
         );
@@ -702,7 +702,7 @@ impl Interpreter {
 pub fn canonicalize_executable(path: impl AsRef<Path>) -> std::io::Result<PathBuf> {
     let path = path.as_ref();
     debug_assert!(
-        path.is_absolute(),
+        path.vfs_is_absolute(),
         "path must be absolute: {}",
         path.display()
     );
@@ -1305,7 +1305,7 @@ fn find_base_python(
         let resolved = uv_vfs::fs::read_link(&executable)?;
 
         // If the symlink is relative, resolve it relative to the executable.
-        let resolved = if resolved.is_relative() {
+        let resolved = if resolved.vfs_is_relative() {
             if let Some(parent) = executable.parent() {
                 parent.join(resolved)
             } else {

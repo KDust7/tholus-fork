@@ -740,7 +740,7 @@ impl ScriptInterpreter {
             }
 
             let path = PathBuf::from(value);
-            if path.is_absolute() {
+            if path.vfs_is_absolute() {
                 return Some(path);
             }
 
@@ -1208,7 +1208,7 @@ fn is_centralized_environment_link(path: &Path, cache: &Cache) -> bool {
 /// Read an environment path from a file.
 fn read_environment_path_file(path: &Path) -> io::Result<PathBuf> {
     let target = PathBuf::from(uv_vfs::fs::read_to_string(path)?);
-    Ok(if target.is_absolute() {
+    Ok(if target.vfs_is_absolute() {
         target
     } else {
         path.parent().unwrap_or(Path::new("")).join(target)
