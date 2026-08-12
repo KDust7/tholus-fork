@@ -57,7 +57,7 @@ pub(crate) const COMPANY_DISPLAY_NAME: &str = "Astral Software Inc.";
 
 #[cfg(not(test))]
 fn current_dir() -> Result<std::path::PathBuf, std::io::Error> {
-    std::env::current_dir()
+    uv_vfs::current_dir()
 }
 
 #[cfg(test)]
@@ -65,7 +65,7 @@ fn current_dir() -> Result<std::path::PathBuf, std::io::Error> {
     std::env::var_os(EnvVars::PWD)
         .map(std::path::PathBuf::from)
         .map(Ok)
-        .unwrap_or(std::env::current_dir())
+        .unwrap_or(uv_vfs::current_dir())
 }
 
 #[derive(Debug, Error)]

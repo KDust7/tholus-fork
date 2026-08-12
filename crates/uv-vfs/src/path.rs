@@ -21,6 +21,27 @@ pub fn set_working_directory(path: &Path) {
 }
 
 #[cfg(target_family = "wasm")]
+pub fn current_dir() -> std::io::Result<PathBuf> {
+    Ok(working_directory())
+}
+
+#[cfg(not(target_family = "wasm"))]
+pub fn current_dir() -> std::io::Result<PathBuf> {
+    std::env::current_dir()
+}
+
+#[cfg(target_family = "wasm")]
+pub fn set_current_dir(path: impl AsRef<Path>) -> std::io::Result<()> {
+    set_working_directory(path.as_ref());
+    Ok(())
+}
+
+#[cfg(not(target_family = "wasm"))]
+pub fn set_current_dir(path: impl AsRef<Path>) -> std::io::Result<()> {
+    std::env::set_current_dir(path)
+}
+
+#[cfg(target_family = "wasm")]
 pub fn absolute(path: impl AsRef<Path>) -> std::io::Result<PathBuf> {
     Ok(normalize(&working_directory().join(path.as_ref())))
 }

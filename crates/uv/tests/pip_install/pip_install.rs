@@ -4966,7 +4966,7 @@ fn direct_url_zip_file_bunk_permissions() -> Result<()> {
 #[test]
 fn launcher() -> Result<()> {
     let context = uv_test::test_context!("3.12");
-    let project_root = uv_vfs::fs::canonicalize(std::env::current_dir()?.join("../.."))?;
+    let project_root = uv_vfs::fs::canonicalize(uv_vfs::current_dir()?.join("../.."))?;
 
     let filters = [
         (r"(\d+m )?(\d+\.)?\d+(ms|s)", "[TIME]"),
@@ -5006,7 +5006,7 @@ fn launcher() -> Result<()> {
 #[test]
 fn launcher_with_symlink() -> Result<()> {
     let context = uv_test::test_context!("3.12");
-    let project_root = uv_vfs::fs::canonicalize(std::env::current_dir()?.join("../.."))?;
+    let project_root = uv_vfs::fs::canonicalize(uv_vfs::current_dir()?.join("../.."))?;
 
     let filters = [
         (r"(\d+m )?(\d+\.)?\d+(ms|s)", "[TIME]"),
@@ -9053,7 +9053,7 @@ fn tool_uv_sources() -> Result<()> {
         poetry_editable = { path = "../poetry_editable", editable = true }
     "#})?;
 
-    let project_root = uv_vfs::fs::canonicalize(std::env::current_dir()?.join("../.."))?;
+    let project_root = uv_vfs::fs::canonicalize(uv_vfs::current_dir()?.join("../.."))?;
     uv_vfs::fs::create_dir_all(context.temp_dir.join("poetry_editable/poetry_editable"))?;
     uv_vfs::fs::copy(
         project_root.join("test/packages/poetry_editable/pyproject.toml"),

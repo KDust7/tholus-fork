@@ -250,7 +250,7 @@ async fn run_with_workspace_cache(
 
     // Switch directories as early as possible.
     if let Some(directory) = directory.as_ref() {
-        std::env::set_current_dir(directory)?;
+        uv_fs::set_current_dir(directory)?;
     }
 
     // Parse the external command, if necessary.

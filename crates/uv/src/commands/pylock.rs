@@ -37,7 +37,7 @@ pub(crate) async fn read_pylock_toml(
             .await?;
         response.error_for_status_ref()?;
         let content = response.text().await?;
-        (std::env::current_dir()?, content)
+        (uv_vfs::current_dir()?, content)
     } else {
         let absolute = uv_vfs::absolute(pylock)?;
         let install_path = absolute

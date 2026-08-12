@@ -6042,6 +6042,7 @@ dependencies = [
  "uv-preview",
  "uv-static",
  "uv-version",
+ "uv-vfs",
 ]
 
 [[package]]

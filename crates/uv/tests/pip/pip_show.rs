@@ -1,4 +1,4 @@
-use std::env::current_dir;
+use uv_vfs::current_dir;
 
 use anyhow::Result;
 use assert_cmd::prelude::*;

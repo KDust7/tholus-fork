@@ -2330,7 +2330,7 @@ mod tests {
     use crate::{WorkspaceCache, WorkspaceError};
 
     async fn workspace_test(folder: &str) -> (ProjectWorkspace, String) {
-        let root_dir = env::current_dir()
+        let root_dir = uv_vfs::current_dir()
             .unwrap()
             .parent()
             .unwrap()

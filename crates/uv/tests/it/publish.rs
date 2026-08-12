@@ -4,7 +4,7 @@ use uv_vfs::fs::OpenOptions;
 use indoc::{formatdoc, indoc};
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use std::env::current_dir;
+use uv_vfs::current_dir;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use uv_static::EnvVars;

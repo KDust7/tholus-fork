@@ -92,7 +92,7 @@ impl Pep723ItemRef<'_> {
                 .parent()
                 .expect("script path has no parent")
                 .to_owned()),
-            Self::Stdin(..) | Self::Remote(..) => std::env::current_dir(),
+            Self::Stdin(..) | Self::Remote(..) => uv_vfs::current_dir(),
         }
     }
 

@@ -72,7 +72,7 @@ fn main() -> Result<()> {
         "build-sdist" => {
             let sdist_directory = PathBuf::from(args.next().context("Missing sdist directory")?);
             let filename = uv_build_backend::build_source_dist(
-                &env::current_dir()?,
+                &uv_vfs::current_dir()?,
                 &sdist_directory,
                 uv_version::version(),
                 false,
@@ -84,7 +84,7 @@ fn main() -> Result<()> {
             let wheel_directory = PathBuf::from(args.next().context("Missing wheel directory")?);
             let metadata_directory = args.next().map(PathBuf::from);
             let filename = uv_build_backend::build_wheel(
-                &env::current_dir()?,
+                &uv_vfs::current_dir()?,
                 &wheel_directory,
                 metadata_directory.as_deref(),
                 uv_version::version(),
@@ -97,7 +97,7 @@ fn main() -> Result<()> {
             let wheel_directory = PathBuf::from(args.next().context("Missing wheel directory")?);
             let metadata_directory = args.next().map(PathBuf::from);
             let filename = uv_build_backend::build_editable(
-                &env::current_dir()?,
+                &uv_vfs::current_dir()?,
                 &wheel_directory,
                 metadata_directory.as_deref(),
                 uv_version::version(),
@@ -109,7 +109,7 @@ fn main() -> Result<()> {
         "prepare-metadata-for-build-wheel" => {
             let wheel_directory = PathBuf::from(args.next().context("Missing wheel directory")?);
             let filename = uv_build_backend::metadata(
-                &env::current_dir()?,
+                &uv_vfs::current_dir()?,
                 &wheel_directory,
                 uv_version::version(),
             )?;
@@ -119,7 +119,7 @@ fn main() -> Result<()> {
         "prepare-metadata-for-build-editable" => {
             let wheel_directory = PathBuf::from(args.next().context("Missing wheel directory")?);
             let filename = uv_build_backend::metadata(
-                &env::current_dir()?,
+                &uv_vfs::current_dir()?,
                 &wheel_directory,
                 uv_version::version(),
             )?;

@@ -1,4 +1,3 @@
-use std::env;
 use std::error::Error;
 use std::fmt;
 
@@ -572,7 +571,7 @@ impl TryFrom<IndexArgs> for PipOptions {
 
     fn try_from(args: IndexArgs) -> anyhow::Result<Self> {
         Ok(Self::from(
-            args.resolve().relative_to(&env::current_dir()?)?,
+            args.resolve().relative_to(&uv_vfs::current_dir()?)?,
         ))
     }
 }
@@ -687,7 +686,7 @@ pub fn resolver_options(
             Some(no_sources_package)
         },
     }
-    .relative_to(&env::current_dir()?)
+    .relative_to(&uv_vfs::current_dir()?)
     .map_err(Into::into)
 }
 
@@ -817,6 +816,6 @@ pub fn resolver_installer_options(
         },
         torch_backend: None,
     }
-    .relative_to(&env::current_dir()?)
+    .relative_to(&uv_vfs::current_dir()?)
     .map_err(Into::into)
 }

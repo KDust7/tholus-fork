@@ -526,7 +526,7 @@ pub fn expand_env_vars(s: &str) -> Cow<'_, str> {
     // Generate the project root, to be used via the `${PROJECT_ROOT}`
     // environment variable.
     static PROJECT_ROOT_FRAGMENT: LazyLock<String> = LazyLock::new(|| {
-        let project_root = std::env::current_dir().unwrap();
+        let project_root = uv_vfs::current_dir().unwrap();
         project_root.to_string_lossy().to_string()
     });
 
@@ -819,7 +819,7 @@ mod tests {
 
         #[cfg(feature = "non-pep508-extensions")]
         {
-            let base_dir = std::env::current_dir().unwrap();
+            let base_dir = uv_vfs::current_dir().unwrap();
             let path = base_dir.join("scripts#hash=somehash");
             assert_path(
                 VerbatimUrl::from_path("scripts#hash=somehash", base_dir).unwrap(),
@@ -952,7 +952,7 @@ mod tests {
                 assert_eq!(expand_env_vars("${${TEST_1}}"), "${Test 1}");
 
                 // PROJECT_ROOT
-                let cwd = std::env::current_dir().unwrap();
+                let cwd = uv_vfs::current_dir().unwrap();
                 let cwd = cwd.to_string_lossy();
 
                 assert_eq!(

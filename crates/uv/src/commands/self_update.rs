@@ -623,7 +623,7 @@ fn find_receipt_path(app_name: &str) -> Result<Option<PathBuf>> {
 /// taking into account axoupdater-specific environment variable overrides.
 fn receipt_prefixes(app_name: &str) -> Result<Vec<PathBuf>> {
     if std::env::var_os(AXOUPDATER_CONFIG_WORKING_DIR).is_some() {
-        return Ok(vec![std::env::current_dir()?]);
+        return Ok(vec![uv_vfs::current_dir()?]);
     }
 
     if let Some(path) = std::env::var_os(AXOUPDATER_CONFIG_PATH) {

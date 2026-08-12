@@ -1,7 +1,7 @@
 #![expect(clippy::disallowed_types)]
 
 use std::collections::BTreeMap;
-use std::env::current_dir;
+use uv_vfs::current_dir;
 use std::fs;
 use std::io::Cursor;
 use std::process::Command;

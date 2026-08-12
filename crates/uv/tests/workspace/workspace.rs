@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::env;
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -16,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use uv_test::{copy_dir_ignore, make_project, uv_snapshot};
 
 fn workspaces_dir() -> PathBuf {
-    env::current_dir()
+    uv_vfs::current_dir()
         .unwrap()
         .parent()
         .unwrap()

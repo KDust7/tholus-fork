@@ -2546,7 +2546,7 @@ format = "flat"
         let mut doc = PyProjectTomlMut::from_toml(toml, DependencyTarget::PyProjectToml)?;
 
         let new_index = Index::from_str(r"index=C:\links")?;
-        doc.add_index(&new_index, &std::env::current_dir()?)?;
+        doc.add_index(&new_index, &uv_vfs::current_dir()?)?;
 
         let index = doc.doc["tool"]["uv"]["index"]
             .as_array_of_tables()

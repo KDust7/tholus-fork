@@ -1,13 +1,12 @@
 use crate::commands::ExitStatus;
 use anyhow::{Context, Result, bail};
-use std::env;
 use std::io::Write;
 use std::path::Path;
 
 /// PEP 517 hook to build a source distribution.
 pub(crate) fn build_sdist(sdist_directory: &Path) -> Result<ExitStatus> {
     let filename = uv_build_backend::build_source_dist(
-        &env::current_dir()?,
+        &uv_vfs::current_dir()?,
         sdist_directory,
         uv_version::version(),
         false,
@@ -23,7 +22,7 @@ pub(crate) fn build_wheel(
     metadata_directory: Option<&Path>,
 ) -> Result<ExitStatus> {
     let filename = uv_build_backend::build_wheel(
-        &env::current_dir()?,
+        &uv_vfs::current_dir()?,
         wheel_directory,
         metadata_directory,
         uv_version::version(),
@@ -40,7 +39,7 @@ pub(crate) fn build_editable(
     metadata_directory: Option<&Path>,
 ) -> Result<ExitStatus> {
     let filename = uv_build_backend::build_editable(
-        &env::current_dir()?,
+        &uv_vfs::current_dir()?,
         wheel_directory,
         metadata_directory,
         uv_version::version(),
@@ -64,7 +63,7 @@ pub(crate) fn get_requires_for_build_wheel() -> Result<ExitStatus> {
 /// PEP 517 hook to just emit metadata through `.dist-info`.
 pub(crate) fn prepare_metadata_for_build_wheel(metadata_directory: &Path) -> Result<ExitStatus> {
     let filename = uv_build_backend::metadata(
-        &env::current_dir()?,
+        &uv_vfs::current_dir()?,
         metadata_directory,
         uv_version::version(),
     )?;
@@ -81,7 +80,7 @@ pub(crate) fn get_requires_for_build_editable() -> Result<ExitStatus> {
 /// PEP 660 hook to just emit metadata through `.dist-info`.
 pub(crate) fn prepare_metadata_for_build_editable(metadata_directory: &Path) -> Result<ExitStatus> {
     let filename = uv_build_backend::metadata(
-        &env::current_dir()?,
+        &uv_vfs::current_dir()?,
         metadata_directory,
         uv_version::version(),
     )?;

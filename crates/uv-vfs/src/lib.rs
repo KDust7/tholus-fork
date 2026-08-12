@@ -14,7 +14,7 @@ pub mod url;
 pub mod walk;
 
 pub use memory::MemoryFs;
-pub use path::{absolute, home_dir, split_paths, temp_dir};
+pub use path::{absolute, current_dir, home_dir, split_paths, temp_dir};
 pub use path_ext::VfsPathExt;
 pub use url::UrlFilePathExt;
 

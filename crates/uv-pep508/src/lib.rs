@@ -1883,7 +1883,7 @@ mod tests {
             "foo @ file:foo-3.0.0-py3-none-any.whl",
             "foo @ ./foo-3.0.0-py3-none-any.whl",
         ];
-        let cwd = std::env::current_dir().unwrap();
+        let cwd = uv_vfs::current_dir().unwrap();
 
         for requirement in requirements {
             assert_eq!(

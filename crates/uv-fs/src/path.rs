@@ -11,7 +11,7 @@ use uv_vfs::VfsPathExt as _;
 #[cfg(not(target_family = "wasm"))]
 #[expect(clippy::print_stderr)]
 pub static CWD: LazyLock<PathBuf> = LazyLock::new(|| {
-    std::env::current_dir().unwrap_or_else(|_e| {
+    uv_vfs::current_dir().unwrap_or_else(|_e| {
         eprintln!("Current directory does not exist");
         std::process::exit(1);
     })
@@ -27,10 +27,15 @@ thread_local! {
 }
 
 #[cfg(target_family = "wasm")]
-pub fn set_current_dir(path: impl AsRef<Path>) {
+pub fn set_current_dir(path: impl AsRef<Path>) -> std::io::Result<()> {
     let directory: &'static PathBuf = Box::leak(Box::new(path.as_ref().to_path_buf()));
     CURRENT_DIR.with(|current| current.set(Some(directory)));
-    uv_vfs::path::set_working_directory(directory);
+    uv_vfs::path::set_current_dir(directory)
+}
+
+#[cfg(not(target_family = "wasm"))]
+pub fn set_current_dir(path: impl AsRef<Path>) -> std::io::Result<()> {
+    uv_vfs::path::set_current_dir(path)
 }
 
 #[cfg(target_family = "wasm")]

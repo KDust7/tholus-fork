@@ -6,7 +6,7 @@ use futures::executor::block_on;
 use indoc::{formatdoc, indoc};
 use insta::assert_snapshot;
 use predicates::prelude::predicate;
-use std::env::current_dir;
+use uv_vfs::current_dir;
 use std::path::Path;
 use url::Url;
 use uv_static::EnvVars;

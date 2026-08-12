@@ -10,6 +10,7 @@ authors = { workspace = true }
 license = { workspace = true }
 
 [dependencies]
+uv-vfs = { workspace = true }
 uv-build-backend = { workspace = true }
 uv-logging = { workspace = true }
 uv-preview = { workspace = true }
