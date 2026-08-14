@@ -32,6 +32,7 @@ use uv_fs::Simplified;
 use uv_static::EnvVars;
 #[cfg(not(target_family = "wasm"))]
 use uv_warnings::warn_user;
+#[cfg(not(target_family = "wasm"))]
 use uv_vfs::VfsPathExt as _;
 
 #[cfg(not(target_family = "wasm"))]
