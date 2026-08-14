@@ -11,6 +11,8 @@ pub use crate::discovery::{
     PythonPreference, PythonRequest, PythonSource, PythonVariant, VersionRequest,
     find_all_python_installations,
 };
+#[cfg(target_family = "wasm")]
+pub use crate::discovery::BROWSER_PYTHON_EXECUTABLE;
 pub use crate::environment::{InvalidEnvironmentKind, PythonEnvironment};
 pub use crate::implementation::{ImplementationName, LenientImplementationName};
 pub use crate::installation::{

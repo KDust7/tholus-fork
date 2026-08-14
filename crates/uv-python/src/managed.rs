@@ -394,7 +394,7 @@ impl ManagedPythonInstallation {
     pub fn executable(&self, windowed: bool) -> PathBuf {
         let version = match self.implementation() {
             ImplementationName::CPython => {
-                if cfg!(unix) {
+                if cfg!(any(unix, target_family = "wasm")) {
                     format!("{}.{}", self.key.major, self.key.minor)
                 } else {
                     String::new()
@@ -411,7 +411,7 @@ impl ManagedPythonInstallation {
         // GraalPy always uses `graalpy.exe` as the main executable
         let variant = if self.implementation() == ImplementationName::GraalPy {
             ""
-        } else if cfg!(unix) {
+        } else if cfg!(any(unix, target_family = "wasm")) {
             self.key.variant.executable_suffix()
         } else if cfg!(windows) && windowed {
             // Use windowed Python that doesn't open a terminal.
@@ -629,7 +629,7 @@ impl ManagedPythonInstallation {
     /// Returns `true` if the path is a link to this installation's binary, e.g., as created by
     /// [`create_bin_link`].
     pub fn is_bin_link(&self, path: &Path) -> bool {
-        if cfg!(unix) {
+        if cfg!(any(unix, target_family = "wasm")) {
             same_file::is_same_file(path, self.executable(false)).unwrap_or_default()
         } else if cfg!(windows) {
             let Some(launcher) = Launcher::try_from_path(path).unwrap_or_default() else {

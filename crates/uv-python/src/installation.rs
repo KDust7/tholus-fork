@@ -408,6 +408,9 @@ impl PythonInstallation {
     ///
     /// Returns false if it is an alternative implementation, e.g., PyPy.
     pub(crate) fn is_alternative_implementation(&self) -> bool {
+        if cfg!(target_family = "wasm") && self.os().is_emscripten() {
+            return false;
+        }
         !matches!(
             self.implementation(),
             LenientImplementationName::Known(ImplementationName::CPython)

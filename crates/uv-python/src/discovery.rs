@@ -346,6 +346,28 @@ fn python_executables_from_virtual_environments<'a>()
         .chain(from_discovered_environment)
 }
 
+#[cfg(target_family = "wasm")]
+pub const BROWSER_PYTHON_EXECUTABLE: &str = "/bin/python3";
+
+#[cfg(target_family = "wasm")]
+fn python_executables_from_browser_runtime<'a>()
+-> impl Iterator<Item = Result<(PythonSource, PathBuf), Error>> + 'a {
+    iter::once_with(|| {
+        let executable = PathBuf::from(BROWSER_PYTHON_EXECUTABLE);
+        if executable.vfs_is_file() {
+            debug!("Found browser Python runtime at `{}`", executable.display());
+            Some(Ok((PythonSource::Managed, executable)))
+        } else {
+            debug!(
+                "No browser Python runtime at `{}`",
+                executable.display()
+            );
+            None
+        }
+    })
+    .flatten()
+}
+
 /// Lazily iterate over Python executables installed on the system.
 ///
 /// The following sources are supported:
@@ -439,6 +461,10 @@ fn python_executables_from_installed<'a>(
             })
     })
     .flatten_ok();
+
+    #[cfg(target_family = "wasm")]
+    let from_managed_installations =
+        from_managed_installations.chain(python_executables_from_browser_runtime());
 
     let from_search_path = iter::once_with(move || {
         python_executables_from_search_path(version, implementation)

@@ -2,7 +2,9 @@ use std::borrow::Cow;
 use std::env::consts::ARCH;
 use std::fmt::{Display, Formatter};
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus};
+#[cfg(not(target_family = "wasm"))]
+use std::process::Command;
+use std::process::ExitStatus;
 use std::str::FromStr;
 use std::sync::OnceLock;
 use std::io;
@@ -18,9 +20,9 @@ use tracing::{debug, trace, warn};
 use uv_cache::{Cache, CacheBucket, CachedByTimestamp, Freshness};
 use uv_cache_info::Timestamp;
 use uv_cache_key::cache_digest;
-use uv_fs::{
-    LockedFile, LockedFileError, LockedFileMode, PythonExt, Simplified, write_atomic_sync,
-};
+use uv_fs::{LockedFile, LockedFileError, LockedFileMode, Simplified, write_atomic_sync};
+#[cfg(not(target_family = "wasm"))]
+use uv_fs::PythonExt;
 use uv_install_wheel::Layout;
 use uv_pep440::Version;
 use uv_pep508::{MarkerEnvironment, StringVersion};
@@ -958,7 +960,72 @@ struct InterpreterInfo {
 }
 
 impl InterpreterInfo {
+    #[cfg(target_family = "wasm")]
+    fn query(interpreter: &Path, _cache: &Cache) -> Result<Self, Error> {
+        Self::from_profile(interpreter)
+    }
+
+    #[cfg(any(target_family = "wasm", test))]
+    fn from_profile(interpreter: &Path) -> Result<Self, Error> {
+        let profile = fs::read(interpreter).map_err(|err| match err.kind() {
+            io::ErrorKind::NotFound => Error::NotFound(interpreter.to_path_buf()),
+            io::ErrorKind::PermissionDenied => Error::PermissionDenied {
+                path: interpreter.to_path_buf(),
+                err,
+            },
+            _ => Error::SpawnFailed {
+                path: interpreter.to_path_buf(),
+                err,
+            },
+        })?;
+
+        let result: InterpreterInfoResult = serde_json::from_slice(&profile).map_err(|err| {
+            Error::UnexpectedResponse(UnexpectedResponseError {
+                err,
+                stdout: String::from_utf8_lossy(&profile).trim().to_string(),
+                stderr: String::new(),
+                path: interpreter.to_path_buf(),
+            })
+        })?;
+
+        match result {
+            InterpreterInfoResult::Error(err) => Err(Error::QueryScript {
+                err,
+                path: interpreter.to_path_buf(),
+            }),
+            InterpreterInfoResult::Success(data) => Ok(data.in_virtualenv_at(interpreter)),
+        }
+    }
+
+    #[cfg(any(target_family = "wasm", test))]
+    fn in_virtualenv_at(mut self, executable: &Path) -> Self {
+        if python_home(executable).is_none() {
+            return self;
+        }
+        let Some(root) = executable.parent().and_then(Path::parent) else {
+            return self;
+        };
+
+        self.scheme = Scheme {
+            purelib: root.join(&self.virtualenv.purelib),
+            platlib: root.join(&self.virtualenv.platlib),
+            scripts: root.join(&self.virtualenv.scripts),
+            data: root.join(&self.virtualenv.data),
+            include: root.join(&self.virtualenv.include),
+        };
+        self.site_packages = if self.scheme.purelib == self.scheme.platlib {
+            vec![self.scheme.purelib.clone()]
+        } else {
+            vec![self.scheme.purelib.clone(), self.scheme.platlib.clone()]
+        };
+        self.sys_base_executable = Some(self.sys_executable.clone());
+        self.sys_executable = executable.to_path_buf();
+        self.sys_prefix = root.to_path_buf();
+        self
+    }
+
     /// Return the resolved [`InterpreterInfo`] for the given Python executable.
+    #[cfg(not(target_family = "wasm"))]
     fn query(interpreter: &Path, cache: &Cache) -> Result<Self, Error> {
         let tempdir = uv_vfs::temp::tempdir_in(cache.root())?;
         Self::setup_python_query_files(tempdir.path())?;
@@ -1085,6 +1152,7 @@ impl InterpreterInfo {
 
     /// Duplicate the directory structure we have in `../python` into a tempdir, so we can run
     /// the Python probing scripts with `python -m python.get_interpreter_info` from that tempdir.
+    #[cfg(not(target_family = "wasm"))]
     fn setup_python_query_files(root: &Path) -> Result<(), Error> {
         let python_dir = root.join("python");
         uv_vfs::fs::create_dir(&python_dir)?;
@@ -1327,6 +1395,165 @@ fn python_home(interpreter: &Path) -> Option<PathBuf> {
     let venv_root = interpreter.parent()?.parent()?;
     let pyvenv_cfg = PyVenvConfiguration::parse(venv_root.join("pyvenv.cfg")).ok()?;
     pyvenv_cfg.home
+}
+
+#[cfg(test)]
+mod profile_tests {
+    use std::path::Path;
+
+    use uv_vfs::fs;
+    use uv_vfs::temp::tempdir;
+
+    use super::InterpreterInfo;
+
+    const PROFILE: &str = r##"{
+        "result": "success",
+        "platform": { "os": { "name": "pyemscripten", "major": 2026, "minor": 0 }, "arch": "wasm32" },
+        "manylinux_compatible": false,
+        "standalone": false,
+        "markers": {
+            "implementation_name": "cpython",
+            "implementation_version": "3.14.0",
+            "os_name": "posix",
+            "platform_machine": "wasm32",
+            "platform_python_implementation": "CPython",
+            "platform_release": "5.0.3",
+            "platform_system": "Emscripten",
+            "platform_version": "#1",
+            "python_full_version": "3.14.0",
+            "python_version": "3.14",
+            "sys_platform": "emscripten"
+        },
+        "sys_base_exec_prefix": "/",
+        "sys_base_prefix": "/",
+        "sys_prefix": "/",
+        "sys_base_executable": null,
+        "sys_executable": "/bin/python3",
+        "sys_path": ["/lib/python3.14"],
+        "site_packages": ["/lib/python3.14/site-packages"],
+        "stdlib": "/lib/python3.14",
+        "extension_suffixes": [".cpython-314-wasm32-emscripten.so", ".so"],
+        "scheme": {
+            "purelib": "/lib/python3.14/site-packages",
+            "platlib": "/lib/python3.14/site-packages",
+            "include": "/include/python3.14",
+            "scripts": "/bin",
+            "data": "/"
+        },
+        "virtualenv": {
+            "purelib": "lib/python3.14/site-packages",
+            "platlib": "lib/python3.14/site-packages",
+            "include": "include/site/python3.14",
+            "scripts": "bin",
+            "data": ""
+        },
+        "pointer_size": "32",
+        "gil_disabled": false,
+        "debug_enabled": false
+    }"##;
+
+    fn write_profile(at: &Path) {
+        fs::create_dir_all(at.parent().unwrap()).unwrap();
+        fs::write(at, PROFILE).unwrap();
+    }
+
+    #[test]
+    fn reads_an_interpreter_out_of_a_profile() {
+        let root = tempdir().unwrap();
+        let executable = root.path().join("bin").join("python3");
+        write_profile(&executable);
+
+        let info = InterpreterInfo::from_profile(&executable).unwrap();
+
+        assert_eq!(info.markers.python_full_version().string, "3.14.0");
+        assert_eq!(info.markers.sys_platform(), "emscripten");
+        assert_eq!(info.sys_executable, Path::new("/bin/python3"));
+        assert_eq!(info.sys_prefix, Path::new("/"));
+        assert!(matches!(
+            info.pointer_size,
+            crate::pointer_size::PointerSize::_32
+        ));
+    }
+
+    #[test]
+    fn reports_a_missing_profile_as_a_missing_interpreter() {
+        let root = tempdir().unwrap();
+        let executable = root.path().join("bin").join("python3");
+
+        let err = InterpreterInfo::from_profile(&executable).unwrap_err();
+
+        assert!(
+            matches!(err, super::Error::NotFound(_)),
+            "expected a not-found error, got {err:?}"
+        );
+    }
+
+    #[test]
+    fn reports_a_profile_that_is_not_json_as_an_unexpected_response() {
+        let root = tempdir().unwrap();
+        let executable = root.path().join("bin").join("python3");
+        fs::create_dir_all(executable.parent().unwrap()).unwrap();
+        fs::write(&executable, "#!/bin/sh\nexec python3 \"$@\"\n").unwrap();
+
+        let err = InterpreterInfo::from_profile(&executable).unwrap_err();
+
+        assert!(
+            matches!(err, super::Error::UnexpectedResponse(_)),
+            "expected an unexpected-response error, got {err:?}"
+        );
+    }
+
+    #[test]
+    fn leaves_an_interpreter_outside_a_virtual_environment_alone() {
+        let root = tempdir().unwrap();
+        let executable = root.path().join("bin").join("python3");
+        write_profile(&executable);
+
+        let info = InterpreterInfo::from_profile(&executable).unwrap();
+
+        assert_eq!(info.sys_prefix, Path::new("/"));
+        assert_eq!(info.sys_executable, Path::new("/bin/python3"));
+        assert_eq!(info.sys_base_executable, None);
+    }
+
+    #[test]
+    fn moves_prefix_and_site_packages_into_a_virtual_environment() {
+        let root = tempdir().unwrap();
+        let venv = root.path().join(".venv");
+        let executable = venv.join("bin").join("python3");
+        write_profile(&executable);
+        fs::write(venv.join("pyvenv.cfg"), "home = /bin\nversion = 3.14.0\n").unwrap();
+
+        let info = InterpreterInfo::from_profile(&executable).unwrap();
+
+        assert_eq!(info.sys_prefix, venv);
+        assert_eq!(info.sys_executable, executable);
+        assert_eq!(info.sys_base_executable, Some("/bin/python3".into()));
+        assert_eq!(info.sys_base_prefix, Path::new("/"));
+        assert_eq!(info.stdlib, Path::new("/lib/python3.14"));
+        assert_eq!(
+            info.scheme.purelib,
+            venv.join("lib/python3.14/site-packages")
+        );
+        assert_eq!(info.scheme.scripts, venv.join("bin"));
+        assert_eq!(
+            info.site_packages,
+            vec![venv.join("lib/python3.14/site-packages")]
+        );
+    }
+
+    #[test]
+    fn a_pyvenv_cfg_without_a_home_is_not_a_virtual_environment() {
+        let root = tempdir().unwrap();
+        let venv = root.path().join(".venv");
+        let executable = venv.join("bin").join("python3");
+        write_profile(&executable);
+        fs::write(venv.join("pyvenv.cfg"), "version = 3.14.0\n").unwrap();
+
+        let info = InterpreterInfo::from_profile(&executable).unwrap();
+
+        assert_eq!(info.sys_prefix, Path::new("/"));
+    }
 }
 
 #[cfg(unix)]
