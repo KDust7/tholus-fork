@@ -3,6 +3,7 @@ use std::fmt::Write;
 use std::ops::Deref;
 use std::sync::LazyLock;
 use std::sync::{Arc, Mutex};
+#[cfg(not(target_family = "wasm"))]
 use std::time::Duration;
 
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
@@ -447,6 +448,7 @@ impl From<Printer> for PrepareReporter {
     fn from(printer: Printer) -> Self {
         let multi_progress = MultiProgress::with_draw_target(printer.target());
         let root = multi_progress.add(ProgressBar::with_draw_target(None, printer.target()));
+        #[cfg(not(target_family = "wasm"))]
         root.enable_steady_tick(Duration::from_millis(200));
         root.set_style(
             ProgressStyle::with_template("{spinner:.white} {msg:.dim} ({pos}/{len})")
@@ -526,6 +528,7 @@ impl From<Printer> for ResolverReporter {
     fn from(printer: Printer) -> Self {
         let multi_progress = MultiProgress::with_draw_target(printer.target());
         let root = multi_progress.add(ProgressBar::with_draw_target(None, printer.target()));
+        #[cfg(not(target_family = "wasm"))]
         root.enable_steady_tick(Duration::from_millis(200));
         root.set_style(
             ProgressStyle::with_template("{spinner:.white} {wide_msg:.dim}")
@@ -787,6 +790,7 @@ pub(crate) struct AuditReporter {
 impl From<Printer> for AuditReporter {
     fn from(printer: Printer) -> Self {
         let progress = ProgressBar::with_draw_target(None, printer.target());
+        #[cfg(not(target_family = "wasm"))]
         progress.enable_steady_tick(Duration::from_millis(200));
         progress.set_style(
             ProgressStyle::with_template("{spinner:.white} {wide_msg:.dim}")
