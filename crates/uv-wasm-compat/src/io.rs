@@ -70,6 +70,21 @@ pub fn stderr(text: &str) {
     write_str(Stream::Stderr, text);
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct LogWriter;
+
+impl Write for LogWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let text = String::from_utf8_lossy(buf);
+        write_str(Stream::Stderr, &anstream::adapter::strip_str(&text).to_string());
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
 fn write_to_sink(sink: &mut dyn Sink, stream: Stream, text: &str) {
     sink.write(stream, &adapt(text));
 }

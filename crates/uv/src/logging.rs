@@ -79,13 +79,24 @@ pub(crate) fn setup_logging(
     // So we tell tracing to print to an anstream wrapper around stderr that force-strips ansi.
     // Given we do this, using `with_ansi` at all is arguably pointless, but it feels morally
     // correct to still do it? I don't know what would break if we didn't... but why find out?
-    let (ansi, color_choice) =
-        match color.and_colorchoice(anstream::Stderr::choice(&std::io::stderr())) {
-            ColorChoice::Always => (true, anstream::ColorChoice::Always),
-            ColorChoice::Never => (false, anstream::ColorChoice::Never),
-            ColorChoice::Auto => unreachable!("anstream can't return auto as choice"),
-        };
-    let writer = std::sync::Mutex::new(anstream::AutoStream::new(std::io::stderr(), color_choice));
+    #[cfg(not(target_family = "wasm"))]
+    let (ansi, writer) = {
+        let (ansi, color_choice) =
+            match color.and_colorchoice(anstream::Stderr::choice(&std::io::stderr())) {
+                ColorChoice::Always => (true, anstream::ColorChoice::Always),
+                ColorChoice::Never => (false, anstream::ColorChoice::Never),
+                ColorChoice::Auto => unreachable!("anstream can't return auto as choice"),
+            };
+        (
+            ansi,
+            std::sync::Mutex::new(anstream::AutoStream::new(std::io::stderr(), color_choice)),
+        )
+    };
+    #[cfg(target_family = "wasm")]
+    let (ansi, writer) = {
+        let _ = color;
+        (false, std::sync::Mutex::new(uv_wasm_compat::io::LogWriter))
+    };
 
     if detailed_logging {
         // Regardless of the tracing level, include the uptime and target for each message.
