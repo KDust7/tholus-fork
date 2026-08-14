@@ -1,7 +1,7 @@
 //! Create a virtual environment.
 
 use std::borrow::Cow;
-use std::env::consts::EXE_SUFFIX;
+use uv_vfs::EXE_SUFFIX;
 use std::ffi::{OsStr, OsString};
 use std::io;
 use std::io::{BufWriter, Write};
@@ -197,7 +197,7 @@ pub(crate) fn create(
     // Use the absolute path for all further operations.
     let location = absolute;
 
-    let bin_name = if cfg!(unix) {
+    let bin_name = if cfg!(any(unix, target_family = "wasm")) {
         "bin"
     } else if cfg!(windows) {
         "Scripts"

@@ -62,6 +62,18 @@ pub fn split_posix_path_list(unparsed: &OsStr) -> Vec<PathBuf> {
 }
 
 #[cfg(target_family = "wasm")]
+pub const EXE_SUFFIX: &str = "";
+
+#[cfg(not(target_family = "wasm"))]
+pub const EXE_SUFFIX: &str = std::env::consts::EXE_SUFFIX;
+
+#[cfg(target_family = "wasm")]
+pub const EXE_EXTENSION: &str = "";
+
+#[cfg(not(target_family = "wasm"))]
+pub const EXE_EXTENSION: &str = std::env::consts::EXE_EXTENSION;
+
+#[cfg(target_family = "wasm")]
 pub fn temp_dir() -> PathBuf {
     normalize(Path::new(crate::temp::vfs_backed::TEMP_ROOT))
 }
