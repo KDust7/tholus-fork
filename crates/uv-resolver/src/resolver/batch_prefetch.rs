@@ -78,7 +78,7 @@ impl BatchPrefetcher {
     }
 
     /// Prefetch a large number of versions if we already unsuccessfully tried many versions.
-    pub(crate) fn prefetch_batches(
+    pub(crate) async fn prefetch_batches(
         &mut self,
         next: &PubGrubPackage,
         index: Option<&IndexMetadata>,
@@ -110,13 +110,15 @@ impl BatchPrefetcher {
             self.prefetch_runner
                 .index
                 .explicit()
-                .wait_blocking(&(name.clone(), index.url().clone()))
+                .wait(&(name.clone(), index.url().clone()))
+                .await
                 .map_err(|_| ResolveError::UnregisteredTask(name.to_string()))?
         } else {
             self.prefetch_runner
                 .index
                 .implicit()
-                .wait_blocking(name)
+                .wait(name)
+                .await
                 .map_err(|_| ResolveError::UnregisteredTask(name.to_string()))?
         };
 
@@ -127,16 +129,18 @@ impl BatchPrefetcher {
 
         self.last_prefetch.insert(name.clone(), num_tried);
 
-        self.prefetch_runner.send_prefetch(
-            name,
-            unchangeable_constraints,
-            total_prefetch,
-            &versions_response,
-            phase,
-            python_requirement,
-            selector,
-            env,
-        )?;
+        self.prefetch_runner
+            .send_prefetch(
+                name,
+                unchangeable_constraints,
+                total_prefetch,
+                &versions_response,
+                phase,
+                python_requirement,
+                selector,
+                env,
+            )
+            .await?;
 
         Ok(())
     }
@@ -206,7 +210,7 @@ impl BatchPrefetcher {
 impl BatchPrefetcherRunner {
     /// Given that the conditions for prefetching are met, find the versions to prefetch and
     /// send the prefetch requests.
-    fn send_prefetch(
+    async fn send_prefetch(
         &self,
         name: &PackageName,
         unchangeable_constraints: Option<&Term<Range<Version>>>,
@@ -314,7 +318,7 @@ impl BatchPrefetcherRunner {
 
             if self.index.distributions().register(dist.distribution_id()) {
                 let request = Request::from(dist);
-                self.request_sink.blocking_send(request)?;
+                self.request_sink.send(request).await?;
             }
         }
 

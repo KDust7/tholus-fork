@@ -7,7 +7,10 @@ use std::fmt::{Display, Formatter};
 use std::ops::Bound;
 use std::sync::Arc;
 use web_time::Instant;
-use std::{iter, slice, thread};
+use std::iter;
+use std::slice;
+#[cfg(not(target_family = "wasm"))]
+use std::thread;
 
 use either::Either;
 use futures::{FutureExt, StreamExt};
@@ -16,6 +19,7 @@ use papaya::{HashMap, ResizeMode};
 use pubgrub::{Id, IncompId, Incompatibility, Kind, Ranges, State};
 use rustc_hash::{FxHashMap, FxHashSet};
 use tokio::sync::mpsc::{self, Receiver, Sender};
+#[cfg(not(target_family = "wasm"))]
 use tokio::sync::oneshot;
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::{Level, debug, info, instrument, trace, warn};
@@ -289,20 +293,31 @@ impl<Provider: ResolverProvider, InstalledPackages: InstalledPackagesProvider>
         // Run the fetcher.
         let requests_fut = state.clone().fetch(provider.clone(), request_stream).fuse();
 
-        // Spawn the PubGrub solver on a dedicated thread.
         let solver = state.clone();
-        let (tx, rx) = oneshot::channel();
-        thread::Builder::new()
-            .name("uv-resolver".into())
-            .spawn(move || {
-                let result = solver.solve(&request_sink);
 
-                // This may fail if the main thread returned early due to an error.
-                let _ = tx.send(result);
-            })
-            .unwrap();
+        // Spawn the PubGrub solver on a dedicated thread.
+        #[cfg(not(target_family = "wasm"))]
+        let resolve_fut = {
+            let (tx, rx) = oneshot::channel();
+            thread::Builder::new()
+                .name("uv-resolver".into())
+                .spawn(move || {
+                    let result = futures::executor::block_on(solver.solve(&request_sink));
 
-        let resolve_fut = async move { rx.await.map_err(|_| ResolveError::ChannelClosed) };
+                    // This may fail if the main thread returned early due to an error.
+                    let _ = tx.send(result);
+                })
+                .unwrap();
+
+            async move { rx.await.map_err(|_| ResolveError::ChannelClosed) }
+        };
+
+        #[cfg(target_family = "wasm")]
+        let resolve_fut = async move {
+            let result = solver.solve(&request_sink).await;
+            drop(request_sink);
+            Ok::<_, ResolveError>(result)
+        };
 
         // Wait for both to complete.
         let ((), resolution) = tokio::try_join!(requests_fut, resolve_fut)?;
@@ -314,7 +329,7 @@ impl<Provider: ResolverProvider, InstalledPackages: InstalledPackagesProvider>
 
 impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackages> {
     #[instrument(skip_all)]
-    fn solve(
+    async fn solve(
         self: Arc<Self>,
         request_sink: &Sender<Request>,
     ) -> Result<ResolverOutput, ResolveError> {
@@ -398,7 +413,8 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                                 &self.indexes,
                                 &state.python_requirement,
                                 request_sink,
-                            )?;
+                            )
+                            .await?;
                         }
 
                         state.reprioritize_conflicts();
@@ -502,7 +518,8 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                 // since we weren't sure whether it might also be a URL requirement when
                 // transforming the requirements. For that case, we do another request here
                 // (idempotent due to caching).
-                self.request_package(next_package, url, index, request_sink)?;
+                self.request_package(next_package, url, index, request_sink)
+                    .await?;
 
                 let version = if let Some(version) = state.initial_version.take() {
                     // If we just forked based on platform support, we can skip version selection,
@@ -541,7 +558,8 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                             &state.pubgrub,
                             &mut visited,
                             request_sink,
-                        )?;
+                        )
+                        .await?;
 
                         if cache_selected_version
                             && let Some(ResolverVersion::Unforked(version)) = &decision
@@ -613,7 +631,8 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                             &state.python_requirement,
                             &self.selector,
                             &state.env,
-                        )?;
+                        )
+                        .await?;
                     }
 
                     version
@@ -647,7 +666,8 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                     &state.env,
                     &state.python_requirement,
                     &state.pubgrub,
-                )?;
+                )
+                .await?;
 
                 match forked_deps {
                     ForkedDependencies::Unavailable(reason) => {
@@ -686,6 +706,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
 
                         // Emit a request to fetch the metadata for each registry package.
                         self.visit_dependencies(&dependencies, &state, request_sink)
+                            .await
                             .map_err(|err| {
                                 enrich_dependency_error(err, next_id, &version, &state.pubgrub)
                             })?;
@@ -737,15 +758,16 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                             }
                         }
 
-                        for new_fork_state in self.forks_to_fork_states(
-                            state,
-                            &version,
-                            forks,
-                            request_sink,
-                            &diverging_packages,
-                        ) {
-                            forked_states.push(new_fork_state?);
-                        }
+                        forked_states.extend(
+                            self.forks_to_fork_states(
+                                state,
+                                &version,
+                                forks,
+                                request_sink,
+                                &diverging_packages,
+                            )
+                            .await?,
+                        );
                         continue 'FORK;
                     }
                     ForkedDependencies::RequiresPython(requires_python) => {
@@ -840,14 +862,14 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
     }
 
     /// Convert the dependency [`Fork`]s into [`ForkState`]s.
-    fn forks_to_fork_states<'a>(
-        &'a self,
+    async fn forks_to_fork_states(
+        &self,
         current_state: ForkState,
-        version: &'a Version,
+        version: &Version,
         forks: Vec<Fork>,
-        request_sink: &'a Sender<Request>,
-        diverging_packages: &'a BTreeSet<PackageName>,
-    ) -> impl Iterator<Item = Result<ForkState, ResolveError>> + 'a {
+        request_sink: &Sender<Request>,
+        diverging_packages: &BTreeSet<PackageName>,
+    ) -> Result<Vec<ForkState>, ResolveError> {
         debug!(
             "Splitting resolution on {}=={} over {} into {} resolution{} with separate markers",
             current_state.pubgrub.package_store[current_state.next],
@@ -868,53 +890,52 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
         let package = current_state.next;
         let mut cur_state = Some(current_state);
         let forks_len = forks.len();
-        forks
-            .into_iter()
-            .enumerate()
-            .map(move |(i, fork)| {
-                let is_last = i == forks_len - 1;
-                let forked_state = cur_state.take().unwrap();
-                if !is_last {
-                    cur_state = Some(forked_state.clone());
-                }
+        let mut fork_states = Vec::with_capacity(forks_len);
+        for (i, fork) in forks.into_iter().enumerate() {
+            let is_last = i == forks_len - 1;
+            let forked_state = cur_state.take().unwrap();
+            if !is_last {
+                cur_state = Some(forked_state.clone());
+            }
 
-                let env = fork.env.clone();
-                (fork, forked_state.with_env(env))
-            })
-            .map(move |(fork, mut forked_state)| {
-                // Enrich the state with any URLs, etc.
-                forked_state
-                    .visit_package_version_dependencies(
-                        package,
-                        version,
-                        &self.urls,
-                        &self.indexes,
-                        &fork.dependencies,
-                        &self.git,
-                        &self.workspace_members,
-                        self.selector.resolution_strategy(),
-                    )
-                    .map_err(|err| {
-                        enrich_dependency_error(err, package, version, &forked_state.pubgrub)
-                    })?;
+            let env = fork.env.clone();
+            let mut forked_state = forked_state.with_env(env);
 
-                // Emit a request to fetch the metadata for each registry package.
-                self.visit_dependencies(&fork.dependencies, &forked_state, request_sink)
-                    .map_err(|err| {
-                        enrich_dependency_error(err, package, version, &forked_state.pubgrub)
-                    })?;
-
-                // Add the dependencies to the state.
-                forked_state.add_package_version_dependencies(
+            // Enrich the state with any URLs, etc.
+            forked_state
+                .visit_package_version_dependencies(
                     package,
                     version,
-                    fork.dependencies,
-                    &self.index,
-                    &self.installed_packages,
-                );
+                    &self.urls,
+                    &self.indexes,
+                    &fork.dependencies,
+                    &self.git,
+                    &self.workspace_members,
+                    self.selector.resolution_strategy(),
+                )
+                .map_err(|err| {
+                    enrich_dependency_error(err, package, version, &forked_state.pubgrub)
+                })?;
 
-                Ok(forked_state)
-            })
+            // Emit a request to fetch the metadata for each registry package.
+            self.visit_dependencies(&fork.dependencies, &forked_state, request_sink)
+                .await
+                .map_err(|err| {
+                    enrich_dependency_error(err, package, version, &forked_state.pubgrub)
+                })?;
+
+            // Add the dependencies to the state.
+            forked_state.add_package_version_dependencies(
+                package,
+                version,
+                fork.dependencies,
+                &self.index,
+                &self.installed_packages,
+            );
+
+            fork_states.push(forked_state);
+        }
+        Ok(fork_states)
     }
 
     /// Convert the dependency [`Fork`]s into [`ForkState`]s.
@@ -944,7 +965,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
     }
 
     /// Visit a set of [`PubGrubDependency`] entities prior to selection.
-    fn visit_dependencies(
+    async fn visit_dependencies(
         &self,
         dependencies: &[PubGrubDependency],
         state: &ForkState,
@@ -959,14 +980,14 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
             } = dependency;
             let url = package.name().and_then(|name| state.fork_urls.get(name));
             let index = package.name().and_then(|name| state.fork_indexes.get(name));
-            self.visit_package(package, url, index, request_sink)?;
+            self.visit_package(package, url, index, request_sink).await?;
         }
         Ok(())
     }
 
     /// Visit a [`PubGrubPackage`] prior to selection. This should be called on a [`PubGrubPackage`]
     /// before it is selected, to allow metadata to be fetched in parallel.
-    fn visit_package(
+    async fn visit_package(
         &self,
         package: &PubGrubPackage,
         url: Option<&VerbatimParsedUrl>,
@@ -979,9 +1000,10 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
         }
 
         self.request_package(package, url, index, request_sink)
+            .await
     }
 
-    fn request_package(
+    async fn request_package(
         &self,
         package: &PubGrubPackage,
         url: Option<&VerbatimParsedUrl>,
@@ -1002,7 +1024,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
             // Emit a request to fetch the metadata for this distribution.
             let dist = Dist::from_url(name.clone(), url.clone())?;
             if self.index.distributions().register(dist.distribution_id()) {
-                request_sink.blocking_send(Request::Dist(dist))?;
+                request_sink.send(Request::Dist(dist)).await?;
             }
         } else if let Some(index) = index {
             // Emit a request to fetch the metadata for this package on the index.
@@ -1011,12 +1033,16 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                 .explicit()
                 .register((name.clone(), index.url().clone()))
             {
-                request_sink.blocking_send(Request::Package(name.clone(), Some(index.clone())))?;
+                request_sink
+                    .send(Request::Package(name.clone(), Some(index.clone())))
+                    .await?;
             }
         } else {
             // Emit a request to fetch the metadata for this package.
             if self.index.implicit().register(name.clone()) {
-                request_sink.blocking_send(Request::Package(name.clone(), None))?;
+                request_sink
+                    .send(Request::Package(name.clone(), None))
+                    .await?;
             }
         }
         Ok(())
@@ -1024,7 +1050,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
 
     /// Visit the set of [`PubGrubPackage`] candidates prior to selection. This allows us to fetch
     /// metadata for all packages in parallel.
-    fn pre_visit<'data>(
+    async fn pre_visit<'data>(
         packages: impl Iterator<
             Item = (
                 Id<PubGrubPackage>,
@@ -1065,11 +1091,13 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                 continue;
             }
             pre_visited.insert(id, range.clone());
-            request_sink.blocking_send(Request::Prefetch(
-                name.clone(),
-                range.clone(),
-                python_requirement.clone(),
-            ))?;
+            request_sink
+                .send(Request::Prefetch(
+                    name.clone(),
+                    range.clone(),
+                    python_requirement.clone(),
+                ))
+                .await?;
         }
         Ok(())
     }
@@ -1134,7 +1162,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
     // tracing-durations-export diagrams, but it took ~5% resolver thread runtime for apache-airflow
     // when I last measured.
     #[cfg_attr(feature = "tracing-durations-export", instrument(skip_all, fields(%package)))]
-    fn choose_version(
+    async fn choose_version(
         &self,
         package: &PubGrubPackage,
         id: Id<PubGrubPackage>,
@@ -1175,6 +1203,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
             | PubGrubPackageInner::Package { name, .. } => {
                 if let Some(url) = package.name().and_then(|name| fork_urls.get(name)) {
                     self.choose_version_url(id, name, range, url, env, python_requirement, pubgrub)
+                        .await
                 } else {
                     self.choose_version_registry(
                         package,
@@ -1190,6 +1219,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                         visited,
                         request_sink,
                     )
+                    .await
                 }
             }
         }
@@ -1197,7 +1227,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
 
     /// Select a version for a URL requirement. Since there is only one version per URL, we return
     /// that version if it is in range and `None` otherwise.
-    fn choose_version_url(
+    async fn choose_version_url(
         &self,
         id: Id<PubGrubPackage>,
         name: &PackageName,
@@ -1217,7 +1247,8 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
         let response = self
             .index
             .distributions()
-            .wait_blocking(&distribution_id)
+            .wait(&distribution_id)
+            .await
             .map_err(|_| ResolveError::UnregisteredTask(dist.to_string()))?;
 
         // If we failed to fetch the metadata for a URL, we can't proceed.
@@ -1316,7 +1347,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
 
     /// Given a candidate registry requirement, choose the next version in range to try, or `None`
     /// if there is no version in this range.
-    fn choose_version_registry(
+    async fn choose_version_registry(
         &self,
         package: &PubGrubPackage,
         id: Id<PubGrubPackage>,
@@ -1335,12 +1366,14 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
         let versions_response = if let Some(index) = index {
             self.index
                 .explicit()
-                .wait_blocking(&(name.clone(), index.clone()))
+                .wait(&(name.clone(), index.clone()))
+                .await
                 .map_err(|_| ResolveError::UnregisteredTask(name.to_string()))?
         } else {
             self.index
                 .implicit()
-                .wait_blocking(name)
+                .wait(name)
+                .await
                 .map_err(|_| ResolveError::UnregisteredTask(name.to_string()))?
         };
         visited.insert(name.clone());
@@ -1459,7 +1492,9 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
             pubgrub,
             pins,
             request_sink,
-        )? {
+        )
+        .await?
+        {
             return Ok(Some(forked));
         }
 
@@ -1480,7 +1515,8 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
             candidate.choice_kind(),
             filename,
         );
-        self.visit_candidate(&candidate, dist, package, name, pins, request_sink)?;
+        self.visit_candidate(&candidate, dist, package, name, pins, request_sink)
+            .await?;
 
         let version = candidate.version().clone();
         Ok(Some(ResolverVersion::Unforked(version)))
@@ -1498,10 +1534,10 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
     /// 2. Platforms that the user explicitly marks as "required" (opt-in). For example, the user
     ///    might require that the generated resolution always includes wheels for x86 macOS, and
     ///    fails entirely if the platform is unsupported.
-    fn fork_version_registry(
+    async fn fork_version_registry(
         &self,
-        candidate: &Candidate,
-        dist: &CompatibleDist,
+        candidate: &Candidate<'_>,
+        dist: &CompatibleDist<'_>,
         version_maps: &[VersionMap],
         package: &PubGrubPackage,
         id: Id<PubGrubPackage>,
@@ -1649,7 +1685,8 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                 name,
                 pins,
                 request_sink,
-            )?;
+            )
+            .await?;
 
             return Ok(Some(ResolverVersion::Unforked(
                 base_candidate.version().clone(),
@@ -1696,7 +1733,8 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                 .collect::<Vec<_>>()
                 .join(", ")
         );
-        self.visit_candidate(candidate, dist, package, name, pins, request_sink)?;
+        self.visit_candidate(candidate, dist, package, name, pins, request_sink)
+            .await?;
         self.visit_candidate(
             &base_candidate,
             base_dist,
@@ -1704,7 +1742,8 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
             name,
             pins,
             request_sink,
-        )?;
+        )
+        .await?;
 
         let forks = vec![
             VersionFork {
@@ -1722,10 +1761,10 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
     }
 
     /// Visit a selected candidate.
-    fn visit_candidate(
+    async fn visit_candidate(
         &self,
-        candidate: &Candidate,
-        dist: &CompatibleDist,
+        candidate: &Candidate<'_>,
+        dist: &CompatibleDist<'_>,
         package: &PubGrubPackage,
         name: &PackageName,
         pins: &mut FilePins,
@@ -1756,7 +1795,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                     }
 
                     let request = Request::from(dist);
-                    request_sink.blocking_send(request)?;
+                    request_sink.send(request).await?;
                 }
             }
         }
@@ -1798,7 +1837,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
     }
 
     /// Given a candidate package and version, return its dependencies.
-    fn get_dependencies_forking(
+    async fn get_dependencies_forking(
         &self,
         id: Id<PubGrubPackage>,
         package: &PubGrubPackage,
@@ -1809,16 +1848,18 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
         python_requirement: &PythonRequirement,
         pubgrub: &State<UvDependencyProvider>,
     ) -> Result<ForkedDependencies, ResolveError> {
-        let dependencies = self.get_dependencies(
-            id,
-            package,
-            version,
-            pins,
-            fork_urls,
-            env,
-            python_requirement,
-            pubgrub,
-        )?;
+        let dependencies = self
+            .get_dependencies(
+                id,
+                package,
+                version,
+                pins,
+                fork_urls,
+                env,
+                python_requirement,
+                pubgrub,
+            )
+            .await?;
         if env.marker_environment().is_some() {
             Ok(ForkedDependencies::from_dependencies_platform_specific(
                 dependencies,
@@ -1835,7 +1876,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
 
     /// Given a candidate package and version, return its dependencies.
     #[instrument(skip_all, fields(%package, %version))]
-    fn get_dependencies(
+    async fn get_dependencies(
         &self,
         id: Id<PubGrubPackage>,
         package: &PubGrubPackage,
@@ -1913,7 +1954,8 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
                 let response = self
                     .index
                     .distributions()
-                    .wait_blocking(distribution_id)
+                    .wait(distribution_id)
+                    .await
                     .map_err(|_| ResolveError::UnregisteredTask(format!("{name}=={version}")))?;
 
                 let metadata = match &*response {
