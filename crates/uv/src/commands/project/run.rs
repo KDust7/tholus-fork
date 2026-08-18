@@ -1286,7 +1286,7 @@ pub(crate) async fn run(
             .dedup()
             .map(PathBuf::from)
             .chain(
-                std::env::var_os(EnvVars::PATH)
+                uv_vfs::var_os(EnvVars::PATH)
                     .as_ref()
                     .iter()
                     .flat_map(uv_vfs::split_paths),
@@ -1941,7 +1941,7 @@ async fn resolve_gist_url(
     request = request.header("Accept", "application/vnd.github.v3+json");
 
     // Add GitHub token, if available.
-    if let Ok(token) = std::env::var(EnvVars::UV_GITHUB_TOKEN) {
+    if let Ok(token) = uv_vfs::var(EnvVars::UV_GITHUB_TOKEN) {
         request = request.header("Authorization", format!("Bearer {token}"));
     }
 
@@ -2006,7 +2006,7 @@ fn is_python_zipapp(target: &Path) -> bool {
 /// Returns an error if `EnvVars::UV_RUN_RECURSION_DEPTH` is set to a value
 /// that cannot ber parsed as an integer.
 fn read_recursion_depth_from_environment_variable() -> anyhow::Result<u32> {
-    let envvar = match std::env::var(EnvVars::UV_RUN_RECURSION_DEPTH) {
+    let envvar = match uv_vfs::var(EnvVars::UV_RUN_RECURSION_DEPTH) {
         Ok(val) => val,
         Err(VarError::NotPresent) => return Ok(0),
         Err(e) => {

@@ -64,7 +64,7 @@ fn current_dir() -> Result<std::path::PathBuf, std::io::Error> {
 
 #[cfg(test)]
 fn current_dir() -> Result<std::path::PathBuf, std::io::Error> {
-    std::env::var_os(EnvVars::PWD)
+    uv_vfs::var_os(EnvVars::PWD)
         .map(std::path::PathBuf::from)
         .map(Ok)
         .unwrap_or(uv_vfs::current_dir())

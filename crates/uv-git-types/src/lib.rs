@@ -17,7 +17,7 @@ mod reference;
 /// Initialize [`GitLfs`] mode from `UV_GIT_LFS` environment.
 static UV_GIT_LFS: LazyLock<GitLfs> = LazyLock::new(|| {
     // TODO(konsti): Parse this in `EnvironmentOptions`.
-    if std::env::var_os(EnvVars::UV_GIT_LFS)
+    if uv_vfs::var_os(EnvVars::UV_GIT_LFS)
         .and_then(|v| v.to_str().map(str::to_lowercase))
         .is_some_and(|v| matches!(v.as_str(), "y" | "yes" | "t" | "true" | "on" | "1"))
     {

@@ -90,18 +90,18 @@ impl Netrc {
     /// Look up the `NETRC` environment variable if it is defined else use the .netrc (or _netrc
     /// file on windows) in the user's home directory.
     fn get_file() -> Option<PathBuf> {
-        let env_var = std::env::var("NETRC")
+        let env_var = uv_vfs::var("NETRC")
             .map(PathBuf::from)
             .map(|f| shellexpand::path::tilde(&f).into_owned());
 
         #[cfg(windows)]
-        let default = std::env::var("USERPROFILE")
+        let default = uv_vfs::var("USERPROFILE")
             .into_iter()
             .flat_map(|home| repeat(home).zip([".netrc", "_netrc"]))
             .map(|(home, file)| PathBuf::from(home).join(file));
 
         #[cfg(not(windows))]
-        let default = std::env::var("HOME").map(|home| PathBuf::from(home).join(".netrc"));
+        let default = uv_vfs::var("HOME").map(|home| PathBuf::from(home).join(".netrc"));
 
         env_var.into_iter().chain(default).find(|f| f.vfs_exists())
     }

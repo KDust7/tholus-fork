@@ -28,16 +28,16 @@ const PYX_DEFAULT_CDN_DOMAIN: &str = "astralhosted.com";
 
 /// Retrieve the pyx API key from the environment variable, or return `None`.
 fn read_pyx_api_key() -> Option<String> {
-    std::env::var(EnvVars::PYX_API_KEY)
+    uv_vfs::var(EnvVars::PYX_API_KEY)
         .ok()
-        .or_else(|| std::env::var(EnvVars::UV_API_KEY).ok())
+        .or_else(|| uv_vfs::var(EnvVars::UV_API_KEY).ok())
 }
 
 /// Retrieve the pyx authentication token (JWT) from the environment variable, or return `None`.
 fn read_pyx_auth_token() -> Option<AccessToken> {
-    std::env::var(EnvVars::PYX_AUTH_TOKEN)
+    uv_vfs::var(EnvVars::PYX_AUTH_TOKEN)
         .ok()
-        .or_else(|| std::env::var(EnvVars::UV_AUTH_TOKEN).ok())
+        .or_else(|| uv_vfs::var(EnvVars::UV_AUTH_TOKEN).ok())
         .map(AccessToken::from)
 }
 
@@ -176,7 +176,7 @@ impl PyxDirectories {
         let digest = uv_cache_key::cache_digest(&CanonicalUrl::new(api));
 
         // If the user explicitly set `PYX_CREDENTIALS_DIR`, use that.
-        if let Some(root) = std::env::var_os(EnvVars::PYX_CREDENTIALS_DIR) {
+        if let Some(root) = uv_vfs::var_os(EnvVars::PYX_CREDENTIALS_DIR) {
             let root = uv_vfs::absolute(root)?;
             let subdirectory = root.join(&digest);
             return Ok(Self { root, subdirectory });
@@ -184,7 +184,7 @@ impl PyxDirectories {
 
         // If the user has pyx credentials in their uv credentials directory, read them for
         // backwards compatibility.
-        let root = if let Some(tool_dir) = std::env::var_os(EnvVars::UV_CREDENTIALS_DIR) {
+        let root = if let Some(tool_dir) = uv_vfs::var_os(EnvVars::UV_CREDENTIALS_DIR) {
             uv_vfs::absolute(tool_dir)?
         } else {
             StateStore::from_settings(None)?.bucket(StateBucket::Credentials)
@@ -225,12 +225,12 @@ impl PyxTokenStore {
     pub fn from_settings() -> Result<Self, TokenStoreError> {
         // Read the API URL and CDN domain from the environment variables, or fallback to the
         // defaults.
-        let api = if let Ok(api_url) = std::env::var(EnvVars::PYX_API_URL) {
+        let api = if let Ok(api_url) = uv_vfs::var(EnvVars::PYX_API_URL) {
             DisplaySafeUrl::parse(&api_url)
         } else {
             DisplaySafeUrl::parse(PYX_DEFAULT_API_URL)
         }?;
-        let cdn = std::env::var(EnvVars::PYX_CDN_DOMAIN)
+        let cdn = uv_vfs::var(EnvVars::PYX_CDN_DOMAIN)
             .ok()
             .map(SmallString::from)
             .unwrap_or_else(|| SmallString::from(arcstr::literal!(PYX_DEFAULT_CDN_DOMAIN)));

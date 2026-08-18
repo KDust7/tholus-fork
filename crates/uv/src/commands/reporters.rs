@@ -1,4 +1,3 @@
-use std::env;
 use std::fmt::Write;
 use std::ops::Deref;
 use std::sync::LazyLock;
@@ -26,7 +25,7 @@ use uv_static::EnvVars;
 /// Since downloads, fetches and builds run in parallel, their message output order is
 /// non-deterministic, so can't capture them in test output.
 static HAS_UV_TEST_NO_CLI_PROGRESS: LazyLock<bool> =
-    LazyLock::new(|| env::var(EnvVars::UV_TEST_NO_CLI_PROGRESS).is_ok());
+    LazyLock::new(|| uv_vfs::var(EnvVars::UV_TEST_NO_CLI_PROGRESS).is_ok());
 
 #[derive(Debug)]
 struct ProgressReporter {
@@ -135,7 +134,7 @@ impl From<uv_python::downloads::Direction> for Direction {
 
 impl ProgressReporter {
     fn new(root: ProgressBar, multi_progress: MultiProgress, printer: Printer) -> Self {
-        let mode = if env::var(EnvVars::JPY_SESSION_NAME).is_ok() {
+        let mode = if uv_vfs::var(EnvVars::JPY_SESSION_NAME).is_ok() {
             // Disable concurrent progress bars when running inside a Jupyter notebook
             // because the Jupyter terminal does not support clearing previous lines.
             // See: https://github.com/astral-sh/uv/issues/3887.

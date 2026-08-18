@@ -198,7 +198,7 @@ async fn ensure_cached_artifact(artifact: &VendorArtifact, path: &Path) -> Resul
         return Ok(());
     }
 
-    let trusted_hosts = std::env::var(EnvVars::UV_INSECURE_HOST)
+    let trusted_hosts = uv_vfs::var(EnvVars::UV_INSECURE_HOST)
         .unwrap_or_default()
         .split(' ')
         .filter(|host| !host.is_empty())

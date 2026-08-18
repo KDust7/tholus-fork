@@ -1,7 +1,6 @@
 #[cfg(feature = "schemars")]
 use std::borrow::Cow;
 use std::collections::BTreeMap;
-use std::env;
 use std::ffi::OsString;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
@@ -228,7 +227,7 @@ pub(crate) fn python_build_version_from_env(
 ) -> Result<Option<String>, BuildVersionError> {
     let variable = python_build_version_variable(implementation);
 
-    let Some(build_os) = env::var_os(variable) else {
+    let Some(build_os) = uv_vfs::var_os(variable) else {
         return Ok(None);
     };
 

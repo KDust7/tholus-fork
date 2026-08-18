@@ -1,5 +1,4 @@
 use std::{
-    env,
     ffi::OsString,
     path::{Path, PathBuf},
 };
@@ -24,11 +23,11 @@ use uv_vfs::VfsPathExt as _;
 /// check if the directory exists.
 pub fn user_executable_directory(override_variable: Option<&'static str>) -> Option<PathBuf> {
     override_variable
-        .and_then(std::env::var_os)
+        .and_then(uv_vfs::var_os)
         .and_then(parse_path)
-        .or_else(|| std::env::var_os(EnvVars::XDG_BIN_HOME).and_then(parse_xdg_path))
+        .or_else(|| uv_vfs::var_os(EnvVars::XDG_BIN_HOME).and_then(parse_xdg_path))
         .or_else(|| {
-            std::env::var_os(EnvVars::XDG_DATA_HOME)
+            uv_vfs::var_os(EnvVars::XDG_DATA_HOME)
                 .and_then(parse_xdg_path)
                 .map(|path| path.join("../bin"))
         })
@@ -164,13 +163,13 @@ fn locate_system_config_windows(system_drive: impl AsRef<Path>) -> Option<PathBu
 pub fn system_config_file() -> Option<PathBuf> {
     cfg_select! {
         windows => {
-            env::var(EnvVars::SYSTEMDRIVE)
+            uv_vfs::var(EnvVars::SYSTEMDRIVE)
                 .ok()
                 .and_then(|system_drive| locate_system_config_windows(format!("{system_drive}\\")))
         },
         _ => {
             if let Some(path) =
-                locate_system_config_xdg(env::var(EnvVars::XDG_CONFIG_DIRS).ok().as_deref())
+                locate_system_config_xdg(uv_vfs::var(EnvVars::XDG_CONFIG_DIRS).ok().as_deref())
             {
                 return Some(path);
             }

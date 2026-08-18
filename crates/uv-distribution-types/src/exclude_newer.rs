@@ -109,7 +109,7 @@ impl ExcludeNewerValue {
 
 /// Return the current time, respecting the `UV_TEST_CURRENT_TIMESTAMP` override.
 fn current_time() -> jiff::Zoned {
-    if let Ok(test_time) = std::env::var("UV_TEST_CURRENT_TIMESTAMP") {
+    if let Ok(test_time) = uv_vfs::var("UV_TEST_CURRENT_TIMESTAMP") {
         test_time
             .parse::<Timestamp>()
             .expect("UV_TEST_CURRENT_TIMESTAMP must be a valid RFC 3339 timestamp")
@@ -236,7 +236,7 @@ impl FromStr for ExcludeNewerValue {
 
         let span_err = match input.parse::<Span>() {
             Ok(span) => {
-                let now = if let Ok(test_time) = std::env::var("UV_TEST_CURRENT_TIMESTAMP") {
+                let now = if let Ok(test_time) = uv_vfs::var("UV_TEST_CURRENT_TIMESTAMP") {
                     test_time
                         .parse::<Timestamp>()
                         .expect("UV_TEST_CURRENT_TIMESTAMP must be a valid RFC 3339 timestamp")

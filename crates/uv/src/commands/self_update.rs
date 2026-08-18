@@ -270,8 +270,8 @@ pub(crate) async fn self_update(
 fn is_official_public_uv_install(source: Option<&ReleaseSource>) -> bool {
     is_official_public_uv_install_with_overrides(
         source,
-        std::env::var_os(EnvVars::UV_INSTALLER_GITHUB_BASE_URL).is_some(),
-        std::env::var_os(EnvVars::UV_INSTALLER_GHE_BASE_URL).is_some(),
+        uv_vfs::var_os(EnvVars::UV_INSTALLER_GITHUB_BASE_URL).is_some(),
+        uv_vfs::var_os(EnvVars::UV_INSTALLER_GHE_BASE_URL).is_some(),
     )
 }
 
@@ -622,17 +622,17 @@ fn find_receipt_path(app_name: &str) -> Result<Option<PathBuf>> {
 /// List all possible locations for the receipt file for a given app name,
 /// taking into account axoupdater-specific environment variable overrides.
 fn receipt_prefixes(app_name: &str) -> Result<Vec<PathBuf>> {
-    if std::env::var_os(AXOUPDATER_CONFIG_WORKING_DIR).is_some() {
+    if uv_vfs::var_os(AXOUPDATER_CONFIG_WORKING_DIR).is_some() {
         return Ok(vec![uv_vfs::current_dir()?]);
     }
 
-    if let Some(path) = std::env::var_os(AXOUPDATER_CONFIG_PATH) {
+    if let Some(path) = uv_vfs::var_os(AXOUPDATER_CONFIG_PATH) {
         return Ok(vec![PathBuf::from(path)]);
     }
 
     let mut prefixes = Vec::new();
 
-    if let Some(path) = std::env::var_os("XDG_CONFIG_HOME") {
+    if let Some(path) = uv_vfs::var_os("XDG_CONFIG_HOME") {
         let path = PathBuf::from(path).join(app_name);
         if path.vfs_exists() {
             prefixes.push(path);
@@ -640,7 +640,7 @@ fn receipt_prefixes(app_name: &str) -> Result<Vec<PathBuf>> {
     }
 
     #[cfg(windows)]
-    if let Some(path) = std::env::var_os("LOCALAPPDATA") {
+    if let Some(path) = uv_vfs::var_os("LOCALAPPDATA") {
         prefixes.push(PathBuf::from(path).join(app_name));
     }
 

@@ -1299,7 +1299,7 @@ static PYTORCH_XPU_INDEX_URL: LazyLock<IndexUrl> =
     LazyLock::new(|| IndexUrl::from_str("https://download.pytorch.org/whl/xpu").unwrap());
 
 static PYX_API_BASE_URL: LazyLock<Cow<'static, str>> = LazyLock::new(|| {
-    std::env::var(EnvVars::PYX_API_URL)
+    uv_vfs::var(EnvVars::PYX_API_URL)
         .map(Cow::Owned)
         .unwrap_or(Cow::Borrowed("https://api.pyx.dev"))
 });

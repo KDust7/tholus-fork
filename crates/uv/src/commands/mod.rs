@@ -197,7 +197,7 @@ fn read_env_files<'a>(
         for item in iter {
             match item {
                 Ok((key, value)) => {
-                    if std::env::var(&key).is_err() {
+                    if uv_vfs::var(&key).is_err() {
                         environment.push((key, value));
                     }
                 }

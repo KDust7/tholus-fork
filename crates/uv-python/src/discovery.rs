@@ -7,7 +7,7 @@ use same_file::is_same_file;
 use std::borrow::Cow;
 use std::env::consts::EXE_SUFFIX;
 use std::fmt::{self, Debug, Formatter};
-use std::{env, io, iter};
+use std::{io, iter};
 use std::{path::Path, path::PathBuf, str::FromStr};
 use thiserror::Error;
 use tracing::{debug, instrument, trace};
@@ -529,7 +529,7 @@ fn python_executables_from_installed<'a>(
             // TODO(zanieb): Ideally, we'd create "fake" managed installation directories for tests,
             // but for now... we'll just include the test interpreters which are always on the
             // search path.
-            if std::env::var(uv_static::EnvVars::UV_INTERNAL__TEST_PYTHON_MANAGED).is_ok() {
+            if uv_vfs::var(uv_static::EnvVars::UV_INTERNAL__TEST_PYTHON_MANAGED).is_ok() {
                 Box::new(from_managed_installations.chain(from_search_path))
             } else {
                 Box::new(from_managed_installations)
@@ -567,7 +567,7 @@ fn python_executables<'a>(
 ) -> Box<dyn Iterator<Item = Result<(PythonSource, PathBuf), Error>> + 'a> {
     // Always read from `UV_INTERNAL__PARENT_INTERPRETER` — it could be a system interpreter
     let from_parent_interpreter = iter::once_with(|| {
-        env::var_os(EnvVars::UV_INTERNAL__PARENT_INTERPRETER)
+        uv_vfs::var_os(EnvVars::UV_INTERNAL__PARENT_INTERPRETER)
             .into_iter()
             .map(|path| Ok((PythonSource::ParentInterpreter, PathBuf::from(path))))
     })
@@ -623,8 +623,8 @@ fn python_executables_from_search_path<'a>(
     implementation: Option<&'a ImplementationName>,
 ) -> impl Iterator<Item = PathBuf> + 'a {
     // `UV_PYTHON_SEARCH_PATH` can be used to override `PATH` for Python executable discovery
-    let search_path = env::var_os(EnvVars::UV_PYTHON_SEARCH_PATH)
-        .unwrap_or(env::var_os(EnvVars::PATH).unwrap_or_default());
+    let search_path = uv_vfs::var_os(EnvVars::UV_PYTHON_SEARCH_PATH)
+        .unwrap_or(uv_vfs::var_os(EnvVars::PATH).unwrap_or_default());
 
     let possible_names: Vec<_> = version
         .executable_names(implementation)

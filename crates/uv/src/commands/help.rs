@@ -373,7 +373,7 @@ impl Pager {
     /// Supports the `PAGER` environment variable, otherwise checks for `less` and `more` in the
     /// search path.
     fn try_from_env() -> Option<Self> {
-        if let Some(pager) = std::env::var_os(EnvVars::PAGER) {
+        if let Some(pager) = uv_vfs::var_os(EnvVars::PAGER) {
             if !pager.is_empty() {
                 return Self::from_str(&pager.to_string_lossy()).ok();
             }

@@ -922,7 +922,7 @@ impl EnvironmentOptions {
 
 /// Parse a string environment variable.
 fn parse_string_environment_variable(name: &'static str) -> Result<Option<String>, Error> {
-    match std::env::var(name) {
+    match uv_vfs::var(name) {
         Ok(v) => {
             if v.is_empty() {
                 Ok(None)
@@ -981,7 +981,7 @@ where
     T: std::str::FromStr,
     <T as std::str::FromStr>::Err: std::fmt::Display,
 {
-    let value = match std::env::var(name) {
+    let value = match uv_vfs::var(name) {
         Ok(v) => v,
         Err(e) => {
             return match e {
@@ -1024,7 +1024,7 @@ where
     T: std::str::FromStr + Copy,
     <T as std::str::FromStr>::Err: std::fmt::Display,
 {
-    let value = match std::env::var(name) {
+    let value = match uv_vfs::var(name) {
         Ok(v) => v,
         Err(e) => {
             return match e {
@@ -1061,7 +1061,7 @@ where
 
 /// Parse a path environment variable.
 fn parse_path_environment_variable(name: &'static str) -> Option<PathBuf> {
-    let value = std::env::var_os(name)?;
+    let value = uv_vfs::var_os(name)?;
 
     if value.is_empty() {
         return None;

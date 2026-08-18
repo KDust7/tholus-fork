@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::str::FromStr;
 use std::{
-    env, io,
+    io,
     path::{Path, PathBuf},
 };
 
@@ -64,7 +64,7 @@ pub enum Error {
 ///
 /// Supports `VIRTUAL_ENV`.
 pub(crate) fn virtualenv_from_env() -> Option<PathBuf> {
-    if let Some(dir) = env::var_os(EnvVars::VIRTUAL_ENV).filter(|value| !value.is_empty()) {
+    if let Some(dir) = uv_vfs::var_os(EnvVars::VIRTUAL_ENV).filter(|value| !value.is_empty()) {
         return Some(PathBuf::from(dir));
     }
 
@@ -96,14 +96,14 @@ impl CondaEnvironmentKind {
         }
 
         // If `_CONDA_ROOT` is set and matches `CONDA_PREFIX`, it's the base environment.
-        if let Ok(conda_root) = env::var(EnvVars::CONDA_ROOT) {
+        if let Ok(conda_root) = uv_vfs::var(EnvVars::CONDA_ROOT) {
             if path == Path::new(&conda_root) {
                 return Self::Base;
             }
         }
 
         // Next, we'll use a heuristic based on `CONDA_DEFAULT_ENV`
-        let Ok(current_env) = env::var(EnvVars::CONDA_DEFAULT_ENV) else {
+        let Ok(current_env) = uv_vfs::var(EnvVars::CONDA_DEFAULT_ENV) else {
             return Self::Child;
         };
 
@@ -138,7 +138,7 @@ fn is_pixi_environment(path: &Path) -> bool {
 /// If `base` is true, the active environment must be the base environment or `None` is returned,
 /// and vice-versa.
 pub(crate) fn conda_environment_from_env(kind: CondaEnvironmentKind) -> Option<PathBuf> {
-    let dir = env::var_os(EnvVars::CONDA_PREFIX).filter(|value| !value.is_empty())?;
+    let dir = uv_vfs::var_os(EnvVars::CONDA_PREFIX).filter(|value| !value.is_empty())?;
     let path = PathBuf::from(dir);
 
     if kind != CondaEnvironmentKind::from_prefix_path(&path) {

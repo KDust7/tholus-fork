@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 use std::time::Duration;
-use std::{env, io};
+use std::io;
 
 use thiserror::Error;
 use tracing::{debug, error, info, trace, warn};
@@ -17,7 +17,7 @@ use crate::{Simplified, is_known_already_locked_error};
 /// Parsed value of `UV_LOCK_TIMEOUT`, with a default of 5 min.
 static LOCK_TIMEOUT: LazyLock<Duration> = LazyLock::new(|| {
     let default_timeout = Duration::from_mins(5);
-    let Some(lock_timeout) = env::var_os(EnvVars::UV_LOCK_TIMEOUT) else {
+    let Some(lock_timeout) = uv_vfs::var_os(EnvVars::UV_LOCK_TIMEOUT) else {
         return default_timeout;
     };
 

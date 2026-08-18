@@ -29,12 +29,12 @@ const UV_MIN_STACK_SIZE: usize = 1 * 1024 * 1024;
 /// (<https://github.com/astral-sh/uv/issues/12769>), so rayon and tokio get the same stack size,
 /// with the 4MB default.
 pub fn min_stack_size() -> usize {
-    let stack_size = if let Some(uv_stack_size) = std::env::var(EnvVars::UV_STACK_SIZE)
+    let stack_size = if let Some(uv_stack_size) = uv_vfs::var(EnvVars::UV_STACK_SIZE)
         .ok()
         .and_then(|var| var.parse::<usize>().ok())
     {
         uv_stack_size
-    } else if let Some(uv_stack_size) = std::env::var(EnvVars::RUST_MIN_STACK)
+    } else if let Some(uv_stack_size) = uv_vfs::var(EnvVars::RUST_MIN_STACK)
         .ok()
         .and_then(|var| var.parse::<usize>().ok())
     {

@@ -6558,6 +6558,7 @@ dependencies = [
  "textwrap",
  "thiserror",
  "uv-static",
+ "uv-vfs",
 ]
 
 [[package]]
@@ -6676,6 +6677,7 @@ dependencies = [
  "uv-cache-key",
  "uv-redacted",
  "uv-static",
+ "uv-vfs",
 ]
 
 [[package]]
@@ -7361,6 +7363,7 @@ version = "0.0.70"
 dependencies = [
  "thiserror",
  "uv-macros",
+ "uv-vfs",
 ]
 
 [[package]]

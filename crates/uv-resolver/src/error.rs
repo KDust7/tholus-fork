@@ -699,7 +699,7 @@ impl NoSolutionError {
             self.error.clone().into_inner(),
             &self.python_requirement,
         );
-        let should_display_tree = std::env::var_os(EnvVars::UV_INTERNAL__SHOW_DERIVATION_TREE)
+        let should_display_tree = uv_vfs::var_os(EnvVars::UV_INTERNAL__SHOW_DERIVATION_TREE)
             .is_some()
             || tracing::enabled!(tracing::Level::TRACE);
 
@@ -847,7 +847,7 @@ fn display_tree(
     display_tree_inner(error, &mut lines);
     lines.reverse();
 
-    if std::env::var_os(EnvVars::UV_INTERNAL__SHOW_DERIVATION_TREE).is_some() {
+    if uv_vfs::var_os(EnvVars::UV_INTERNAL__SHOW_DERIVATION_TREE).is_some() {
         eprintln!("{name}\n{}", lines.join("\n"));
     } else {
         trace!("{name}\n{}", lines.join("\n"));

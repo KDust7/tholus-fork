@@ -222,7 +222,7 @@ impl CacheInfo {
                     git: GitPattern::Bool(false),
                 } => {}
                 CacheKey::Environment { env: var } => {
-                    let value = std::env::var(&var).ok();
+                    let value = uv_vfs::var(&var).ok();
                     env.insert(var, value);
                 }
             }

@@ -58,7 +58,7 @@ impl PythonInstallation {
     /// marked as managed via `TestContext::with_versions_as_managed`.
     #[must_use]
     pub(crate) fn maybe_with_test_source(self) -> Self {
-        if std::env::var(uv_static::EnvVars::UV_INTERNAL__TEST_PYTHON_MANAGED).is_ok()
+        if uv_vfs::var(uv_static::EnvVars::UV_INTERNAL__TEST_PYTHON_MANAGED).is_ok()
             && self.interpreter.is_managed()
         {
             self.with_source(PythonSource::Managed)

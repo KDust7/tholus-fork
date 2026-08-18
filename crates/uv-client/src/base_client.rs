@@ -1,4 +1,3 @@
-use std::env;
 use std::fmt::{Debug, Write};
 use std::num::ParseIntError;
 use std::sync::Arc;
@@ -270,7 +269,7 @@ impl Default for BaseClientBuilder<'_> {
             custom_client: None,
             subcommand: None,
             client_name: None,
-            no_retry_delay: env::var_os(EnvVars::UV_TEST_NO_HTTP_RETRY_DELAY).is_some(),
+            no_retry_delay: uv_vfs::var_os(EnvVars::UV_TEST_NO_HTTP_RETRY_DELAY).is_some(),
             cache_read_runtime: Arc::new(CacheReadRuntime::new(Concurrency::DEFAULT_CACHE_READS)),
         }
     }
@@ -688,7 +687,7 @@ impl<'a> BaseClientBuilder<'a> {
         };
 
         // Configure mTLS.
-        let client_builder = if let Some(ssl_client_cert) = env::var_os(EnvVars::SSL_CLIENT_CERT) {
+        let client_builder = if let Some(ssl_client_cert) = uv_vfs::var_os(EnvVars::SSL_CLIENT_CERT) {
             match read_identity(&ssl_client_cert) {
                 Ok(identity) => client_builder.identity(identity),
                 Err(err) => {

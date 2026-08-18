@@ -132,7 +132,7 @@ impl InstalledTools {
     /// 2. A directory in the system-appropriate user-level data directory, e.g., `~/.local/uv/tools`
     /// 3. A directory in the local data directory, e.g., `./.uv/tools`
     pub fn from_settings() -> Result<Self, Error> {
-        if let Some(tool_dir) = std::env::var_os(EnvVars::UV_TOOL_DIR).filter(|s| !s.is_empty()) {
+        if let Some(tool_dir) = uv_vfs::var_os(EnvVars::UV_TOOL_DIR).filter(|s| !s.is_empty()) {
             Ok(Self::from_path(uv_vfs::absolute(tool_dir)?))
         } else {
             Ok(Self::from_path(

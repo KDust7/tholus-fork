@@ -357,7 +357,7 @@ pub(crate) async fn run(
     // Construct the `PATH` environment variable.
     let new_path = std::env::join_paths(
         std::iter::once(environment.scripts().to_path_buf()).chain(
-            std::env::var_os(EnvVars::PATH)
+            uv_vfs::var_os(EnvVars::PATH)
                 .as_ref()
                 .iter()
                 .flat_map(uv_vfs::split_paths),

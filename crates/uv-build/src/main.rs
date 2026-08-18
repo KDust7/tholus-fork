@@ -45,7 +45,7 @@ fn main() -> Result<()> {
     // Ad-hoc preview features parsing due to a lack of clap CLI in uv-build.
     let preview = if parse_boolish_environment_variable(EnvVars::UV_PREVIEW)?.unwrap_or(false) {
         Preview::all()
-    } else if let Some(preview_features) = env::var_os(EnvVars::UV_PREVIEW_FEATURES) {
+    } else if let Some(preview_features) = uv_vfs::var_os(EnvVars::UV_PREVIEW_FEATURES) {
         let preview_features = preview_features
             .to_str()
             .with_context(|| format!("Invalid UTF-8 in `{}`", EnvVars::UV_PREVIEW_FEATURES))?;

@@ -13,7 +13,7 @@ const ASTRAL_MIRROR_BASE_URL: &str = "https://releases.astral.sh";
 
 /// Read the user-configured Astral mirror URL from the environment, if set.
 pub fn astral_mirror_url_from_env() -> Option<String> {
-    std::env::var_os(EnvVars::UV_ASTRAL_MIRROR_URL).and_then(|url| {
+    uv_vfs::var_os(EnvVars::UV_ASTRAL_MIRROR_URL).and_then(|url| {
         if url.as_os_str().is_empty() {
             None
         } else {
@@ -73,7 +73,7 @@ pub fn parse_boolish_environment_variable(
         }
     }
 
-    let Some(value) = std::env::var_os(name) else {
+    let Some(value) = uv_vfs::var_os(name) else {
         return Ok(None);
     };
 

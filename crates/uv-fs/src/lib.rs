@@ -323,7 +323,7 @@ mod windows_tests {
     #[test]
     fn create_junction_from_smb_failure_removes_directory() -> std::io::Result<()> {
         #[expect(clippy::print_stderr)]
-        let Some(smb_fs) = std::env::var(uv_static::EnvVars::UV_INTERNAL__TEST_SMB_FS).ok() else {
+        let Some(smb_fs) = uv_vfs::var(uv_static::EnvVars::UV_INTERNAL__TEST_SMB_FS).ok() else {
             eprintln!("Skipping: UV_INTERNAL__TEST_SMB_FS not set");
             return Ok(());
         };

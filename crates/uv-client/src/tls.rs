@@ -1,4 +1,3 @@
-use std::env;
 use std::fmt::{Display, Formatter};
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
@@ -252,7 +251,7 @@ impl Certificates {
         let mut certs = Self::default();
         let mut has_source = false;
 
-        if let Some(ssl_cert_file) = env::var_os(EnvVars::SSL_CERT_FILE)
+        if let Some(ssl_cert_file) = uv_vfs::var_os(EnvVars::SSL_CERT_FILE)
             && !ssl_cert_file.is_empty()
         {
             has_source = true;
@@ -261,7 +260,7 @@ impl Certificates {
             }
         }
 
-        if let Some(ssl_cert_dir) = env::var_os(EnvVars::SSL_CERT_DIR)
+        if let Some(ssl_cert_dir) = uv_vfs::var_os(EnvVars::SSL_CERT_DIR)
             && !ssl_cert_dir.is_empty()
         {
             has_source = true;

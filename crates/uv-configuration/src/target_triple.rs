@@ -1062,7 +1062,7 @@ impl TargetTriple {
 
 /// Return the macOS deployment target as parsed from the environment.
 fn macos_deployment_target() -> Option<(u16, u16)> {
-    let version = std::env::var(EnvVars::MACOSX_DEPLOYMENT_TARGET).ok()?;
+    let version = uv_vfs::var(EnvVars::MACOSX_DEPLOYMENT_TARGET).ok()?;
     let mut parts = version.split('.');
 
     // Parse the major version (e.g., `12` in `12.0`).
@@ -1076,7 +1076,7 @@ fn macos_deployment_target() -> Option<(u16, u16)> {
 
 /// Return the iOS deployment target as parsed from the environment.
 fn ios_deployment_target() -> Option<(u16, u16)> {
-    let version = std::env::var(EnvVars::IPHONEOS_DEPLOYMENT_TARGET).ok()?;
+    let version = uv_vfs::var(EnvVars::IPHONEOS_DEPLOYMENT_TARGET).ok()?;
     let mut parts = version.split('.');
 
     // Parse the major version (e.g., `12` in `12.0`).
@@ -1090,7 +1090,7 @@ fn ios_deployment_target() -> Option<(u16, u16)> {
 
 /// Return the Android API level as parsed from the environment.
 fn android_api_level() -> Option<u16> {
-    let api_level_str = std::env::var(EnvVars::ANDROID_API_LEVEL).ok()?;
+    let api_level_str = uv_vfs::var(EnvVars::ANDROID_API_LEVEL).ok()?;
 
     // Parse the api level.
     let api_level = api_level_str.parse::<u16>().ok()?;

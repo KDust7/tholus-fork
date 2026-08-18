@@ -245,7 +245,7 @@ async fn run_with_workspace_cache(
     // Respect `UV_WORKING_DIRECTORY` for backwards compatibility.
     let directory =
         cli.top_level.global_args.directory.clone().or_else(|| {
-            std::env::var_os(EnvVars::UV_WORKING_DIRECTORY).map(std::path::PathBuf::from)
+            uv_vfs::var_os(EnvVars::UV_WORKING_DIRECTORY).map(std::path::PathBuf::from)
         });
 
     // Switch directories as early as possible.
@@ -659,7 +659,7 @@ async fn run_with_workspace_cache(
                     .break_words(false)
                     .word_separator(textwrap::WordSeparator::AsciiSpace)
                     .word_splitter(textwrap::WordSplitter::NoHyphenation)
-                    .wrap_lines(std::env::var(EnvVars::UV_NO_WRAP).is_err())
+                    .wrap_lines(uv_vfs::var(EnvVars::UV_NO_WRAP).is_err())
                     .build(),
             )
         }))?;
@@ -697,7 +697,7 @@ async fn run_with_workspace_cache(
     // PEP 517 hooks run from uv-managed source trees, including source distributions extracted
     // into the cache, and can invoke uv recursively.
     let project_is_in_build_dir =
-        std::env::var_os(EnvVars::UV_INTERNAL__BUILD_DIR).is_some_and(|build_dir| {
+        uv_vfs::var_os(EnvVars::UV_INTERNAL__BUILD_DIR).is_some_and(|build_dir| {
             uv_vfs::absolute(build_dir).is_ok_and(|build_dir| {
                 project_dir.starts_with(&build_dir)
                     || uv_vfs::fs::canonicalize(&*project_dir).is_ok_and(|project_dir| {

@@ -30,12 +30,12 @@ static HUGGING_FACE_REALM: LazyLock<Realm> = LazyLock::new(|| {
 /// The authentication token for the Hugging Face platform, if set.
 static HUGGING_FACE_TOKEN: LazyLock<Option<Vec<u8>>> = LazyLock::new(|| {
     // Extract the Hugging Face token from the environment variable, if it exists.
-    let hf_token = std::env::var(EnvVars::HF_TOKEN)
+    let hf_token = uv_vfs::var(EnvVars::HF_TOKEN)
         .ok()
         .map(String::into_bytes)
         .filter(|token| !token.is_empty())?;
 
-    if std::env::var_os(EnvVars::UV_NO_HF_TOKEN).is_some() {
+    if uv_vfs::var_os(EnvVars::UV_NO_HF_TOKEN).is_some() {
         debug!("Ignoring Hugging Face token from environment due to `UV_NO_HF_TOKEN`");
         return None;
     }
@@ -102,10 +102,10 @@ impl S3EndpointProvider {
     pub(crate) fn create_signer() -> AwsDefaultSigner {
         // TODO(charlie): Can `reqsign` infer the region for us? Profiles, for example,
         // often have a region set already.
-        let region = std::env::var(EnvVars::AWS_REGION)
+        let region = uv_vfs::var(EnvVars::AWS_REGION)
             .map(Cow::Owned)
             .unwrap_or_else(|_| {
-                std::env::var(EnvVars::AWS_DEFAULT_REGION)
+                uv_vfs::var(EnvVars::AWS_DEFAULT_REGION)
                     .map(Cow::Owned)
                     .unwrap_or_else(|_| Cow::Borrowed("us-east-1"))
             });
@@ -199,7 +199,7 @@ impl AzureEndpointProvider {
 
 /// Returns the configured endpoint [`Url`], if set and valid.
 fn endpoint_url(env_var: &str) -> Result<Option<Url>, ParseError> {
-    let Some(endpoint_url) = std::env::var(env_var).ok() else {
+    let Some(endpoint_url) = uv_vfs::var(env_var).ok() else {
         return Ok(None);
     };
     Url::parse(&endpoint_url).map(Some)

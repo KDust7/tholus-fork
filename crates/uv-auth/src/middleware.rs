@@ -32,7 +32,7 @@ use crate::{Index, TextCredentialStore};
 
 /// Cached check for whether we're running in Dependabot.
 static IS_DEPENDABOT: LazyLock<bool> =
-    LazyLock::new(|| std::env::var(EnvVars::DEPENDABOT).is_ok_and(|value| value == "true"));
+    LazyLock::new(|| uv_vfs::var(EnvVars::DEPENDABOT).is_ok_and(|value| value == "true"));
 
 impl From<AuthenticationError> for Error {
     fn from(err: AuthenticationError) -> Self {

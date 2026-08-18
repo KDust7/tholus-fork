@@ -85,7 +85,7 @@ pub fn temp_dir() -> PathBuf {
 
 #[cfg(target_family = "wasm")]
 pub fn home_dir() -> Option<PathBuf> {
-    None
+    crate::env::var_os("HOME").map(PathBuf::from)
 }
 
 #[cfg(not(target_family = "wasm"))]

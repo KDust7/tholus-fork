@@ -6,7 +6,6 @@
 use crate::PythonVersion;
 use crate::windows_registry::WindowsPython;
 use itertools::Either;
-use std::env;
 use std::path::PathBuf;
 use std::str::FromStr;
 use tracing::debug;
@@ -93,7 +92,7 @@ const MICROSOFT_STORE_PYTHONS: &[MicrosoftStorePython] = &[
 ///
 /// Effectively a port of <https://github.com/python/cpython/blob/58ce131037ecb34d506a613f21993cde2056f628/PC/launcher2.c#L1744>
 pub(crate) fn find_microsoft_store_pythons() -> impl Iterator<Item = WindowsPython> {
-    let Ok(local_app_data) = env::var(EnvVars::LOCALAPPDATA) else {
+    let Ok(local_app_data) = uv_vfs::var(EnvVars::LOCALAPPDATA) else {
         debug!("`LOCALAPPDATA` not set, ignoring Microsoft store Pythons");
         return Either::Left(std::iter::empty());
     };

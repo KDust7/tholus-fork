@@ -419,7 +419,7 @@ impl SourceBuild {
         let user_path = environment_variables.remove(&OsString::from(EnvVars::PATH));
 
         // See if there is an OS PATH variable.
-        let os_path = env::var_os(EnvVars::PATH);
+        let os_path = uv_vfs::var_os(EnvVars::PATH);
 
         // Prepend the user supplied PATH to the existing OS PATH
         let modified_path = if let Some(user_path) = user_path {

@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use web_time::SystemTime;
 
+pub mod env;
 pub mod fs;
 pub mod memory;
 pub mod path;
@@ -13,6 +14,7 @@ pub mod temp;
 pub mod url;
 pub mod walk;
 
+pub use env::{var, var_os};
 pub use memory::MemoryFs;
 pub use path::{
     EXE_EXTENSION, EXE_SUFFIX, absolute, current_dir, home_dir, split_paths, temp_dir,

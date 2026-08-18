@@ -733,7 +733,7 @@ impl ScriptInterpreter {
     fn root(script: Pep723ItemRef<'_>, active: Option<bool>, cache: &Cache) -> PathBuf {
         /// Resolve the `VIRTUAL_ENV` variable, if any.
         fn from_virtual_env_variable() -> Option<PathBuf> {
-            let value = std::env::var_os(EnvVars::VIRTUAL_ENV)?;
+            let value = uv_vfs::var_os(EnvVars::VIRTUAL_ENV)?;
 
             if value.is_empty() {
                 return None;

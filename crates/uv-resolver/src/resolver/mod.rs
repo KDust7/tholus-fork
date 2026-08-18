@@ -2872,7 +2872,7 @@ impl<InstalledPackages: InstalledPackagesProvider> ResolverState<InstalledPackag
         let mut available_versions = FxHashMap::default();
 
         let available_version_cutoff: Option<jiff::Timestamp> =
-            std::env::var(EnvVars::UV_TEST_AVAILABLE_VERSION_CUTOFF)
+            uv_vfs::var(EnvVars::UV_TEST_AVAILABLE_VERSION_CUTOFF)
                 .ok()
                 .and_then(|s| s.parse().ok());
 

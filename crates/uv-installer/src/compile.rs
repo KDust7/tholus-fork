@@ -6,7 +6,7 @@ use std::process::Stdio;
 use std::time::Duration;
 use std::io;
 #[cfg(not(target_family = "wasm"))]
-use std::{env, panic};
+use std::panic;
 
 use async_channel::SendError;
 #[cfg(not(target_family = "wasm"))]
@@ -90,7 +90,7 @@ pub enum CompileError {
 
 #[cfg(not(target_family = "wasm"))]
 fn compile_timeout() -> Result<Option<Duration>, CompileError> {
-    let timeout = match env::var(EnvVars::UV_COMPILE_BYTECODE_TIMEOUT) {
+    let timeout = match uv_vfs::var(EnvVars::UV_COMPILE_BYTECODE_TIMEOUT) {
         Ok(value) => match value.as_str() {
             "0" => None,
             _ => match value.parse::<u64>().map(Duration::from_secs) {

@@ -623,7 +623,7 @@ impl TestContext {
         self.extra_env.push((
             EnvVars::UV_PYTHON_CACHE_DIR.into(),
             // Respect `UV_PYTHON_CACHE_DIR` if set, or use the default cache directory
-            env::var_os(EnvVars::UV_PYTHON_CACHE_DIR).unwrap_or_else(|| {
+            uv_vfs::var_os(EnvVars::UV_PYTHON_CACHE_DIR).unwrap_or_else(|| {
                 uv_cache::Cache::from_settings(false, None)
                     .unwrap()
                     .bucket(CacheBucket::Python)
@@ -703,7 +703,7 @@ impl TestContext {
     ///
     /// Returns `Ok(None)` if the environment variable is not set.
     pub fn with_cache_on_cow_fs(self) -> anyhow::Result<Option<Self>> {
-        let Some(dir) = env::var(EnvVars::UV_INTERNAL__TEST_COW_FS).ok() else {
+        let Some(dir) = uv_vfs::var(EnvVars::UV_INTERNAL__TEST_COW_FS).ok() else {
             return Ok(None);
         };
         self.with_cache_on_fs(&dir, "COW_FS").map(Some)
@@ -714,7 +714,7 @@ impl TestContext {
     ///
     /// Returns `Ok(None)` if the environment variable is not set.
     pub fn with_cache_on_alt_fs(self) -> anyhow::Result<Option<Self>> {
-        let Some(dir) = env::var(EnvVars::UV_INTERNAL__TEST_ALT_FS).ok() else {
+        let Some(dir) = uv_vfs::var(EnvVars::UV_INTERNAL__TEST_ALT_FS).ok() else {
             return Ok(None);
         };
         self.with_cache_on_fs(&dir, "ALT_FS").map(Some)
@@ -725,7 +725,7 @@ impl TestContext {
     ///
     /// Returns `Ok(None)` if the environment variable is not set.
     pub fn with_cache_on_lowlinks_fs(self) -> anyhow::Result<Option<Self>> {
-        let Some(dir) = env::var(EnvVars::UV_INTERNAL__TEST_LOWLINKS_FS).ok() else {
+        let Some(dir) = uv_vfs::var(EnvVars::UV_INTERNAL__TEST_LOWLINKS_FS).ok() else {
             return Ok(None);
         };
         self.with_cache_on_fs(&dir, "LOWLINKS_FS").map(Some)
@@ -736,7 +736,7 @@ impl TestContext {
     ///
     /// Returns `Ok(None)` if the environment variable is not set.
     pub fn with_cache_on_nocow_fs(self) -> anyhow::Result<Option<Self>> {
-        let Some(dir) = env::var(EnvVars::UV_INTERNAL__TEST_NOCOW_FS).ok() else {
+        let Some(dir) = uv_vfs::var(EnvVars::UV_INTERNAL__TEST_NOCOW_FS).ok() else {
             return Ok(None);
         };
         self.with_cache_on_fs(&dir, "NOCOW_FS").map(Some)
@@ -749,7 +749,7 @@ impl TestContext {
     ///
     /// Note a virtual environment is not created automatically.
     pub fn with_working_dir_on_cow_fs(self) -> anyhow::Result<Option<Self>> {
-        let Some(dir) = env::var(EnvVars::UV_INTERNAL__TEST_COW_FS).ok() else {
+        let Some(dir) = uv_vfs::var(EnvVars::UV_INTERNAL__TEST_COW_FS).ok() else {
             return Ok(None);
         };
         self.with_working_dir_on_fs(&dir, "COW_FS").map(Some)
@@ -762,7 +762,7 @@ impl TestContext {
     ///
     /// Note a virtual environment is not created automatically.
     pub fn with_working_dir_on_nocow_fs(self) -> anyhow::Result<Option<Self>> {
-        let Some(dir) = env::var(EnvVars::UV_INTERNAL__TEST_NOCOW_FS).ok() else {
+        let Some(dir) = uv_vfs::var(EnvVars::UV_INTERNAL__TEST_NOCOW_FS).ok() else {
             return Ok(None);
         };
         self.with_working_dir_on_fs(&dir, "NOCOW_FS").map(Some)
@@ -881,7 +881,7 @@ impl TestContext {
 
         // The workspace root directory is not available without walking up the tree
         // https://github.com/rust-lang/cargo/issues/3946
-        let workspace_root = Path::new(&env::var(EnvVars::CARGO_MANIFEST_DIR).unwrap())
+        let workspace_root = Path::new(&uv_vfs::var(EnvVars::CARGO_MANIFEST_DIR).unwrap())
             .parent()
             .expect("CARGO_MANIFEST_DIR should be nested in workspace")
             .parent()
@@ -1174,7 +1174,7 @@ impl TestContext {
     pub fn add_shared_env(&self, command: &mut Command, activate_venv: bool) {
         // Push the test context bin to the front of the PATH
         let path = env::join_paths(std::iter::once(self.bin_dir.to_path_buf()).chain(
-            uv_vfs::split_paths(&env::var(EnvVars::PATH).unwrap_or_default()),
+            uv_vfs::split_paths(&uv_vfs::var(EnvVars::PATH).unwrap_or_default()),
         ))
         .unwrap();
 
@@ -1741,7 +1741,7 @@ impl TestContext {
     /// We need this for testing commands which use the macOS keychain.
     #[must_use]
     pub fn with_real_home(mut self) -> Self {
-        if let Some(home) = env::var_os(EnvVars::HOME) {
+        if let Some(home) = uv_vfs::var_os(EnvVars::HOME) {
             self.extra_env
                 .push((EnvVars::HOME.to_string().into(), home));
         }
@@ -2224,7 +2224,7 @@ pub fn run_and_format_silent<T: AsRef<str>>(
         .to_string();
 
     // Support profiling test run commands with traces.
-    if let Ok(root) = env::var(EnvVars::TRACING_DURATIONS_TEST_ROOT) {
+    if let Ok(root) = uv_vfs::var(EnvVars::TRACING_DURATIONS_TEST_ROOT) {
         // We only want to fail if the variable is set at runtime.
         #[expect(clippy::assertions_on_constants)]
         {
@@ -2408,7 +2408,7 @@ pub fn decode_token(content: &[&str]) -> String {
 /// certificate verification, passing through the `BaseClient`
 #[tokio::main(flavor = "current_thread")]
 pub async fn download_to_disk(url: &str, path: &Path) {
-    let trusted_hosts: Vec<_> = env::var(EnvVars::UV_INSECURE_HOST)
+    let trusted_hosts: Vec<_> = uv_vfs::var(EnvVars::UV_INSECURE_HOST)
         .unwrap_or_default()
         .split(' ')
         .map(|h| uv_configuration::TrustedHost::from_str(h).unwrap())

@@ -5,7 +5,6 @@ use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use http::StatusCode;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
-use std::env;
 use std::fmt::Display;
 use thiserror::Error;
 use uv_redacted::{DisplaySafeUrl, DisplaySafeUrlError};
@@ -153,7 +152,7 @@ pub(crate) trait TrustedPublishingService {
 
             // If we're on GitHub Actions, mask the exchanged token in logs.
             #[expect(clippy::print_stdout)]
-            if env::var(EnvVars::GITHUB_ACTIONS) == Ok("true".to_string()) {
+            if uv_vfs::var(EnvVars::GITHUB_ACTIONS) == Ok("true".to_string()) {
                 println!("::add-mask::{publish_token}");
             }
 

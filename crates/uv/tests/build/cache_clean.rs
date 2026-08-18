@@ -113,7 +113,7 @@ fn clean_all_cloned_file() -> Result<()> {
     let link_mode = link_dir(&retained, &cached, &LinkOptions::new(LinkMode::Clone))?;
     if link_mode != LinkMode::Clone {
         assert!(
-            std::env::var_os(EnvVars::UV_INTERNAL__TEST_COW_FS).is_none(),
+            uv_vfs::var_os(EnvVars::UV_INTERNAL__TEST_COW_FS).is_none(),
             "the configured copy-on-write filesystem did not clone the cached file"
         );
         return Ok(());
@@ -148,7 +148,7 @@ fn clean_all_cached_clones() -> Result<()> {
     let link_mode = link_dir(&original, &cloned, &LinkOptions::new(LinkMode::Clone))?;
     if link_mode != LinkMode::Clone {
         assert!(
-            std::env::var_os(EnvVars::UV_INTERNAL__TEST_COW_FS).is_none(),
+            uv_vfs::var_os(EnvVars::UV_INTERNAL__TEST_COW_FS).is_none(),
             "the configured copy-on-write filesystem did not clone the cached file"
         );
         return Ok(());
@@ -170,7 +170,7 @@ fn clean_all_cached_clones() -> Result<()> {
 #[cfg(target_os = "linux")]
 #[test]
 fn clean_all_compressed_file() -> Result<()> {
-    if std::env::var_os(EnvVars::UV_INTERNAL__TEST_COW_FS).is_none() {
+    if uv_vfs::var_os(EnvVars::UV_INTERNAL__TEST_COW_FS).is_none() {
         return Ok(());
     }
 
@@ -212,7 +212,7 @@ fn clean_all_compressed_file() -> Result<()> {
 #[cfg(unix)]
 fn copy_on_write_test_context() -> Result<uv_test::TestContext> {
     let context = uv_test::test_context!("3.12").with_filtered_counts();
-    if std::env::var_os(EnvVars::UV_INTERNAL__TEST_COW_FS).is_none() {
+    if uv_vfs::var_os(EnvVars::UV_INTERNAL__TEST_COW_FS).is_none() {
         return Ok(context);
     }
 

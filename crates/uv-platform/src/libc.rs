@@ -64,7 +64,7 @@ impl Libc {
     pub(crate) fn from_env() -> Result<Self, crate::Error> {
         match env::consts::OS {
             "linux"
-                if let Ok(libc) = env::var(EnvVars::UV_LIBC)
+                if let Ok(libc) = uv_vfs::var(EnvVars::UV_LIBC)
                     && !libc.is_empty() =>
             {
                 Self::from_str(&libc)

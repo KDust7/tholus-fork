@@ -168,7 +168,7 @@ pub(crate) async fn pip_compile(
 
     // Respect `UV_PYTHON`
     if python.is_none() && python_version.is_none() {
-        if let Ok(request) = std::env::var(EnvVars::UV_PYTHON) {
+        if let Ok(request) = uv_vfs::var(EnvVars::UV_PYTHON) {
             if !request.is_empty() {
                 python = Some(request);
             }

@@ -155,7 +155,7 @@ impl GlobalSettings {
             // with log messages.
             no_progress: resolve_flag(args.no_progress, "no-progress", environment.no_progress)
                 .is_enabled()
-                || std::env::var_os(EnvVars::RUST_LOG).is_some(),
+                || uv_vfs::var_os(EnvVars::RUST_LOG).is_some(),
             installer_metadata: !resolve_flag(
                 args.no_installer_metadata,
                 "no-installer-metadata",
@@ -174,16 +174,16 @@ pub(crate) fn resolve_color(args: &GlobalArgs) -> ColorChoice {
     } else if args.no_color {
         // If `--no-color` is passed explicitly, disable color output.
         ColorChoice::Never
-    } else if std::env::var_os(EnvVars::NO_COLOR)
+    } else if uv_vfs::var_os(EnvVars::NO_COLOR)
         .as_ref()
         .is_some_and(|v| !v.is_empty())
     {
         // If the `NO_COLOR` is set, disable color output.
         ColorChoice::Never
-    } else if std::env::var_os(EnvVars::FORCE_COLOR)
+    } else if uv_vfs::var_os(EnvVars::FORCE_COLOR)
         .as_ref()
         .is_some_and(|v| !v.is_empty())
-        || std::env::var_os(EnvVars::CLICOLOR_FORCE)
+        || uv_vfs::var_os(EnvVars::CLICOLOR_FORCE)
             .as_ref()
             .is_some_and(|v| !v.is_empty())
     {
@@ -5260,7 +5260,7 @@ fn env<T>((name, expected): (&str, &str)) -> Option<T>
 where
     T: FromStr,
 {
-    let val = match std::env::var(name) {
+    let val = match uv_vfs::var(name) {
         Ok(val) => val,
         Err(VarError::NotPresent) => return None,
         Err(VarError::NotUnicode(_)) => parse_failure(name, expected),

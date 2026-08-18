@@ -1916,7 +1916,6 @@ fn path_with_trailing_space_gives_proper_error() {
 #[test]
 #[cfg(target_os = "linux")]
 fn create_venv_apostrophe() {
-    use std::env;
     use std::ffi::OsString;
     use std::io::Write;
     use std::process::Command;
@@ -1940,7 +1939,7 @@ fn create_venv_apostrophe() {
 
     // One of them should be commonly available on a linux developer machine, if not, we have to
     // extend the fallbacks.
-    let shell = env::var_os(EnvVars::SHELL).unwrap_or(OsString::from("bash"));
+    let shell = uv_vfs::var_os(EnvVars::SHELL).unwrap_or(OsString::from("bash"));
     let mut child = Command::new(shell)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

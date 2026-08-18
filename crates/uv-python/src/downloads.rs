@@ -8,7 +8,7 @@ use std::task::{Context, Poll};
 use std::time::Duration;
 use web_time::SystemTimeError;
 use web_time::Instant;
-use std::{env, io};
+use std::io;
 
 use futures::TryStreamExt;
 use itertools::Itertools;
@@ -1266,7 +1266,7 @@ impl ManagedPythonDownload {
         let temp_dir = uv_vfs::temp::tempdir_in(scratch_dir).map_err(Error::DownloadDirError)?;
 
         if let Some(python_builds_dir) =
-            env::var_os(EnvVars::UV_PYTHON_CACHE_DIR).filter(|s| !s.is_empty())
+            uv_vfs::var_os(EnvVars::UV_PYTHON_CACHE_DIR).filter(|s| !s.is_empty())
         {
             let python_builds_dir = PathBuf::from(python_builds_dir);
             uv_vfs::fs::create_dir_all(&python_builds_dir)?;

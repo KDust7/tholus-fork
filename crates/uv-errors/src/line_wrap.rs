@@ -4,7 +4,7 @@ use uv_static::EnvVars;
 ///
 /// Returns `false` if `UV_NO_WRAP` is set.
 fn should_wrap_lines() -> bool {
-    std::env::var_os(EnvVars::UV_NO_WRAP).is_none()
+    uv_vfs::var_os(EnvVars::UV_NO_WRAP).is_none()
 }
 
 /// Gets the terminal width for wrapping.
@@ -20,7 +20,7 @@ pub(crate) fn get_wrap_width(width_override: Option<usize>) -> Option<usize> {
         return Some(width);
     }
 
-    if let Ok(cols) = std::env::var(EnvVars::COLUMNS) {
+    if let Ok(cols) = uv_vfs::var(EnvVars::COLUMNS) {
         if let Ok(width) = cols.parse::<usize>() {
             return Some(width);
         }

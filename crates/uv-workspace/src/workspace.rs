@@ -903,7 +903,7 @@ impl Workspace {
     pub fn environment_selection(&self, active: Option<bool>) -> ProjectEnvironmentSelection {
         /// Resolve the `UV_PROJECT_ENVIRONMENT` value, if any.
         fn from_project_environment_variable(workspace: &Workspace) -> Option<PathBuf> {
-            let value = std::env::var_os(EnvVars::UV_PROJECT_ENVIRONMENT)?;
+            let value = uv_vfs::var_os(EnvVars::UV_PROJECT_ENVIRONMENT)?;
 
             if value.is_empty() {
                 return None;
@@ -920,7 +920,7 @@ impl Workspace {
 
         /// Resolve the `VIRTUAL_ENV` variable, if any.
         fn from_virtual_env_variable() -> Option<PathBuf> {
-            let value = std::env::var_os(EnvVars::VIRTUAL_ENV)?;
+            let value = uv_vfs::var_os(EnvVars::VIRTUAL_ENV)?;
 
             if value.is_empty() {
                 return None;
@@ -2311,7 +2311,6 @@ impl VirtualProject {
 #[cfg(unix)] // Avoid path escaping for the unit tests
 mod tests {
     use std::collections::BTreeMap;
-    use std::env;
     use std::path::Path;
     use std::str::FromStr;
     use std::sync::Arc;

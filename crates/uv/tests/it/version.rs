@@ -2093,7 +2093,7 @@ fn git_version_info_expected() -> bool {
     // This is setup to aggressively panic to make sure this is working at all
     // If you're a packager of uv and this does indeed blow up for you, we will
     // gladly change these expects into "just return false" or something.
-    let manifest_dir = std::env::var(uv_static::EnvVars::CARGO_MANIFEST_DIR)
+    let manifest_dir = uv_vfs::var(uv_static::EnvVars::CARGO_MANIFEST_DIR)
         .expect("CARGO_MANIFEST_DIR not defined");
     let git_dir = std::path::Path::new(&manifest_dir)
         .parent()

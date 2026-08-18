@@ -1,4 +1,3 @@
-use std::env;
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::str::FromStr;
@@ -17,7 +16,7 @@ use uv_static::EnvVars;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> ExitCode {
-    let (duration_layer, _guard) = if let Ok(location) = env::var(EnvVars::TRACING_DURATIONS_FILE) {
+    let (duration_layer, _guard) = if let Ok(location) = uv_vfs::var(EnvVars::TRACING_DURATIONS_FILE) {
         let location = PathBuf::from(location);
         if let Some(parent) = location.parent() {
             uv_vfs::fs::tokio::create_dir_all(&parent)

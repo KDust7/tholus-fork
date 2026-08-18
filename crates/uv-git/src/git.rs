@@ -860,7 +860,7 @@ fn fetch_with_cli(
 /// which takes priority over loading from `PATH` which prevents us
 /// from shadowing the extension with other means.
 pub static GIT_LFS: LazyLock<Result<ProcessBuilder>> = LazyLock::new(|| {
-    if std::env::var_os(EnvVars::UV_INTERNAL__TEST_LFS_DISABLED).is_some() {
+    if uv_vfs::var_os(EnvVars::UV_INTERNAL__TEST_LFS_DISABLED).is_some() {
         return Err(anyhow!("Git LFS extension has been forcefully disabled."));
     }
 

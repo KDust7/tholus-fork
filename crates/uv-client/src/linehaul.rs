@@ -1,4 +1,3 @@
-use std::env;
 
 use serde::Serialize;
 use tracing::instrument;
@@ -77,7 +76,7 @@ impl LineHaul {
             EnvVars::PIP_IS_CI,
         ]
         .iter()
-        .find_map(|&var_name| env::var(var_name).ok().map(|_| true));
+        .find_map(|&var_name| uv_vfs::var(var_name).ok().map(|_| true));
 
         let libc = match platform.map(Platform::os) {
             Some(Os::Manylinux { major, minor }) => Some(Libc {

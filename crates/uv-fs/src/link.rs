@@ -919,7 +919,7 @@ mod tests {
     ///
     /// Returns `None` if `UV_INTERNAL__TEST_COW_FS` is not set.
     fn cow_tempdir() -> Option<TempDir> {
-        let dir = std::env::var(uv_static::EnvVars::UV_INTERNAL__TEST_COW_FS).ok()?;
+        let dir = uv_vfs::var(uv_static::EnvVars::UV_INTERNAL__TEST_COW_FS).ok()?;
         uv_vfs::fs::create_dir_all(&dir).unwrap();
         Some(TempDir::new_in(dir).unwrap())
     }
@@ -928,7 +928,7 @@ mod tests {
     ///
     /// Returns `None` if `UV_INTERNAL__TEST_NOCOW_FS` is not set.
     fn nocow_tempdir() -> Option<TempDir> {
-        let dir = std::env::var(uv_static::EnvVars::UV_INTERNAL__TEST_NOCOW_FS).ok()?;
+        let dir = uv_vfs::var(uv_static::EnvVars::UV_INTERNAL__TEST_NOCOW_FS).ok()?;
         uv_vfs::fs::create_dir_all(&dir).unwrap();
         Some(TempDir::new_in(dir).unwrap())
     }
@@ -937,7 +937,7 @@ mod tests {
     ///
     /// Returns `None` if `UV_INTERNAL__TEST_ALT_FS` is not set.
     fn alt_tempdir() -> Option<TempDir> {
-        let dir = std::env::var(uv_static::EnvVars::UV_INTERNAL__TEST_ALT_FS).ok()?;
+        let dir = uv_vfs::var(uv_static::EnvVars::UV_INTERNAL__TEST_ALT_FS).ok()?;
         uv_vfs::fs::create_dir_all(&dir).unwrap();
         Some(TempDir::new_in(dir).unwrap())
     }

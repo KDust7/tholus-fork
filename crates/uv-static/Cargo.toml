@@ -17,6 +17,7 @@ test = false
 workspace = true
 
 [dependencies]
+uv-vfs = { workspace = true }
 uv-macros = { workspace = true }
 
 thiserror = { workspace = true }

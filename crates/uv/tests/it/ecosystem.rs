@@ -130,7 +130,7 @@ fn semantic_kernel() -> Result<()> {
 }
 
 fn skip_slow_ecosystem_test_on_non_linux_ci() -> bool {
-    !cfg!(target_os = "linux") && std::env::var_os(EnvVars::CI).is_some()
+    !cfg!(target_os = "linux") && uv_vfs::var_os(EnvVars::CI).is_some()
 }
 
 /// Does a lock on the given ecosystem package for the given name. That
