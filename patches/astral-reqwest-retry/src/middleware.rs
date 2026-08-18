@@ -9,6 +9,19 @@ use reqwest::{Request, Response};
 use reqwest_middleware::{Error, Middleware, Next, Result};
 use retry_policies::RetryPolicy;
 
+#[cfg(not(target_arch = "wasm32"))]
+fn now() -> SystemTime {
+    SystemTime::now()
+}
+
+#[cfg(target_arch = "wasm32")]
+fn now() -> SystemTime {
+    std::time::UNIX_EPOCH
+        + web_time::SystemTime::now()
+            .duration_since(web_time::UNIX_EPOCH)
+            .unwrap_or_default()
+}
+
 #[doc(hidden)]
 // We need this macro because tracing expects the level to be const:
 // https://github.com/tokio-rs/tracing/issues/2730
@@ -141,7 +154,7 @@ where
         ext: &'a mut Extensions,
     ) -> Result<Response> {
         let mut n_past_retries = 0;
-        let start_time = SystemTime::now();
+        let start_time = now();
         loop {
             // Cloning the request object before-the-fact is not ideal..
             // However, if the body of the request is not static, e.g of type `Bytes`,
@@ -164,7 +177,7 @@ where
                 let retry_decision = self.retry_policy.should_retry(start_time, n_past_retries);
                 if let retry_policies::RetryDecision::Retry { execute_after } = retry_decision {
                     let duration = execute_after
-                        .duration_since(SystemTime::now())
+                        .duration_since(now())
                         .unwrap_or_else(|_| Duration::default());
                     // Sleep the requested amount before we try again.
                     #[cfg(feature = "tracing")]
