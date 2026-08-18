@@ -261,6 +261,7 @@ dependencies = [
  "tokio",
  "tracing",
  "wasmtimer",
+ "web-time",
 ]
 
 [[package]]
