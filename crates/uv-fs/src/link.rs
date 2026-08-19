@@ -13,8 +13,8 @@ use uv_vfs::walk::WalkDir;
 /// The method to use when linking.
 ///
 /// Defaults to [`LinkMode::Clone`] on macOS and Linux (which support copy-on-write on
-/// APFS and btrfs/xfs/bcachefs respectively), and [`LinkMode::Hardlink`] on other
-/// platforms.
+/// APFS and btrfs/xfs/bcachefs respectively), [`LinkMode::Copy`] on wasm (whose virtual
+/// filesystem supports none of the others), and [`LinkMode::Hardlink`] on other platforms.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
@@ -38,7 +38,9 @@ pub enum LinkMode {
 
 impl Default for LinkMode {
     fn default() -> Self {
-        if cfg!(any(
+        if cfg!(target_family = "wasm") {
+            Self::Copy
+        } else if cfg!(any(
             target_os = "macos",
             target_os = "ios",
             target_os = "linux"
