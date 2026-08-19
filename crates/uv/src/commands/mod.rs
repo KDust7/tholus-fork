@@ -1,9 +1,11 @@
 use std::borrow::Cow;
+#[cfg(not(target_family = "wasm"))]
 use std::io::stdout;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use std::{fmt::Write, process::ExitCode};
 
+#[cfg(not(target_family = "wasm"))]
 use anstream::AutoStream;
 use anyhow::{Context, bail};
 use owo_colors::OwoColorize;
@@ -367,9 +369,14 @@ fn write_bytecode_summary(
     )
 }
 
+#[cfg(not(target_family = "wasm"))]
+type StdoutSink = AutoStream<std::io::Stdout>;
+#[cfg(target_family = "wasm")]
+type StdoutSink = uv_wasm_compat::io::StdoutWriter;
+
 /// A multicasting writer that writes to both the standard output and an output file, if present.
 struct OutputWriter<'a> {
-    stdout: Option<AutoStream<std::io::Stdout>>,
+    stdout: Option<StdoutSink>,
     output_file: Option<&'a Path>,
     buffer: Vec<u8>,
 }
@@ -377,7 +384,10 @@ struct OutputWriter<'a> {
 impl<'a> OutputWriter<'a> {
     /// Create a new output writer.
     fn new(include_stdout: bool, output_file: Option<&'a Path>) -> Self {
+        #[cfg(not(target_family = "wasm"))]
         let stdout = include_stdout.then(|| AutoStream::<std::io::Stdout>::auto(stdout()));
+        #[cfg(target_family = "wasm")]
+        let stdout = include_stdout.then(uv_wasm_compat::io::StdoutWriter::default);
         Self {
             stdout,
             output_file,

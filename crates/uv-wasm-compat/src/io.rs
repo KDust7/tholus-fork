@@ -71,6 +71,20 @@ pub fn stderr(text: &str) {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
+pub struct StdoutWriter;
+
+impl Write for StdoutWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        write_str(Stream::Stdout, &String::from_utf8_lossy(buf));
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
 pub struct LogWriter;
 
 impl Write for LogWriter {
