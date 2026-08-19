@@ -13,7 +13,9 @@ use std::sync::atomic::Ordering;
 
 use anyhow::{Result, anyhow, bail};
 use clap::error::{ContextKind, ContextValue};
-use clap::{CommandFactory, Error, Parser};
+use clap::{CommandFactory, Error};
+#[cfg(not(target_family = "wasm"))]
+use clap::Parser;
 use futures::FutureExt;
 use owo_colors::OwoColorize;
 use settings::PipTreeSettings;
@@ -155,10 +157,53 @@ where
     I: IntoIterator<Item = T>,
     T: Into<OsString> + Clone,
 {
-    Cli::try_parse_from(args).map_err(|mut err| {
+    parse_cli_impl(args).map_err(|mut err| {
         suggest_subcommand(&mut err);
         err
     })
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn parse_cli_impl<I, T>(args: I) -> std::result::Result<Cli, Error>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<OsString> + Clone,
+{
+    Cli::try_parse_from(args)
+}
+
+#[cfg(target_family = "wasm")]
+fn parse_cli_impl<I, T>(args: I) -> std::result::Result<Cli, Error>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<OsString> + Clone,
+{
+    use clap::FromArgMatches;
+
+    let command = apply_environment(Cli::command(), &from_environment);
+    let mut matches = command.try_get_matches_from(args)?;
+    Cli::from_arg_matches_mut(&mut matches).map_err(|err| err.format(&mut Cli::command()))
+}
+
+#[cfg(target_family = "wasm")]
+fn from_environment(name: &std::ffi::OsStr) -> Option<OsString> {
+    uv_vfs::var_os(name)
+}
+
+#[cfg(any(target_family = "wasm", test))]
+fn apply_environment<F>(command: clap::Command, lookup: &F) -> clap::Command
+where
+    F: Fn(&std::ffi::OsStr) -> Option<OsString>,
+{
+    command
+        .mut_args(|arg| {
+            let value = arg.get_env().and_then(lookup);
+            match value {
+                Some(value) => arg.default_value(value).hide_default_value(true),
+                None => arg,
+            }
+        })
+        .mut_subcommands(|subcommand| apply_environment(subcommand, lookup))
 }
 
 #[doc(hidden)]
@@ -3313,5 +3358,105 @@ mod tests {
     #[test]
     fn a_well_formed_command_line_parses() {
         assert!(parse_cli(["uv", "pip", "list"]).is_ok());
+    }
+
+    mod environment {
+        use std::ffi::{OsStr, OsString};
+
+        use clap::{Arg, Command, CommandFactory};
+        use uv_cli::Cli;
+
+        use crate::apply_environment;
+
+        fn seeded(
+            variable: &'static str,
+            value: &'static str,
+        ) -> impl Fn(&OsStr) -> Option<OsString> {
+            move |name| (name == variable).then(|| OsString::from(value))
+        }
+
+        fn nested() -> Command {
+            Command::new("uv").subcommand(Command::new("pip").subcommand(
+                Command::new("install").arg(Arg::new("index").long("index").env("UV_TEST_INDEX")),
+            ))
+        }
+
+        fn raw(matches: &clap::ArgMatches, id: &str) -> Option<OsString> {
+            matches
+                .try_get_raw(id)
+                .ok()
+                .flatten()
+                .and_then(|mut values| values.next())
+                .map(OsStr::to_os_string)
+        }
+
+        #[test]
+        fn a_value_reaches_an_argument_two_subcommands_deep() {
+            let matches = apply_environment(nested(), &seeded("UV_TEST_INDEX", "https://seeded"))
+                .try_get_matches_from(["uv", "pip", "install"])
+                .unwrap();
+
+            let install = matches
+                .subcommand_matches("pip")
+                .and_then(|pip| pip.subcommand_matches("install"))
+                .unwrap();
+            assert_eq!(
+                raw(install, "index"),
+                Some(OsString::from("https://seeded"))
+            );
+        }
+
+        #[test]
+        fn the_command_line_beats_the_environment() {
+            let matches = apply_environment(nested(), &seeded("UV_TEST_INDEX", "https://seeded"))
+                .try_get_matches_from(["uv", "pip", "install", "--index", "https://explicit"])
+                .unwrap();
+
+            let install = matches
+                .subcommand_matches("pip")
+                .and_then(|pip| pip.subcommand_matches("install"))
+                .unwrap();
+            assert_eq!(
+                raw(install, "index"),
+                Some(OsString::from("https://explicit"))
+            );
+        }
+
+        #[test]
+        fn an_absent_variable_leaves_the_argument_unset() {
+            let matches = apply_environment(nested(), &seeded("UV_TEST_OTHER", "https://seeded"))
+                .try_get_matches_from(["uv", "pip", "install"])
+                .unwrap();
+
+            let install = matches
+                .subcommand_matches("pip")
+                .and_then(|pip| pip.subcommand_matches("install"))
+                .unwrap();
+            assert_eq!(raw(install, "index"), None);
+        }
+
+        #[test]
+        fn an_injected_value_stays_out_of_the_help() {
+            let flat =
+                Command::new("install").arg(Arg::new("index").long("index").env("UV_TEST_INDEX"));
+            let mut command = apply_environment(flat, &seeded("UV_TEST_INDEX", "https://seeded"));
+            let help = command.render_long_help().to_string();
+
+            assert!(!help.contains("default:"), "{help}");
+            assert!(!help.contains("https://seeded"), "{help}");
+        }
+
+        #[test]
+        fn a_value_reaches_uvs_own_cache_dir_option() {
+            let matches =
+                apply_environment(Cli::command(), &seeded("UV_CACHE_DIR", "/seeded/cache"))
+                    .try_get_matches_from(["uv", "cache", "dir"])
+                    .unwrap();
+
+            assert_eq!(
+                raw(&matches, "cache_dir"),
+                Some(OsString::from("/seeded/cache"))
+            );
+        }
     }
 }

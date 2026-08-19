@@ -3,10 +3,91 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use etcetera::BaseStrategy;
-
 use uv_static::EnvVars;
 use uv_vfs::VfsPathExt as _;
+
+#[cfg(not(target_family = "wasm"))]
+mod base {
+    use std::path::PathBuf;
+
+    use etcetera::BaseStrategy as _;
+
+    pub(crate) fn home_dir() -> Option<PathBuf> {
+        etcetera::home_dir().ok()
+    }
+
+    pub(crate) fn cache_dir() -> Option<PathBuf> {
+        etcetera::base_strategy::choose_base_strategy()
+            .ok()
+            .map(|dirs| dirs.cache_dir())
+    }
+
+    pub(crate) fn native_cache_dir() -> Option<PathBuf> {
+        etcetera::base_strategy::choose_native_strategy()
+            .ok()
+            .map(|dirs| dirs.cache_dir())
+    }
+
+    pub(crate) fn data_dir() -> Option<PathBuf> {
+        etcetera::base_strategy::choose_base_strategy()
+            .ok()
+            .map(|dirs| dirs.data_dir())
+    }
+
+    pub(crate) fn native_data_dir() -> Option<PathBuf> {
+        etcetera::base_strategy::choose_native_strategy()
+            .ok()
+            .map(|dirs| dirs.data_dir())
+    }
+
+    pub(crate) fn config_dir() -> Option<PathBuf> {
+        etcetera::choose_base_strategy()
+            .map(|dirs| dirs.config_dir())
+            .ok()
+    }
+}
+
+#[cfg(target_family = "wasm")]
+mod base {
+    use std::path::PathBuf;
+
+    use uv_static::EnvVars;
+    use uv_vfs::VfsPathExt as _;
+
+    fn xdg_dir(variable: &str, default: &str) -> Option<PathBuf> {
+        let home = uv_vfs::home_dir()?;
+        Some(
+            uv_vfs::var_os(variable)
+                .map(PathBuf::from)
+                .filter(|path| path.vfs_is_absolute())
+                .unwrap_or_else(|| home.join(default)),
+        )
+    }
+
+    pub(crate) fn home_dir() -> Option<PathBuf> {
+        uv_vfs::home_dir()
+    }
+
+    pub(crate) fn cache_dir() -> Option<PathBuf> {
+        xdg_dir(EnvVars::XDG_CACHE_HOME, ".cache")
+    }
+
+    pub(crate) fn native_cache_dir() -> Option<PathBuf> {
+        cache_dir()
+    }
+
+    pub(crate) fn data_dir() -> Option<PathBuf> {
+        xdg_dir(EnvVars::XDG_DATA_HOME, ".local/share")
+    }
+
+    pub(crate) fn native_data_dir() -> Option<PathBuf> {
+        data_dir()
+    }
+
+    pub(crate) fn config_dir() -> Option<PathBuf> {
+        xdg_dir(EnvVars::XDG_CONFIG_HOME, ".config")
+    }
+}
 
 /// Returns an appropriate user-level directory for storing executables.
 ///
@@ -32,7 +113,7 @@ pub fn user_executable_directory(override_variable: Option<&'static str>) -> Opt
                 .map(|path| path.join("../bin"))
         })
         .or_else(|| {
-            let home_dir = etcetera::home_dir().ok();
+            let home_dir = base::home_dir();
             home_dir.map(|path| path.join(".local").join("bin"))
         })
 }
@@ -41,9 +122,7 @@ pub fn user_executable_directory(override_variable: Option<&'static str>) -> Opt
 ///
 /// Corresponds to `$XDG_CACHE_HOME/uv` on Unix.
 pub fn user_cache_dir() -> Option<PathBuf> {
-    etcetera::base_strategy::choose_base_strategy()
-        .ok()
-        .map(|dirs| dirs.cache_dir().join("uv"))
+    base::cache_dir().map(|dir| dir.join("uv"))
 }
 
 /// Returns the legacy cache directory path.
@@ -51,9 +130,8 @@ pub fn user_cache_dir() -> Option<PathBuf> {
 /// Uses `/Users/user/Library/Application Support/uv` on macOS, in contrast to the new preference
 /// for using the XDG directories on all Unix platforms.
 pub fn legacy_user_cache_dir() -> Option<PathBuf> {
-    etcetera::base_strategy::choose_native_strategy()
-        .ok()
-        .map(|dirs| dirs.cache_dir().join("uv"))
+    base::native_cache_dir()
+        .map(|dir| dir.join("uv"))
         .map(|dir| {
             if cfg!(windows) {
                 dir.join("cache")
@@ -67,9 +145,7 @@ pub fn legacy_user_cache_dir() -> Option<PathBuf> {
 ///
 /// Corresponds to `$XDG_DATA_HOME/uv` on Unix.
 pub fn user_state_dir() -> Option<PathBuf> {
-    etcetera::base_strategy::choose_base_strategy()
-        .ok()
-        .map(|dirs| dirs.data_dir().join("uv"))
+    base::data_dir().map(|dir| dir.join("uv"))
 }
 
 /// Returns the legacy state directory path.
@@ -77,9 +153,8 @@ pub fn user_state_dir() -> Option<PathBuf> {
 /// Uses `/Users/user/Library/Application Support/uv` on macOS, in contrast to the new preference
 /// for using the XDG directories on all Unix platforms.
 pub fn legacy_user_state_dir() -> Option<PathBuf> {
-    etcetera::base_strategy::choose_native_strategy()
-        .ok()
-        .map(|dirs| dirs.data_dir().join("uv"))
+    base::native_data_dir()
+        .map(|dir| dir.join("uv"))
         .map(|dir| if cfg!(windows) { dir.join("data") } else { dir })
 }
 
@@ -106,7 +181,11 @@ fn parse_path(path: OsString) -> Option<PathBuf> {
 /// [XDG Base Directory Specification]: https://specifications.freedesktop.org/basedir-spec/latest/
 fn parse_xdg_path(path: OsString) -> Option<PathBuf> {
     let path = PathBuf::from(path);
-    if path.vfs_is_absolute() { Some(path) } else { None }
+    if path.vfs_is_absolute() {
+        Some(path)
+    } else {
+        None
+    }
 }
 
 /// Returns the path to the user configuration directory.
@@ -114,9 +193,7 @@ fn parse_xdg_path(path: OsString) -> Option<PathBuf> {
 /// On Windows, use, e.g., C:\Users\Alice\AppData\Roaming
 /// On Linux and macOS, use `XDG_CONFIG_HOME` or $HOME/.config, e.g., /home/alice/.config.
 pub fn user_config_dir() -> Option<PathBuf> {
-    etcetera::choose_base_strategy()
-        .map(|dirs| dirs.config_dir())
-        .ok()
+    base::config_dir()
 }
 
 pub fn user_uv_config_dir() -> Option<PathBuf> {
