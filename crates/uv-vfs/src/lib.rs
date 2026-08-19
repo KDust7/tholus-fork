@@ -18,7 +18,8 @@ pub mod walk;
 pub use env::{var, var_os};
 pub use memory::MemoryFs;
 pub use path::{
-    EXE_EXTENSION, EXE_SUFFIX, absolute, current_dir, home_dir, split_paths, temp_dir,
+    EXE_EXTENSION, EXE_SUFFIX, absolute, current_dir, home_dir, set_current_dir, split_paths,
+    temp_dir,
 };
 pub use path_ext::VfsPathExt;
 pub use url::UrlFilePathExt;
