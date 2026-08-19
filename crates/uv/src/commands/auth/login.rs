@@ -130,7 +130,7 @@ pub(crate) async fn login(
         }
         (None, None, Some(value)) | (Some(value), None, None) if value == "-" => {
             let mut input = String::new();
-            std::io::stdin().read_line(&mut input)?;
+            uv_wasm_compat::stdin().read_line(&mut input)?;
             input.trim().to_string()
         }
         (Some(cli), None, None) => cli,

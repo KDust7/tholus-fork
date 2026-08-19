@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fmt::Write;
-use std::io::Read;
 
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
@@ -29,7 +28,7 @@ impl BazelCredentialRequest {
 
     fn from_stdin() -> Result<Self> {
         let mut buffer = String::new();
-        std::io::stdin()
+        uv_wasm_compat::stdin()
             .read_to_string(&mut buffer)
             .context("Failed to read from stdin")?;
 

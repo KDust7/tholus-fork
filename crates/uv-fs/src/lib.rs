@@ -69,7 +69,7 @@ pub async fn read_to_string_transcode(path: impl AsRef<Path>) -> std::io::Result
     let path = path.as_ref();
     let raw = if path == Path::new("-") {
         let mut buf = Vec::with_capacity(1024);
-        std::io::stdin().read_to_end(&mut buf)?;
+        uv_wasm_compat::stdin().read_to_end(&mut buf)?;
         buf
     } else {
         uv_vfs::fs::tokio::read(path).await?

@@ -3,7 +3,6 @@ use std::env::VarError;
 use std::ffi::OsString;
 use std::fmt::Write;
 use std::io;
-use std::io::Read;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStringExt;
 use std::path::{Path, PathBuf};
@@ -1516,7 +1515,7 @@ impl ParsedRunCommand {
 
         if target.eq_ignore_ascii_case("-") {
             let mut buf = Vec::with_capacity(1024);
-            std::io::stdin().read_to_end(&mut buf)?;
+            uv_wasm_compat::stdin().read_to_end(&mut buf)?;
 
             return if module {
                 Err(anyhow!("Cannot run a Python module from stdin"))
@@ -2042,7 +2041,7 @@ fn copy_entrypoint(
     previous_executable: &Path,
     python_executable: &Path,
 ) -> Result<(), CopyEntrypointError> {
-    use std::io::{Seek, Write};
+    use std::io::{Read, Seek, Write};
     #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
 
