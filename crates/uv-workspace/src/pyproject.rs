@@ -13,7 +13,7 @@ use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use glob::Pattern;
+use uv_vfs::glob::Pattern;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use serde::de::SeqAccess;
 use serde::{Deserialize, Deserializer, Serialize};

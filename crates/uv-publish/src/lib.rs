@@ -7,7 +7,7 @@ use std::{fmt, io};
 
 use uv_vfs::fs::tokio::File;
 use futures::TryStreamExt;
-use glob::{GlobError, PatternError, glob};
+use uv_vfs::glob::{GlobError, PatternError, glob};
 use itertools::Itertools;
 use http::header::{AUTHORIZATION, LOCATION, ToStrError};
 use reqwest::multipart::Part;

@@ -7526,6 +7526,7 @@ name = "uv-vfs"
 version = "0.0.70"
 dependencies = [
  "fs-err",
+ "glob",
  "percent-encoding",
  "rustc-hash",
  "tempfile",

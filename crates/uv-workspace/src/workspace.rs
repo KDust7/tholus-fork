@@ -9,7 +9,7 @@ use std::hash::BuildHasherDefault;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use glob::{GlobError, Pattern, PatternError, glob};
+use uv_vfs::glob::{GlobError, Pattern, PatternError, glob};
 use itertools::Itertools;
 use rustc_hash::{FxHashSet, FxHasher};
 use tracing::{debug, trace, warn};
@@ -1172,7 +1172,7 @@ impl Workspace {
         for member_glob in workspace_definition.clone().members.unwrap_or_default() {
             // Normalize the member glob to remove leading `./` and other relative path components
             let normalized_glob = normalize_path(Path::new(member_glob.as_str()));
-            let absolute_glob = PathBuf::from(glob::Pattern::escape(
+            let absolute_glob = PathBuf::from(uv_vfs::glob::Pattern::escape(
                 workspace_root.simplified().to_string_lossy().as_ref(),
             ))
             .join(normalized_glob.as_ref())
@@ -2045,12 +2045,12 @@ fn is_included_in_workspace(
     for member_glob in workspace.members.iter().flatten() {
         // Normalize the member glob to remove leading `./` and other relative path components
         let normalized_glob = normalize_path(Path::new(member_glob.as_str()));
-        let absolute_glob = PathBuf::from(glob::Pattern::escape(
+        let absolute_glob = PathBuf::from(uv_vfs::glob::Pattern::escape(
             workspace_root.simplified().to_string_lossy().as_ref(),
         ))
         .join(normalized_glob);
         let absolute_glob = absolute_glob.to_string_lossy();
-        let include_pattern = glob::Pattern::new(&absolute_glob)
+        let include_pattern = uv_vfs::glob::Pattern::new(&absolute_glob)
             .map_err(|err| WorkspaceErrorKind::Pattern(absolute_glob.to_string(), err))?;
         if include_pattern.matches_path(project_path) {
             return Ok(true);

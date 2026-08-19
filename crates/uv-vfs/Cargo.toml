@@ -20,6 +20,7 @@ default = ["tokio"]
 tokio = ["dep:tokio"]
 
 [dependencies]
+glob = { workspace = true }
 percent-encoding = { workspace = true }
 rustc-hash = { workspace = true }
 tokio = { workspace = true, optional = true }

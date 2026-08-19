@@ -7,6 +7,7 @@ use web_time::SystemTime;
 
 pub mod env;
 pub mod fs;
+pub mod glob;
 pub mod memory;
 pub mod path;
 pub mod path_ext;
