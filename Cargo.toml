@@ -14,6 +14,7 @@ resolver = "2"
 astral_async_http_range_reader = { path = "patches/astral-async-http-range-reader" }
 astral-reqwest-retry = { path = "patches/astral-reqwest-retry" }
 astral-tokio-tar = { path = "patches/astral-tokio-tar" }
+retry-policies = { path = "patches/retry-policies" }
 
 [workspace.package]
 edition = "2024"
