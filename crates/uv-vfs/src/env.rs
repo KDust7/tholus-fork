@@ -6,10 +6,14 @@ mod backing {
     use std::collections::BTreeMap;
     use std::ffi::{OsStr, OsString};
 
+    pub(crate) const DEFAULT_HOME: &str = "/home/browser";
+
     thread_local! {
-        static ENVIRONMENT: RefCell<BTreeMap<OsString, OsString>> = const {
-            RefCell::new(BTreeMap::new())
-        };
+        static ENVIRONMENT: RefCell<BTreeMap<OsString, OsString>> = RefCell::new(defaults());
+    }
+
+    fn defaults() -> BTreeMap<OsString, OsString> {
+        BTreeMap::from([(OsString::from("HOME"), OsString::from(DEFAULT_HOME))])
     }
 
     pub(crate) fn get(key: &OsStr) -> Option<OsString> {
@@ -29,8 +33,10 @@ mod backing {
     }
 
     pub(crate) fn replace(entries: impl IntoIterator<Item = (OsString, OsString)>) {
+        let mut replacement = defaults();
+        replacement.extend(entries);
         ENVIRONMENT.with(|environment| {
-            *environment.borrow_mut() = entries.into_iter().collect();
+            *environment.borrow_mut() = replacement;
         });
     }
 
@@ -124,7 +130,7 @@ mod tests {
         backing::replace([]);
         backing::set("UV_CACHE_DIR".into(), "/cache".into());
         backing::set("VIRTUAL_ENV".into(), "/work/.venv".into());
-        assert_eq!(backing::snapshot().len(), 2);
+        assert_eq!(backing::snapshot().len(), 3);
         backing::unset("VIRTUAL_ENV".as_ref());
         assert_eq!(backing::get("VIRTUAL_ENV".as_ref()), None);
         assert_eq!(backing::get("UV_CACHE_DIR".as_ref()), Some("/cache".into()));
@@ -136,6 +142,28 @@ mod tests {
         backing::set("B".into(), "2".into());
         backing::set("A".into(), "1".into());
         let keys: Vec<_> = backing::snapshot().into_iter().map(|(key, _)| key).collect();
-        assert_eq!(keys, vec!["A", "B"]);
+        assert_eq!(keys, vec!["A", "B", "HOME"]);
+    }
+
+    #[test]
+    fn a_host_that_declares_nothing_still_has_a_home() {
+        backing::replace([]);
+        assert_eq!(
+            backing::get("HOME".as_ref()),
+            Some(backing::DEFAULT_HOME.into())
+        );
+    }
+
+    #[test]
+    fn the_hosts_home_wins_over_the_default() {
+        backing::replace([("HOME".into(), "/mnt/user".into())]);
+        assert_eq!(backing::get("HOME".as_ref()), Some("/mnt/user".into()));
+    }
+
+    #[test]
+    fn unsetting_the_home_leaves_it_unset() {
+        backing::replace([]);
+        backing::unset("HOME".as_ref());
+        assert_eq!(backing::get("HOME".as_ref()), None);
     }
 }

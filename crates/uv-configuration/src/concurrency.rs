@@ -1,4 +1,5 @@
 use std::fmt;
+#[cfg(not(target_family = "wasm"))]
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 
@@ -56,7 +57,11 @@ impl Default for Concurrency {
 
 impl Concurrency {
     // The default concurrent downloads limit.
+    #[cfg(not(target_family = "wasm"))]
     pub const DEFAULT_DOWNLOADS: usize = 50;
+
+    #[cfg(target_family = "wasm")]
+    pub const DEFAULT_DOWNLOADS: usize = 10;
 
     // The default concurrent cache reads limit.
     pub const DEFAULT_CACHE_READS: usize = 4;
@@ -74,9 +79,15 @@ impl Concurrency {
     }
 
     // The default concurrent builds and install limit.
+    #[cfg(not(target_family = "wasm"))]
     pub fn threads() -> usize {
         std::thread::available_parallelism()
             .map(NonZeroUsize::get)
             .unwrap_or(1)
+    }
+
+    #[cfg(target_family = "wasm")]
+    pub fn threads() -> usize {
+        1
     }
 }
