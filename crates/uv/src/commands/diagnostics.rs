@@ -96,14 +96,14 @@ impl OperationDiagnostic {
             pip::operations::Error::Requirements(err) if let Some(context) = self.context => {
                 let err = miette::Report::msg(format!("{err}"))
                     .context(format!("Failed to resolve {context} requirement"));
-                anstream::eprint!("{err:?}");
+                uv_wasm_compat::io::stderr(&format!("{err:?}"));
                 Hints::none()
             }
             pip::operations::Error::Requirements(err) => {
                 return Some(pip::operations::Error::Requirements(err));
             }
             err @ pip::operations::Error::OutdatedEnvironment(..) => {
-                anstream::eprintln!("{}", err);
+                uv_wasm_compat::io::stderr(&format!("{err}\n"));
                 Hints::none()
             }
             err => return Some(err),
@@ -112,7 +112,7 @@ impl OperationDiagnostic {
         // Render all hints after the error output.
         hints.extend(self.hints);
         if !hints.is_empty() {
-            anstream::eprintln!("{hints}");
+            uv_wasm_compat::io::stderr(&format!("{hints}\n"));
         }
 
         None
@@ -140,7 +140,7 @@ fn dist_error(
 
     let hints = dist_hints(dist.name(), dist.version(), chain, cause.hints());
     let report = miette::Report::new(Diagnostic { kind, dist, cause });
-    anstream::eprint!("{report:?}");
+    uv_wasm_compat::io::stderr(&format!("{report:?}"));
     hints
 }
 
@@ -165,7 +165,7 @@ fn requested_dist_error(
 
     let hints = dist_hints(dist.name(), dist.version(), chain, cause.hints());
     let report = miette::Report::new(Diagnostic { kind, dist, cause });
-    anstream::eprint!("{report:?}");
+    uv_wasm_compat::io::stderr(&format!("{report:?}"));
     hints
 }
 
@@ -194,7 +194,7 @@ fn dependencies_error(
         version: version.clone(),
         cause: error,
     });
-    anstream::eprint!("{report:?}");
+    uv_wasm_compat::io::stderr(&format!("{report:?}"));
     hints
 }
 
@@ -210,7 +210,7 @@ fn no_solution(
         header
     };
     let report = miette::Report::msg(err.report().to_string()).context(header);
-    anstream::eprint!("{report:?}");
+    uv_wasm_compat::io::stderr(&format!("{report:?}"));
     err.hints().into_owned()
 }
 
