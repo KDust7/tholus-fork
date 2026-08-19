@@ -108,7 +108,7 @@ fn named(path: &Path) -> io::Result<PathBuf> {
     if path.as_os_str().is_empty() {
         return Err(not_found(path));
     }
-    Ok(normalize(path))
+    Ok(crate::path::resolve(path))
 }
 
 fn now() -> SystemTime {

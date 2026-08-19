@@ -1,23 +1,24 @@
 use std::ffi::OsStr;
 use std::path::{Component, Path, PathBuf};
 
-#[cfg(target_family = "wasm")]
 thread_local! {
     static WORKING_DIRECTORY: std::cell::RefCell<PathBuf> =
         std::cell::RefCell::new(PathBuf::from("/"));
 }
 
-#[cfg(target_family = "wasm")]
 pub fn working_directory() -> PathBuf {
     WORKING_DIRECTORY.with(|current| current.borrow().clone())
 }
 
-#[cfg(target_family = "wasm")]
 pub fn set_working_directory(path: &Path) {
-    let resolved = normalize(path);
+    let resolved = resolve(path);
     WORKING_DIRECTORY.with(|current| {
         *current.borrow_mut() = resolved;
     });
+}
+
+pub fn resolve(path: &Path) -> PathBuf {
+    normalize(&working_directory().join(path))
 }
 
 #[cfg(target_family = "wasm")]
@@ -141,7 +142,10 @@ pub fn is_within(ancestor: &Path, descendant: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_within, normalize, parent_of, split_posix_path_list};
+    use super::{
+        is_within, normalize, parent_of, resolve, set_working_directory, split_posix_path_list,
+        working_directory,
+    };
     use std::ffi::OsStr;
     use std::path::{Path, PathBuf};
 
@@ -228,5 +232,40 @@ mod tests {
     #[test]
     fn rejects_unrelated_paths() {
         assert!(!is_within(Path::new("/work"), Path::new("/cache")));
+    }
+
+    #[test]
+    fn a_relative_path_resolves_against_the_working_directory() {
+        set_working_directory(Path::new("/work"));
+        assert_eq!(resolve(Path::new("requirements.in")), PathBuf::from("/work/requirements.in"));
+        assert_eq!(resolve(Path::new("./sub/file")), PathBuf::from("/work/sub/file"));
+        set_working_directory(Path::new("/"));
+    }
+
+    #[test]
+    fn an_absolute_path_ignores_the_working_directory() {
+        set_working_directory(Path::new("/work"));
+        assert_eq!(resolve(Path::new("/etc/hosts")), PathBuf::from("/etc/hosts"));
+        set_working_directory(Path::new("/"));
+    }
+
+    #[test]
+    fn the_root_working_directory_leaves_resolution_as_normalization() {
+        set_working_directory(Path::new("/"));
+        for path in ["requirements.in", "/abs/path", "./rel", "a/../b"] {
+            assert_eq!(resolve(Path::new(path)), normalize(Path::new(path)));
+        }
+    }
+
+    #[test]
+    fn changing_directory_is_itself_relative_to_the_current_one() {
+        set_working_directory(Path::new("/"));
+        set_working_directory(Path::new("work"));
+        assert_eq!(working_directory(), PathBuf::from("/work"));
+        set_working_directory(Path::new("sub"));
+        assert_eq!(working_directory(), PathBuf::from("/work/sub"));
+        set_working_directory(Path::new(".."));
+        assert_eq!(working_directory(), PathBuf::from("/work"));
+        set_working_directory(Path::new("/"));
     }
 }
