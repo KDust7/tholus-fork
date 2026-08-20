@@ -116,6 +116,15 @@ impl GlobalInitialization {
     const fn needs_initialization(self) -> bool {
         matches!(self, Self::Initialize)
     }
+
+    #[doc(hidden)]
+    pub fn detect() -> Self {
+        if uv_preview::is_initialized() {
+            Self::Reuse
+        } else {
+            Self::Initialize
+        }
+    }
 }
 
 /// uv was installed through an external package manager and cannot update itself.

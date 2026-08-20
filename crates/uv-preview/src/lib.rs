@@ -72,6 +72,10 @@ pub fn set(preview: Preview) -> Result<(), PreviewError> {
     }
 }
 
+pub fn is_initialized() -> bool {
+    PREVIEW.get().is_some()
+}
+
 pub fn finalize() -> Result<(), PreviewError> {
     match PREVIEW.get().ok_or(PreviewError::NotInitialized)? {
         PreviewMode::Normal(mutex) => {
