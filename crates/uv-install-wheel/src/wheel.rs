@@ -972,11 +972,12 @@ pub(crate) fn write_record(
     let mut record_writer = csv::WriterBuilder::new()
         .has_headers(false)
         .escape(b'"')
-        .from_path(record_file)?;
+        .from_writer(File::create(record_file)?);
     record.sort();
     for entry in record {
         record_writer.serialize(entry)?;
     }
+    record_writer.flush()?;
     Ok(())
 }
 
