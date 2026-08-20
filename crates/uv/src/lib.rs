@@ -180,9 +180,19 @@ where
 {
     use clap::FromArgMatches;
 
-    let command = apply_environment(Cli::command(), &from_environment);
+    let command = wrap_to_terminal(apply_environment(Cli::command(), &from_environment));
     let mut matches = command.try_get_matches_from(args)?;
-    Cli::from_arg_matches_mut(&mut matches).map_err(|err| err.format(&mut Cli::command()))
+    Cli::from_arg_matches_mut(&mut matches)
+        .map_err(|err| err.format(&mut wrap_to_terminal(Cli::command())))
+}
+
+#[cfg(target_family = "wasm")]
+fn wrap_to_terminal(command: clap::Command) -> clap::Command {
+    if uv_wasm_compat::term::is_tty() {
+        command.term_width(usize::from(uv_wasm_compat::term::columns()))
+    } else {
+        command
+    }
 }
 
 #[cfg(target_family = "wasm")]
