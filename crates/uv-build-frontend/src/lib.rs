@@ -11,18 +11,16 @@ use std::fmt::Formatter;
 use std::fmt::Write;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::process::ExitStatus;
 use std::str::FromStr;
 use std::sync::{Arc, LazyLock};
 use std::{env, iter};
+use uv_wasm_compat::process::ExitStatus;
 
-use uv_vfs::fs as fs;
 use indoc::formatdoc;
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
 use serde::de::{self, IntoDeserializer, SeqAccess, Visitor, value};
 use serde::{Deserialize, Deserializer};
-use uv_vfs::temp::TempDir;
 #[cfg(not(target_family = "wasm"))]
 use tokio::io::AsyncBufReadExt;
 #[cfg(not(target_family = "wasm"))]
@@ -47,9 +45,11 @@ use uv_static::EnvVars;
 use uv_types::{
     AnyErrorBuild, BuildContext, BuildIsolation, BuildStack, ResolvedRequirements, SourceBuildTrait,
 };
+use uv_vfs::VfsPathExt as _;
+use uv_vfs::fs;
+use uv_vfs::temp::TempDir;
 use uv_warnings::warn_user_once;
 use uv_workspace::WorkspaceCache;
-use uv_vfs::VfsPathExt as _;
 
 pub use crate::error::{Error, MissingHeaderCause};
 
@@ -427,7 +427,8 @@ impl SourceBuild {
                 // Prepend the user supplied PATH to the existing PATH
                 Some(env_path) => {
                     let user_path = PathBuf::from(user_path);
-                    let new_path = uv_vfs::split_paths(&user_path).chain(uv_vfs::split_paths(&env_path));
+                    let new_path =
+                        uv_vfs::split_paths(&user_path).chain(uv_vfs::split_paths(&env_path));
                     Some(env::join_paths(new_path).map_err(Error::BuildScriptPath)?)
                 }
                 // Use the user supplied PATH
@@ -439,7 +440,8 @@ impl SourceBuild {
 
         // Prepend the venv bin directory to the modified path
         let modified_path = if let Some(path) = modified_path {
-            let venv_path = iter::once(venv.scripts().to_path_buf()).chain(uv_vfs::split_paths(&path));
+            let venv_path =
+                iter::once(venv.scripts().to_path_buf()).chain(uv_vfs::split_paths(&path));
             env::join_paths(venv_path).map_err(Error::BuildScriptPath)?
         } else {
             OsString::from(venv.scripts())
@@ -1212,13 +1214,44 @@ impl PythonRunner {
     #[cfg(target_family = "wasm")]
     async fn run_script(
         &self,
-        _venv: &PythonEnvironment,
-        _script: &str,
-        _source_tree: &Path,
-        _environment_variables: &FxHashMap<OsString, OsString>,
-        _modified_path: &OsString,
+        venv: &PythonEnvironment,
+        script: &str,
+        source_tree: &Path,
+        environment_variables: &FxHashMap<OsString, OsString>,
+        modified_path: &OsString,
     ) -> Result<PythonRunnerOutput, Error> {
-        Err(Error::PythonSubprocessUnsupported)
+        let request = uv_wasm_compat::pep517::HookRequest {
+            venv: venv.root().to_string_lossy().into_owned(),
+            script: script.to_string(),
+            source_tree: source_tree.to_string_lossy().into_owned(),
+            env: environment_variables
+                .iter()
+                .map(|(key, value)| {
+                    (
+                        key.to_string_lossy().into_owned(),
+                        value.to_string_lossy().into_owned(),
+                    )
+                })
+                .collect(),
+            path: modified_path.to_string_lossy().into_owned(),
+        };
+
+        let output = uv_wasm_compat::pep517::run_hook(request)
+            .await
+            .map_err(|err| match err {
+                uv_wasm_compat::pep517::HookError::NoRuntimeAttached => {
+                    Error::PythonSubprocessUnsupported
+                }
+                uv_wasm_compat::pep517::HookError::Failed(message) => {
+                    Error::PythonRuntimeFailed(message)
+                }
+            })?;
+
+        Ok(PythonRunnerOutput {
+            stdout: output.stdout,
+            stderr: output.stderr,
+            status: ExitStatus::from_code(output.code),
+        })
     }
 
     /// Note: It is the caller's responsibility to create an informative span.

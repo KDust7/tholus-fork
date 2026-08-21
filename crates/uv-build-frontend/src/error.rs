@@ -2,7 +2,7 @@ use std::env;
 use std::fmt::{Display, Formatter};
 use std::io;
 use std::path::PathBuf;
-use std::process::ExitStatus;
+use uv_wasm_compat::process::ExitStatus;
 
 use crate::PythonRunnerOutput;
 use owo_colors::OwoColorize;
@@ -62,9 +62,12 @@ pub enum Error {
     UnmatchedRuntime(PackageName, PackageName),
     #[cfg(target_family = "wasm")]
     #[error(
-        "Running a build backend requires starting a Python subprocess, which is unavailable in the browser"
+        "Building a source distribution requires a Python runtime, and none is attached to the engine"
     )]
     PythonSubprocessUnsupported,
+    #[cfg(target_family = "wasm")]
+    #[error("The attached Python runtime could not run the build backend: {0}")]
+    PythonRuntimeFailed(String),
 }
 
 impl IsBuildBackendError for Error {
@@ -86,6 +89,8 @@ impl IsBuildBackendError for Error {
             | Self::UnmatchedRuntime(_, _) => false,
             #[cfg(target_family = "wasm")]
             Self::PythonSubprocessUnsupported => false,
+            #[cfg(target_family = "wasm")]
+            Self::PythonRuntimeFailed(_) => true,
             Self::CommandFailed(_, _)
             | Self::BuildBackend(_)
             | Self::MissingHeader(_)

@@ -133,3 +133,37 @@ mod browser {
 
     pub enum ChildStderr {}
 }
+
+#[cfg(not(target_family = "wasm"))]
+pub use std::process::ExitStatus;
+
+#[cfg(target_family = "wasm")]
+pub use status::ExitStatus;
+
+#[cfg(target_family = "wasm")]
+mod status {
+    use std::fmt;
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+    pub struct ExitStatus(i32);
+
+    impl ExitStatus {
+        pub fn from_code(code: i32) -> Self {
+            Self(code)
+        }
+
+        pub fn success(self) -> bool {
+            self.0 == 0
+        }
+
+        pub fn code(self) -> Option<i32> {
+            Some(self.0)
+        }
+    }
+
+    impl fmt::Display for ExitStatus {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "exit status: {}", self.0)
+        }
+    }
+}
