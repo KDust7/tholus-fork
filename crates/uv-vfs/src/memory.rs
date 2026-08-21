@@ -81,7 +81,10 @@ impl MemoryFs {
             };
             match node {
                 Node::Symlink { target, .. } if follow => {
-                    current = normalize(target);
+                    current = match parent_of(&current) {
+                        Some(parent) if !target.has_root() => normalize(&parent.join(target)),
+                        _ => normalize(target),
+                    };
                 }
                 _ => return Ok((current, node.clone())),
             }
@@ -449,6 +452,24 @@ mod tests {
             fs.symlink_metadata(Path::new("/work/link")).expect("metadata").kind,
             VfsKind::Symlink
         );
+    }
+
+    #[test]
+    fn follows_a_relative_symlink_from_the_directory_holding_it() {
+        let fs = populated();
+        fs.create_dir_all(Path::new("/work/links")).expect("create");
+        fs.symlink(Path::new("../project/pyproject.toml"), Path::new("/work/links/toml"))
+            .expect("link");
+        assert_eq!(fs.read(Path::new("/work/links/toml")).expect("read"), b"[project]");
+    }
+
+    #[test]
+    fn follows_a_relative_symlink_that_climbs_several_directories() {
+        let fs = populated();
+        fs.create_dir_all(Path::new("/work/a/b/c")).expect("create");
+        fs.symlink(Path::new("../../../project/pyproject.toml"), Path::new("/work/a/b/c/toml"))
+            .expect("link");
+        assert_eq!(fs.read(Path::new("/work/a/b/c/toml")).expect("read"), b"[project]");
     }
 
     #[test]
