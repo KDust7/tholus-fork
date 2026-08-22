@@ -81,6 +81,8 @@ pub trait Vfs: Send + Sync + 'static {
 
     fn read_link(&self, path: &Path) -> io::Result<PathBuf>;
 
+    fn canonicalize(&self, path: &Path) -> io::Result<PathBuf>;
+
     fn set_modified(&self, path: &Path, time: SystemTime) -> io::Result<()>;
 
     fn hard_link(&self, source: &Path, target: &Path) -> io::Result<()> {

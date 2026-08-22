@@ -156,6 +156,46 @@ fn canonicalize_rejects_a_missing_path() {
 }
 
 #[test]
+fn canonicalize_follows_a_symlink_to_its_target() {
+    fresh();
+    create_dir_all("/work/archive/entry").expect("create archive");
+    os::unix::fs::symlink("/work/archive/entry", "/work/pointer").expect("symlink");
+    assert_eq!(
+        canonicalize("/work/pointer").expect("canonicalize"),
+        Path::new("/work/archive/entry")
+    );
+}
+
+#[test]
+fn canonicalize_follows_a_relative_symlink_from_the_directory_holding_it() {
+    fresh();
+    create_dir_all("/work/archive-v0/JUcyCJDisWyNXwjk").expect("create archive");
+    create_dir_all("/work/sdists-v9/idna/3.11/rev").expect("create bucket");
+    os::unix::fs::symlink(
+        "../../../../archive-v0/JUcyCJDisWyNXwjk",
+        "/work/sdists-v9/idna/3.11/rev/idna-3.11-py3-none-any",
+    )
+    .expect("symlink");
+    assert_eq!(
+        canonicalize("/work/sdists-v9/idna/3.11/rev/idna-3.11-py3-none-any")
+            .expect("canonicalize"),
+        Path::new("/work/archive-v0/JUcyCJDisWyNXwjk")
+    );
+}
+
+#[test]
+fn canonicalize_follows_a_symlink_that_is_not_the_last_component() {
+    fresh();
+    create_dir_all("/work/archive/entry").expect("create archive");
+    write("/work/archive/entry/RECORD", b"x").expect("write");
+    os::unix::fs::symlink("/work/archive/entry", "/work/pointer").expect("symlink");
+    assert_eq!(
+        canonicalize("/work/pointer/RECORD").expect("canonicalize"),
+        Path::new("/work/archive/entry/RECORD")
+    );
+}
+
+#[test]
 fn hard_links_are_reported_as_unsupported() {
     fresh();
     write("/work/a.txt", b"x").expect("write");

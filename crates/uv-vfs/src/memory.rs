@@ -162,6 +162,12 @@ impl Vfs for MemoryFs {
         Ok(node.metadata())
     }
 
+    fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+        let nodes = self.nodes.read().map_err(poisoned)?;
+        let (resolved, _) = MemoryFs::resolve(&nodes, path, true)?;
+        Ok(resolved)
+    }
+
     fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
         let nodes = self.nodes.read().map_err(poisoned)?;
         let (resolved, node) = MemoryFs::resolve(&nodes, path, true)?;

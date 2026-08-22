@@ -216,9 +216,7 @@ pub fn read_link(path: impl AsRef<Path>) -> io::Result<PathBuf> {
 }
 
 pub fn canonicalize(path: impl AsRef<Path>) -> io::Result<PathBuf> {
-    let normalized = normalize(path.as_ref());
-    global().metadata(&normalized)?;
-    Ok(normalized)
+    global().canonicalize(path.as_ref())
 }
 
 pub fn set_permissions(path: impl AsRef<Path>, _permissions: Permissions) -> io::Result<()> {
