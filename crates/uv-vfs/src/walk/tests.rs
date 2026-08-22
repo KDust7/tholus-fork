@@ -174,3 +174,35 @@ fn an_error_converts_back_to_io() {
     let io_error: std::io::Error = error.into();
     assert_eq!(io_error.to_string(), "boom");
 }
+
+#[test]
+fn an_archive_directory_walks_as_a_directory() {
+    fresh();
+    create_dir_all("/cache/archive-v0/abc/idna").expect("create");
+    create_dir_all("/cache/archive-v0/abc/idna-3.11.dist-info").expect("create");
+    write("/cache/archive-v0/abc/idna/__init__.py", b"x").expect("write");
+    write("/cache/archive-v0/abc/idna-3.11.dist-info/WHEEL", b"w").expect("write");
+
+    let mut walk = WalkDir::new("/cache/archive-v0/abc").sort_by_file_name().into_iter();
+    let root = walk.next().expect("root").expect("entry");
+    assert_eq!(root.path().display().to_string(), "/cache/archive-v0/abc");
+    assert!(root.file_type().is_dir(), "the archive root must walk as a directory");
+    assert!(walked(WalkDir::new("/cache/archive-v0/abc").sort_by_file_name()).len() > 1);
+}
+
+#[test]
+fn a_symlinked_root_reports_itself_as_a_symlink_like_walkdir_does() {
+    fresh();
+    create_dir_all("/cache/archive-v0/abc").expect("create");
+    write("/cache/archive-v0/abc/WHEEL", b"w").expect("write");
+    create_dir_all("/cache/sdists-v9/rev").expect("create");
+    os::unix::fs::symlink("../../archive-v0/abc", "/cache/sdists-v9/rev/pkg")
+        .expect("symlink");
+
+    let root = WalkDir::new("/cache/sdists-v9/rev/pkg")
+        .into_iter()
+        .next()
+        .expect("root")
+        .expect("entry");
+    assert!(root.file_type().is_symlink());
+}

@@ -84,7 +84,7 @@ impl MemoryFs {
         while let Some(segment) = remaining.pop_front() {
             current.push(segment);
             let Some(node) = nodes.get(&current) else {
-                return Err(not_found(&current));
+                return Err(not_found(if hops == 0 { &full } else { &current }));
             };
             let last = remaining.is_empty();
             match node {
@@ -113,7 +113,7 @@ impl MemoryFs {
             }
         }
 
-        let node = nodes.get(&current).ok_or_else(|| not_found(&current))?;
+        let node = nodes.get(&current).ok_or_else(|| not_found(&full))?;
         Ok((current, node.clone()))
     }
 
@@ -385,6 +385,16 @@ mod tests {
             VfsKind::Symlink,
         );
         assert_eq!(fs.metadata(Path::new("/link")).expect("metadata").kind, VfsKind::Directory);
+    }
+
+    #[test]
+    fn a_missing_path_is_reported_as_the_path_that_was_asked_for() {
+        let fs = MemoryFs::new();
+        let error = fs.read(Path::new("/missing/file")).expect_err("missing");
+        assert!(
+            error.to_string().contains("missing") && error.to_string().contains("file"),
+            "the error must name the whole path, not the first component that is absent: {error}",
+        );
     }
 
     #[test]
