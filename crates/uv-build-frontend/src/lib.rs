@@ -852,6 +852,7 @@ impl SourceBuild {
                 &self.source_tree,
                 &self.environment_variables,
                 &self.modified_path,
+                None,
             )
             .instrument(span)
             .await?;
@@ -972,6 +973,7 @@ impl SourceBuild {
                 &self.source_tree,
                 &self.environment_variables,
                 &self.modified_path,
+                Some(output_dir),
             )
             .instrument(span)
             .await?;
@@ -1082,6 +1084,7 @@ async fn create_pep517_build_environment(
             source_tree,
             environment_variables,
             modified_path,
+            None,
         )
         .instrument(span)
         .await?;
@@ -1219,6 +1222,7 @@ impl PythonRunner {
         source_tree: &Path,
         environment_variables: &FxHashMap<OsString, OsString>,
         modified_path: &OsString,
+        output_dir: Option<&Path>,
     ) -> Result<PythonRunnerOutput, Error> {
         let request = uv_wasm_compat::pep517::HookRequest {
             venv: venv.root().to_string_lossy().into_owned(),
@@ -1234,6 +1238,7 @@ impl PythonRunner {
                 })
                 .collect(),
             path: modified_path.to_string_lossy().into_owned(),
+            output_dir: output_dir.map(|path| path.to_string_lossy().into_owned()),
         };
 
         let output = uv_wasm_compat::pep517::run_hook(request)
@@ -1263,6 +1268,7 @@ impl PythonRunner {
         source_tree: &Path,
         environment_variables: &FxHashMap<OsString, OsString>,
         modified_path: &OsString,
+        _output_dir: Option<&Path>,
     ) -> Result<PythonRunnerOutput, Error> {
         /// Read lines from a reader and store them in a buffer.
         async fn read_from(

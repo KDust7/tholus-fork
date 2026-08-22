@@ -10,6 +10,7 @@ pub struct HookRequest {
     pub source_tree: String,
     pub env: Vec<(String, String)>,
     pub path: String,
+    pub output_dir: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -101,6 +102,19 @@ mod tests {
         }
     }
 
+    struct EchoOutputDir;
+
+    impl Pep517Runner for EchoOutputDir {
+        fn run(&self, request: HookRequest) -> HookFuture {
+            Box::pin(async move {
+                Ok(HookOutput {
+                    stdout: request.output_dir.into_iter().collect(),
+                    ..HookOutput::default()
+                })
+            })
+        }
+    }
+
     struct Refuses;
 
     impl Pep517Runner for Refuses {
@@ -116,6 +130,7 @@ mod tests {
             source_tree: "/src".to_string(),
             env: vec![("PYTHONHASHSEED".to_string(), "0".to_string())],
             path: "/build/.venv/bin".to_string(),
+            output_dir: Some("/build/wheels".to_string()),
         }
     }
 
@@ -139,6 +154,21 @@ mod tests {
         assert!(output.success());
         assert_eq!(output.stdout, vec!["print('hello')".to_string()]);
         assert_eq!(output.stderr, vec!["/src".to_string()]);
+        clear_runner();
+    }
+
+    #[test]
+    fn carries_the_output_directory_the_script_writes_into() {
+        set_runner(Box::new(EchoOutputDir));
+        let output = block_on(run_hook(request())).unwrap();
+        assert_eq!(output.stdout, vec!["/build/wheels".to_string()]);
+
+        let metadata_hook = HookRequest {
+            output_dir: None,
+            ..request()
+        };
+        let output = block_on(run_hook(metadata_hook)).unwrap();
+        assert!(output.stdout.is_empty());
         clear_runner();
     }
 
