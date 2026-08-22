@@ -1,5 +1,7 @@
+use std::collections::VecDeque;
+use std::ffi::OsString;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::RwLock;
 
 use rustc_hash::FxHashMap;
@@ -74,25 +76,45 @@ impl MemoryFs {
         path: &Path,
         follow: bool,
     ) -> io::Result<(PathBuf, Node)> {
-        let mut current = named(path)?;
-        for _ in 0..SYMLINK_HOP_LIMIT {
+        let full = named(path)?;
+        let mut remaining: VecDeque<OsString> = segments(&full);
+        let mut current = PathBuf::from("/");
+        let mut hops = 0usize;
+
+        while let Some(segment) = remaining.pop_front() {
+            current.push(segment);
             let Some(node) = nodes.get(&current) else {
                 return Err(not_found(&current));
             };
+            let last = remaining.is_empty();
             match node {
-                Node::Symlink { target, .. } if follow => {
-                    current = match parent_of(&current) {
+                Node::Symlink { target, .. } if follow || !last => {
+                    hops += 1;
+                    if hops > SYMLINK_HOP_LIMIT {
+                        return Err(io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            format!(
+                                "too many symbolic links while resolving {}",
+                                path.display()
+                            ),
+                        ));
+                    }
+                    let followed = match parent_of(&current) {
                         Some(parent) if !target.has_root() => normalize(&parent.join(target)),
                         _ => normalize(target),
                     };
+                    for segment in segments(&followed).into_iter().rev() {
+                        remaining.push_front(segment);
+                    }
+                    current = PathBuf::from("/");
                 }
-                _ => return Ok((current, node.clone())),
+                _ if last => return Ok((current, node.clone())),
+                _ => {}
             }
         }
-        Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!("too many symbolic links while resolving {}", path.display()),
-        ))
+
+        let node = nodes.get(&current).ok_or_else(|| not_found(&current))?;
+        Ok((current, node.clone()))
     }
 
     fn require_directory(nodes: &FxHashMap<PathBuf, Node>, path: &Path) -> io::Result<()> {
@@ -105,6 +127,15 @@ impl MemoryFs {
             Err(error) => Err(error),
         }
     }
+}
+
+fn segments(path: &Path) -> VecDeque<OsString> {
+    path.components()
+        .filter_map(|component| match component {
+            Component::Normal(segment) => Some(segment.to_os_string()),
+            _ => None,
+        })
+        .collect()
 }
 
 fn named(path: &Path) -> io::Result<PathBuf> {
@@ -321,6 +352,48 @@ mod tests {
     use std::io::ErrorKind;
     use std::path::Path;
     use web_time::{Duration, SystemTime};
+
+    #[test]
+    fn reads_through_a_symlink_that_is_not_the_last_component() {
+        let fs = MemoryFs::new();
+        fs.create_dir_all(Path::new("/cache/archive-v0/abc/pkg-1.0.dist-info")).expect("create");
+        fs.write(Path::new("/cache/archive-v0/abc/pkg-1.0.dist-info/WHEEL"), b"Wheel-Version: 1.0")
+            .expect("write");
+        fs.create_dir_all(Path::new("/cache/sdists-v9/index/pkg/1.0/rev")).expect("create");
+        fs.symlink(
+            Path::new("../../../../../archive-v0/abc"),
+            Path::new("/cache/sdists-v9/index/pkg/1.0/rev/pkg-1.0-py3-none-any"),
+        )
+        .expect("symlink");
+
+        let through =
+            Path::new("/cache/sdists-v9/index/pkg/1.0/rev/pkg-1.0-py3-none-any/pkg-1.0.dist-info/WHEEL");
+        assert_eq!(fs.read(through).expect("read through the link"), b"Wheel-Version: 1.0");
+        assert_eq!(
+            fs.symlink_metadata(through.parent().expect("parent")).expect("metadata").kind,
+            VfsKind::Directory,
+        );
+    }
+
+    #[test]
+    fn a_symlink_is_still_reported_as_one_when_it_is_the_last_component() {
+        let fs = MemoryFs::new();
+        fs.create_dir_all(Path::new("/target")).expect("create");
+        fs.symlink(Path::new("/target"), Path::new("/link")).expect("symlink");
+        assert_eq!(
+            fs.symlink_metadata(Path::new("/link")).expect("metadata").kind,
+            VfsKind::Symlink,
+        );
+        assert_eq!(fs.metadata(Path::new("/link")).expect("metadata").kind, VfsKind::Directory);
+    }
+
+    #[test]
+    fn refuses_a_symlink_loop_rather_than_hanging() {
+        let fs = MemoryFs::new();
+        fs.symlink(Path::new("/b"), Path::new("/a")).expect("symlink");
+        fs.symlink(Path::new("/a"), Path::new("/b")).expect("symlink");
+        assert!(fs.read(Path::new("/a/file")).is_err());
+    }
 
     fn populated() -> MemoryFs {
         let fs = MemoryFs::new();
