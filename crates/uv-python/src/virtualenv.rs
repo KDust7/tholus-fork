@@ -5,8 +5,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use uv_vfs::fs as fs;
 use thiserror::Error;
+use uv_vfs::fs;
 
 use uv_pypi_types::Scheme;
 use uv_static::EnvVars;
@@ -48,6 +48,8 @@ pub struct PyVenvConfiguration {
     pub(super) include_system_site_packages: bool,
     /// The Python version the virtual environment was created with
     pub(super) version: Option<PythonVersion>,
+    /// The extension-module ABI of the interpreter the environment was created against.
+    pub(super) interpreter_abi: Option<String>,
 }
 
 #[derive(Debug, Error)]
@@ -232,6 +234,7 @@ impl PyVenvConfiguration {
         let mut seed = false;
         let mut include_system_site_packages = true;
         let mut version = None;
+        let mut interpreter_abi = None;
 
         // Per https://snarky.ca/how-virtual-environments-work/, the `pyvenv.cfg` file is not a
         // valid INI file, and is instead expected to be parsed by partitioning each line on the
@@ -261,6 +264,9 @@ impl PyVenvConfiguration {
                 "include-system-site-packages" => {
                     include_system_site_packages = value.trim().to_lowercase() == "true";
                 }
+                "interpreter-abi" => {
+                    interpreter_abi = Some(value.trim().to_string());
+                }
                 "version" | "version_info" => {
                     version = Some(
                         PythonVersion::from_str(value.trim())
@@ -279,7 +285,13 @@ impl PyVenvConfiguration {
             seed,
             include_system_site_packages,
             version,
+            interpreter_abi,
         })
+    }
+
+    /// The extension-module ABI recorded when the environment was created, if any.
+    pub fn interpreter_abi(&self) -> Option<&str> {
+        self.interpreter_abi.as_deref()
     }
 
     /// Returns true if the virtual environment was created with the `virtualenv` package.

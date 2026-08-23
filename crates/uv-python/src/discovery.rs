@@ -17,13 +17,13 @@ use uv_distribution_types::RequiresPython;
 use uv_errors::Hints;
 use uv_fs::Simplified;
 use uv_fs::which::is_executable;
+use uv_fs::which::{which, which_all};
 use uv_pep440::{
     LowerBound, Prerelease, UpperBound, Version, VersionSpecifier, VersionSpecifiers,
     release_specifiers_to_ranges,
 };
 use uv_static::EnvVars;
 use uv_warnings::{warn_user_once, write_warning_chain};
-use uv_fs::which::{which, which_all};
 
 use crate::downloads::{ManagedPythonDownloadList, PlatformRequest, PythonDownloadRequest};
 use crate::implementation::ImplementationName;
@@ -358,10 +358,7 @@ fn python_executables_from_browser_runtime<'a>()
             debug!("Found browser Python runtime at `{}`", executable.display());
             Some(Ok((PythonSource::Managed, executable)))
         } else {
-            debug!(
-                "No browser Python runtime at `{}`",
-                executable.display()
-            );
+            debug!("No browser Python runtime at `{}`", executable.display());
             None
         }
     })
@@ -979,7 +976,9 @@ impl Error {
             Self::Query(err, _, source) => match &**err {
                 InterpreterError::Encode(_)
                 | InterpreterError::Io(_)
-                | InterpreterError::SpawnFailed { .. } => true,
+                | InterpreterError::SpawnFailed { .. }
+                | InterpreterError::InconsistentProfile { .. }
+                | InterpreterError::SwappedInterpreter { .. } => true,
                 InterpreterError::UnexpectedResponse(UnexpectedResponseError { path, .. })
                 | InterpreterError::StatusCode(StatusCodeError { path, .. }) => {
                     debug!(

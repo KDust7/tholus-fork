@@ -1,16 +1,16 @@
 //! Create a virtual environment.
 
 use std::borrow::Cow;
-use uv_vfs::EXE_SUFFIX;
 use std::ffi::{OsStr, OsString};
 use std::io;
 use std::io::{BufWriter, Write};
 use std::path::Path;
+use uv_vfs::EXE_SUFFIX;
 
 use console::Term;
-use uv_vfs::fs::File;
 use itertools::Itertools;
 use owo_colors::OwoColorize;
+use uv_vfs::fs::File;
 
 use tracing::{debug, trace};
 
@@ -552,6 +552,11 @@ pub(crate) fn create(
             },
         ),
     ];
+
+    #[cfg(target_family = "wasm")]
+    if let Some(abi) = interpreter.extension_suffixes().first() {
+        pyvenv_cfg_data.push(("interpreter-abi".to_string(), abi.to_string()));
+    }
 
     if relocatable {
         pyvenv_cfg_data.push(("relocatable".to_string(), "true".to_string()));

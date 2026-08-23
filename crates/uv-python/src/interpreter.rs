@@ -1,28 +1,28 @@
 use std::borrow::Cow;
 use std::env::consts::ARCH;
 use std::fmt::{Display, Formatter};
+use std::io;
 use std::path::{Path, PathBuf};
 #[cfg(not(target_family = "wasm"))]
 use std::process::Command;
 use std::process::ExitStatus;
 use std::str::FromStr;
 use std::sync::OnceLock;
-use std::io;
 
 use configparser::ini::Ini;
-use uv_vfs::fs as fs;
 use owo_colors::OwoColorize;
 use same_file::is_same_file;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::{debug, trace, warn};
+use uv_vfs::fs;
 
 use uv_cache::{Cache, CacheBucket, CachedByTimestamp, Freshness};
 use uv_cache_info::Timestamp;
 use uv_cache_key::cache_digest;
-use uv_fs::{LockedFile, LockedFileError, LockedFileMode, Simplified, write_atomic_sync};
 #[cfg(not(target_family = "wasm"))]
 use uv_fs::PythonExt;
+use uv_fs::{LockedFile, LockedFileError, LockedFileMode, Simplified, write_atomic_sync};
 use uv_install_wheel::Layout;
 use uv_pep440::Version;
 use uv_pep508::{MarkerEnvironment, StringVersion};
@@ -38,9 +38,9 @@ use crate::{
     VersionRequest, VirtualEnvironment,
 };
 
+use uv_vfs::VfsPathExt as _;
 #[cfg(windows)]
 use windows::Win32::Foundation::{APPMODEL_ERROR_NO_PACKAGE, ERROR_CANT_ACCESS_FILE, WIN32_ERROR};
-use uv_vfs::VfsPathExt as _;
 
 /// A Python executable and its associated platform markers.
 #[expect(clippy::struct_excessive_bools)]
@@ -288,8 +288,7 @@ impl Interpreter {
     ///
     /// Returns `false` if we cannot determine the path of the uv managed Python interpreters.
     pub(crate) fn is_managed(&self) -> bool {
-        if let Ok(test_managed) =
-            uv_vfs::var(uv_static::EnvVars::UV_INTERNAL__TEST_PYTHON_MANAGED)
+        if let Ok(test_managed) = uv_vfs::var(uv_static::EnvVars::UV_INTERNAL__TEST_PYTHON_MANAGED)
         {
             // During testing, we collect interpreters into an artificial search path and need to
             // be able to mock whether an interpreter is managed or not.
@@ -816,6 +815,18 @@ impl Display for StatusCodeError {
 pub enum Error {
     #[error("Failed to query Python interpreter")]
     Io(#[from] io::Error),
+    #[error(
+        "The interpreter profile at `{path}` is inconsistent: {reason}. Rewrite it from the runtime it describes."
+    )]
+    InconsistentProfile { path: PathBuf, reason: String },
+    #[error(
+        "The virtual environment at `{path}` was created against `{recorded}` but its interpreter now reports `{found}`. Recreate the environment, or restore the interpreter it was built for."
+    )]
+    SwappedInterpreter {
+        path: PathBuf,
+        recorded: String,
+        found: String,
+    },
     #[error(transparent)]
     BrokenLink(BrokenLink),
     #[error("Python interpreter not found at `{0}`")]
@@ -993,8 +1004,92 @@ impl InterpreterInfo {
                 err,
                 path: interpreter.to_path_buf(),
             }),
-            InterpreterInfoResult::Success(data) => Ok(data.in_virtualenv_at(interpreter)),
+            InterpreterInfoResult::Success(data) => {
+                data.check_consistency()
+                    .map_err(|reason| Error::InconsistentProfile {
+                        path: interpreter.to_path_buf(),
+                        reason,
+                    })?;
+                data.check_recorded_abi(interpreter)?;
+                Ok(data.in_virtualenv_at(interpreter))
+            }
         }
+    }
+
+    #[cfg(any(target_family = "wasm", test))]
+    fn check_consistency(&self) -> Result<(), String> {
+        let version = self.markers.python_full_version().version.clone();
+        let (major, minor) = (
+            version.release()[0],
+            version.release().get(1).copied().unwrap_or(0),
+        );
+        let short = format!("{major}{minor}");
+
+        let Some(primary) = self.extension_suffixes.first() else {
+            return Err("it declares no extension suffixes".to_string());
+        };
+        let stem = primary
+            .strip_suffix(".so")
+            .or_else(|| primary.strip_suffix(".pyd"))
+            .unwrap_or(primary);
+        let Some(rest) = stem
+            .strip_prefix(".cpython-")
+            .or_else(|| stem.strip_prefix(".pypy"))
+        else {
+            return Err(format!(
+                "its first extension suffix `{primary}` names no implementation and version"
+            ));
+        };
+        let (declared, platform) = match rest.split_once('-') {
+            Some((declared, platform)) => (declared, Some(platform)),
+            None => (rest, None),
+        };
+        if declared != short {
+            return Err(format!(
+                "its extension suffix `{primary}` is built for Python {declared} while it reports {major}.{minor}"
+            ));
+        }
+
+        let emscripten = matches!(
+            self.platform.os(),
+            uv_platform_tags::Os::Pyodide { .. } | uv_platform_tags::Os::PyEmscripten { .. }
+        );
+        match (emscripten, platform) {
+            (true, Some(platform)) if platform.contains("emscripten") => Ok(()),
+            (true, _) => Err(format!(
+                "it reports an Emscripten platform while its extension suffix `{primary}` does not"
+            )),
+            (false, Some(platform)) if platform.contains("emscripten") => Err(format!(
+                "its extension suffix `{primary}` is Emscripten's while it reports {}",
+                self.platform.os()
+            )),
+            (false, _) => Ok(()),
+        }
+    }
+
+    #[cfg(any(target_family = "wasm", test))]
+    fn check_recorded_abi(&self, executable: &Path) -> Result<(), Error> {
+        let Some(root) = executable.parent().and_then(Path::parent) else {
+            return Ok(());
+        };
+        let Ok(config) = PyVenvConfiguration::parse(root.join("pyvenv.cfg")) else {
+            return Ok(());
+        };
+        let Some(recorded) = config.interpreter_abi() else {
+            return Ok(());
+        };
+        let found = self
+            .extension_suffixes
+            .first()
+            .map_or("", |suffix| &**suffix);
+        if recorded == found {
+            return Ok(());
+        }
+        Err(Error::SwappedInterpreter {
+            path: root.to_path_buf(),
+            recorded: recorded.to_string(),
+            found: found.to_string(),
+        })
     }
 
     #[cfg(any(target_family = "wasm", test))]
@@ -1542,6 +1637,145 @@ mod profile_tests {
         );
     }
 
+    fn rewritten(replace: &str, with: &str) -> String {
+        assert!(
+            PROFILE.contains(replace),
+            "the profile does not contain {replace}"
+        );
+        PROFILE.replace(replace, with)
+    }
+
+    fn reject(profile: &str) -> String {
+        let root = tempdir().unwrap();
+        let executable = root.path().join("bin").join("python3");
+        fs::create_dir_all(executable.parent().unwrap()).unwrap();
+        fs::write(&executable, profile).unwrap();
+
+        match InterpreterInfo::from_profile(&executable).unwrap_err() {
+            super::Error::InconsistentProfile { reason, .. } => reason,
+            other => panic!("expected an inconsistent-profile error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn refuses_a_profile_whose_extension_suffix_is_built_for_another_python() {
+        let reason = reject(&rewritten(
+            ".cpython-314-wasm32-emscripten.so",
+            ".cpython-312-wasm32-emscripten.so",
+        ));
+
+        assert!(
+            reason.contains("built for Python 312") && reason.contains("3.14"),
+            "unexpected reason: {reason}"
+        );
+    }
+
+    #[test]
+    fn refuses_a_profile_that_claims_emscripten_with_a_native_extension_suffix() {
+        let reason = reject(&rewritten(
+            ".cpython-314-wasm32-emscripten.so",
+            ".cpython-314-x86_64-linux-gnu.so",
+        ));
+
+        assert!(
+            reason.contains("Emscripten platform"),
+            "unexpected reason: {reason}"
+        );
+    }
+
+    #[test]
+    fn refuses_a_profile_with_no_extension_suffixes_at_all() {
+        let reason = reject(&rewritten(
+            r#"[".cpython-314-wasm32-emscripten.so", ".so"]"#,
+            "[]",
+        ));
+
+        assert_eq!(reason, "it declares no extension suffixes");
+    }
+
+    #[test]
+    fn refuses_an_interpreter_swapped_under_an_existing_environment() {
+        let root = tempdir().unwrap();
+        let venv = root.path().join(".venv");
+        let executable = venv.join("bin").join("python3");
+        fs::create_dir_all(executable.parent().unwrap()).unwrap();
+        fs::write(
+            &executable,
+            rewritten(
+                ".cpython-314-wasm32-emscripten.so",
+                ".cpython-315-wasm32-emscripten.so",
+            )
+            .replace("3.14.0", "3.15.0")
+            .replace("python3.14", "python3.15")
+            .replace("\"3.14\"", "\"3.15\""),
+        )
+        .unwrap();
+        fs::write(
+            venv.join("pyvenv.cfg"),
+            "home = /bin
+version = 3.14.0
+interpreter-abi = .cpython-314-wasm32-emscripten.so
+",
+        )
+        .unwrap();
+
+        match InterpreterInfo::from_profile(&executable).unwrap_err() {
+            super::Error::SwappedInterpreter {
+                recorded, found, ..
+            } => {
+                assert_eq!(recorded, ".cpython-314-wasm32-emscripten.so");
+                assert_eq!(found, ".cpython-315-wasm32-emscripten.so");
+            }
+            other => panic!("expected a swapped-interpreter error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn accepts_an_environment_whose_recorded_abi_still_matches() {
+        let root = tempdir().unwrap();
+        let venv = root.path().join(".venv");
+        let executable = venv.join("bin").join("python3");
+        write_profile(&executable);
+        fs::write(
+            venv.join("pyvenv.cfg"),
+            "home = /bin
+version = 3.14.0
+interpreter-abi = .cpython-314-wasm32-emscripten.so
+",
+        )
+        .unwrap();
+
+        let info = InterpreterInfo::from_profile(&executable).unwrap();
+
+        assert_eq!(info.sys_prefix, venv);
+    }
+
+    #[test]
+    fn accepts_an_environment_that_recorded_no_abi_at_all() {
+        let root = tempdir().unwrap();
+        let venv = root.path().join(".venv");
+        let executable = venv.join("bin").join("python3");
+        write_profile(&executable);
+        fs::write(
+            venv.join("pyvenv.cfg"),
+            "home = /bin
+version = 3.14.0
+",
+        )
+        .unwrap();
+
+        InterpreterInfo::from_profile(&executable).unwrap();
+    }
+
+    #[test]
+    fn accepts_the_profile_the_engine_seeds() {
+        let root = tempdir().unwrap();
+        let executable = root.path().join("bin").join("python3");
+        write_profile(&executable);
+
+        InterpreterInfo::from_profile(&executable).unwrap();
+    }
+
     #[test]
     fn a_pyvenv_cfg_without_a_home_is_not_a_virtual_environment() {
         let root = tempdir().unwrap();
@@ -1561,8 +1795,8 @@ mod profile_tests {
 mod tests {
     use std::str::FromStr;
 
-    use uv_vfs::fs as fs;
     use indoc::{formatdoc, indoc};
+    use uv_vfs::fs;
     use uv_vfs::temp::tempdir;
 
     use uv_cache::Cache;
