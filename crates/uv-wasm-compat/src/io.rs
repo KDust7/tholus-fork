@@ -1,3 +1,8 @@
+#![expect(
+    clippy::missing_const_for_thread_local,
+    reason = "the initialisers already use const blocks; clippy does not see through thread_local!"
+)]
+
 use std::cell::{Cell, RefCell};
 use std::io::Write;
 
@@ -90,7 +95,10 @@ pub struct LogWriter;
 impl Write for LogWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let text = String::from_utf8_lossy(buf);
-        write_str(Stream::Stderr, &anstream::adapter::strip_str(&text).to_string());
+        write_str(
+            Stream::Stderr,
+            &anstream::adapter::strip_str(&text).to_string(),
+        );
         Ok(buf.len())
     }
 

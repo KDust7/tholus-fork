@@ -106,14 +106,20 @@ mod tests {
     #[test]
     fn reads_back_what_the_host_installed() {
         backing::replace([("HOME".into(), "/home/browser".into())]);
-        assert_eq!(backing::lookup("HOME".as_ref()).as_deref(), Ok("/home/browser"));
+        assert_eq!(
+            backing::lookup("HOME".as_ref()).as_deref(),
+            Ok("/home/browser")
+        );
         assert_eq!(backing::get("HOME".as_ref()), Some("/home/browser".into()));
     }
 
     #[test]
     fn reports_an_absent_variable_the_way_std_does() {
         backing::replace([]);
-        assert!(matches!(backing::lookup("NOPE".as_ref()), Err(VarError::NotPresent)));
+        assert!(matches!(
+            backing::lookup("NOPE".as_ref()),
+            Err(VarError::NotPresent)
+        ));
         assert_eq!(backing::get("NOPE".as_ref()), None);
     }
 
@@ -141,7 +147,10 @@ mod tests {
         backing::replace([]);
         backing::set("B".into(), "2".into());
         backing::set("A".into(), "1".into());
-        let keys: Vec<_> = backing::snapshot().into_iter().map(|(key, _)| key).collect();
+        let keys: Vec<_> = backing::snapshot()
+            .into_iter()
+            .map(|(key, _)| key)
+            .collect();
         assert_eq!(keys, vec!["A", "B", "HOME"]);
     }
 

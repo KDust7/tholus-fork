@@ -180,28 +180,48 @@ mod tests {
 
     #[test]
     fn makes_relative_paths_absolute() {
-        assert_eq!(normalize(Path::new("work/project")), PathBuf::from("/work/project"));
+        assert_eq!(
+            normalize(Path::new("work/project")),
+            PathBuf::from("/work/project")
+        );
     }
 
     #[test]
     fn joins_with_posix_separators_on_every_host() {
-        assert_eq!(normalize(Path::new("/work/a/b")).display().to_string(), "/work/a/b");
+        assert_eq!(
+            normalize(Path::new("/work/a/b")).display().to_string(),
+            "/work/a/b"
+        );
     }
 
     #[test]
     fn rewrites_a_host_separator_into_a_posix_one() {
-        assert_eq!(normalize(Path::new("/work")).join("a"), PathBuf::from("/work/a"));
-        assert_eq!(normalize(&Path::new("/work").join("a")).display().to_string(), "/work/a");
+        assert_eq!(
+            normalize(Path::new("/work")).join("a"),
+            PathBuf::from("/work/a")
+        );
+        assert_eq!(
+            normalize(&Path::new("/work").join("a"))
+                .display()
+                .to_string(),
+            "/work/a"
+        );
     }
 
     #[test]
     fn collapses_current_directory_segments() {
-        assert_eq!(normalize(Path::new("/work/./project")), PathBuf::from("/work/project"));
+        assert_eq!(
+            normalize(Path::new("/work/./project")),
+            PathBuf::from("/work/project")
+        );
     }
 
     #[test]
     fn resolves_parent_segments() {
-        assert_eq!(normalize(Path::new("/work/project/../other")), PathBuf::from("/work/other"));
+        assert_eq!(
+            normalize(Path::new("/work/project/../other")),
+            PathBuf::from("/work/other")
+        );
     }
 
     #[test]
@@ -216,7 +236,10 @@ mod tests {
 
     #[test]
     fn reports_the_containing_directory() {
-        assert_eq!(parent_of(Path::new("/work/project")), Some(PathBuf::from("/work")));
+        assert_eq!(
+            parent_of(Path::new("/work/project")),
+            Some(PathBuf::from("/work"))
+        );
     }
 
     #[test]
@@ -237,15 +260,24 @@ mod tests {
     #[test]
     fn a_relative_path_resolves_against_the_working_directory() {
         set_working_directory(Path::new("/work"));
-        assert_eq!(resolve(Path::new("requirements.in")), PathBuf::from("/work/requirements.in"));
-        assert_eq!(resolve(Path::new("./sub/file")), PathBuf::from("/work/sub/file"));
+        assert_eq!(
+            resolve(Path::new("requirements.in")),
+            PathBuf::from("/work/requirements.in")
+        );
+        assert_eq!(
+            resolve(Path::new("./sub/file")),
+            PathBuf::from("/work/sub/file")
+        );
         set_working_directory(Path::new("/"));
     }
 
     #[test]
     fn an_absolute_path_ignores_the_working_directory() {
         set_working_directory(Path::new("/work"));
-        assert_eq!(resolve(Path::new("/etc/hosts")), PathBuf::from("/etc/hosts"));
+        assert_eq!(
+            resolve(Path::new("/etc/hosts")),
+            PathBuf::from("/etc/hosts")
+        );
         set_working_directory(Path::new("/"));
     }
 

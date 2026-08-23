@@ -72,10 +72,23 @@ fn a_directory_can_be_created_somewhere_specific() {
 #[test]
 fn a_directory_honours_a_prefix_and_suffix() {
     fresh();
-    let dir = Builder::new().prefix("build-").suffix(".d").tempdir().expect("tempdir");
-    let name = dir.path().file_name().expect("name").to_string_lossy().into_owned();
+    let dir = Builder::new()
+        .prefix("build-")
+        .suffix(".d")
+        .tempdir()
+        .expect("tempdir");
+    let name = dir
+        .path()
+        .file_name()
+        .expect("name")
+        .to_string_lossy()
+        .into_owned();
     assert!(name.starts_with("build-"));
-    assert!(name.ends_with(".d"));
+    assert!(
+        Path::new(&name)
+            .extension()
+            .is_some_and(|suffix| suffix == "d")
+    );
 }
 
 #[test]
@@ -120,7 +133,10 @@ fn persisting_moves_the_file_to_its_destination() {
     file.persist("/work/final.txt").expect("persist");
 
     assert!(!fs.exists(&temp_path));
-    assert_eq!(fs.read(Path::new("/work/final.txt")).expect("read"), b"payload");
+    assert_eq!(
+        fs.read(Path::new("/work/final.txt")).expect("read"),
+        b"payload"
+    );
 }
 
 #[test]
@@ -177,8 +193,16 @@ fn an_anonymous_file_can_be_placed_somewhere_specific() {
 fn the_builder_can_place_a_file_somewhere_specific() {
     let fs = fresh();
     fs.create_dir_all(Path::new("/work")).expect("create");
-    let file = Builder::new().prefix("wheel-").tempfile_in("/work").expect("tempfile_in");
-    let name = file.path().file_name().expect("name").to_string_lossy().into_owned();
+    let file = Builder::new()
+        .prefix("wheel-")
+        .tempfile_in("/work")
+        .expect("tempfile_in");
+    let name = file
+        .path()
+        .file_name()
+        .expect("name")
+        .to_string_lossy()
+        .into_owned();
     assert!(name.starts_with("wheel-"));
 }
 
@@ -204,7 +228,10 @@ fn a_named_temporary_file_can_be_passed_to_path_taking_apis() {
     fs.create_dir_all(Path::new("/work")).expect("create");
     let file = Builder::new().tempfile_in("/work").expect("tempfile_in");
     crate::fs::vfs_backed::write(&file, b"payload").expect("write");
-    assert_eq!(crate::fs::vfs_backed::read(file.path()).expect("read"), b"payload");
+    assert_eq!(
+        crate::fs::vfs_backed::read(file.path()).expect("read"),
+        b"payload"
+    );
 }
 
 #[test]
@@ -216,7 +243,9 @@ fn a_failed_persist_hands_the_handle_back() {
     file.write_all(b"payload").expect("write");
     let temp_path = file.path().to_path_buf();
 
-    let error = file.persist("/missing/final.txt").expect_err("persist should fail");
+    let error = file
+        .persist("/missing/final.txt")
+        .expect_err("persist should fail");
     assert_eq!(error.error.kind(), std::io::ErrorKind::NotFound);
     assert_eq!(error.file.path(), temp_path);
     assert!(fs.exists(&temp_path));

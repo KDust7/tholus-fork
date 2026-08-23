@@ -8,10 +8,9 @@ use web_time::SystemTime;
 
 use crate::fs::vfs_backed::tokio as afs;
 use crate::fs::vfs_backed::{
-    File, OpenOptions, canonicalize, copy, create_dir_all, hard_link, metadata, os, read,
-    exists, is_dir, is_file, read_dir, read_link, read_to_string, remove_dir_all, remove_file,
-    rename, symlink_metadata, try_exists,
-    write,
+    File, OpenOptions, canonicalize, copy, create_dir_all, exists, hard_link, is_dir, is_file,
+    metadata, os, read, read_dir, read_link, read_to_string, remove_dir_all, remove_file, rename,
+    symlink_metadata, try_exists, write,
 };
 use crate::{MemoryFs, install_global};
 
@@ -92,7 +91,10 @@ fn an_open_handle_sets_the_modification_time() {
         .set_modified(stamp)
         .expect("set modified");
     assert_eq!(
-        metadata("/work/a.txt").expect("metadata").modified().expect("modified"),
+        metadata("/work/a.txt")
+            .expect("metadata")
+            .modified()
+            .expect("modified"),
         stamp
     );
 }
@@ -125,7 +127,11 @@ fn lists_a_directory() {
 fn directory_entries_carry_their_path_and_kind() {
     fresh();
     write("/work/a.txt", b"x").expect("write");
-    let entry = read_dir("/work").expect("read_dir").next().expect("one entry").expect("ok");
+    let entry = read_dir("/work")
+        .expect("read_dir")
+        .next()
+        .expect("one entry")
+        .expect("ok");
     assert_eq!(entry.path(), Path::new("/work/a.txt"));
     assert!(entry.file_type().expect("file type").is_file());
     assert_eq!(entry.metadata().expect("metadata").len(), 1);
@@ -138,15 +144,25 @@ fn symlinks_round_trip() {
     os::unix::fs::symlink("/work/a.txt", "/work/link").expect("symlink");
 
     assert_eq!(read("/work/link").expect("read"), b"hello");
-    assert_eq!(read_link("/work/link").expect("read_link"), Path::new("/work/a.txt"));
-    assert!(symlink_metadata("/work/link").expect("metadata").is_symlink());
+    assert_eq!(
+        read_link("/work/link").expect("read_link"),
+        Path::new("/work/a.txt")
+    );
+    assert!(
+        symlink_metadata("/work/link")
+            .expect("metadata")
+            .is_symlink()
+    );
 }
 
 #[test]
 fn canonicalize_normalises_an_existing_path() {
     fresh();
     write("/work/a.txt", b"x").expect("write");
-    assert_eq!(canonicalize("/work/./a.txt").expect("canonicalize"), Path::new("/work/a.txt"));
+    assert_eq!(
+        canonicalize("/work/./a.txt").expect("canonicalize"),
+        Path::new("/work/a.txt")
+    );
 }
 
 #[test]
@@ -177,8 +193,7 @@ fn canonicalize_follows_a_relative_symlink_from_the_directory_holding_it() {
     )
     .expect("symlink");
     assert_eq!(
-        canonicalize("/work/sdists-v9/idna/3.11/rev/idna-3.11-py3-none-any")
-            .expect("canonicalize"),
+        canonicalize("/work/sdists-v9/idna/3.11/rev/idna-3.11-py3-none-any").expect("canonicalize"),
         Path::new("/work/archive-v0/JUcyCJDisWyNXwjk")
     );
 }
@@ -270,8 +285,10 @@ fn append_mode_starts_at_the_end() {
     fresh();
     write("/work/a.txt", b"hello").expect("write");
     {
-        let mut file =
-            OpenOptions::new().append(true).open("/work/a.txt").expect("open for append");
+        let mut file = OpenOptions::new()
+            .append(true)
+            .open("/work/a.txt")
+            .expect("open for append");
         file.write_all(b" world").expect("append");
     }
     assert_eq!(read_to_string("/work/a.txt").expect("read"), "hello world");
@@ -281,7 +298,10 @@ fn append_mode_starts_at_the_end() {
 fn create_new_refuses_an_existing_file() {
     fresh();
     write("/work/a.txt", b"hello").expect("write");
-    let error = OpenOptions::new().create_new(true).open("/work/a.txt").expect_err("should fail");
+    let error = OpenOptions::new()
+        .create_new(true)
+        .open("/work/a.txt")
+        .expect_err("should fail");
     assert_eq!(error.kind(), std::io::ErrorKind::AlreadyExists);
 }
 
@@ -290,8 +310,11 @@ fn truncating_discards_previous_contents() {
     fresh();
     write("/work/a.txt", b"hello").expect("write");
     {
-        let _file =
-            OpenOptions::new().write(true).truncate(true).open("/work/a.txt").expect("open");
+        let _file = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open("/work/a.txt")
+            .expect("open");
     }
     assert_eq!(read("/work/a.txt").expect("read"), b"");
 }
@@ -300,7 +323,10 @@ fn truncating_discards_previous_contents() {
 fn set_len_resizes_the_file() {
     fresh();
     write("/work/a.txt", b"hello").expect("write");
-    let file = OpenOptions::new().write(true).open("/work/a.txt").expect("open");
+    let file = OpenOptions::new()
+        .write(true)
+        .open("/work/a.txt")
+        .expect("open");
     file.set_len(2).expect("set_len");
     drop(file);
     assert_eq!(read("/work/a.txt").expect("read"), b"he");
@@ -337,31 +363,65 @@ fn syncing_persists_without_dropping() {
 #[tokio::test]
 async fn the_async_surface_mirrors_the_sync_one() {
     fresh();
-    crate::fs::vfs_backed::tokio::write("/work/a.txt", b"async").await.expect("write");
+    crate::fs::vfs_backed::tokio::write("/work/a.txt", b"async")
+        .await
+        .expect("write");
     assert_eq!(
-        crate::fs::vfs_backed::tokio::read_to_string("/work/a.txt").await.expect("read"),
+        crate::fs::vfs_backed::tokio::read_to_string("/work/a.txt")
+            .await
+            .expect("read"),
         "async"
     );
-    assert_eq!(crate::fs::vfs_backed::tokio::read("/work/a.txt").await.expect("read"), b"async");
-    assert!(crate::fs::vfs_backed::tokio::metadata("/work/a.txt").await.is_ok());
-    crate::fs::vfs_backed::tokio::rename("/work/a.txt", "/work/b.txt").await.expect("rename");
-    assert!(crate::fs::vfs_backed::tokio::canonicalize("/work/b.txt").await.is_ok());
-    crate::fs::vfs_backed::tokio::remove_file("/work/b.txt").await.expect("remove");
-    crate::fs::vfs_backed::tokio::create_dir_all("/work/nested").await.expect("create");
-    crate::fs::vfs_backed::tokio::remove_dir_all("/work/nested").await.expect("remove");
+    assert_eq!(
+        crate::fs::vfs_backed::tokio::read("/work/a.txt")
+            .await
+            .expect("read"),
+        b"async"
+    );
+    assert!(
+        crate::fs::vfs_backed::tokio::metadata("/work/a.txt")
+            .await
+            .is_ok()
+    );
+    crate::fs::vfs_backed::tokio::rename("/work/a.txt", "/work/b.txt")
+        .await
+        .expect("rename");
+    assert!(
+        crate::fs::vfs_backed::tokio::canonicalize("/work/b.txt")
+            .await
+            .is_ok()
+    );
+    crate::fs::vfs_backed::tokio::remove_file("/work/b.txt")
+        .await
+        .expect("remove");
+    crate::fs::vfs_backed::tokio::create_dir_all("/work/nested")
+        .await
+        .expect("create");
+    crate::fs::vfs_backed::tokio::remove_dir_all("/work/nested")
+        .await
+        .expect("remove");
 }
 
 #[test]
 fn a_files_permissions_report_a_posix_mode() {
     fresh();
     write("/work/a.txt", b"hello").expect("write");
-    assert_eq!(metadata("/work/a.txt").expect("metadata").permissions().mode(), 0o644);
+    assert_eq!(
+        metadata("/work/a.txt")
+            .expect("metadata")
+            .permissions()
+            .mode(),
+        0o644
+    );
 }
 
 #[test]
 fn a_directorys_permissions_report_a_traversable_mode() {
     fresh();
-    assert_eq!(metadata("/work").expect("metadata").permissions().mode(), 0o755);
+    assert_eq!(
+        metadata("/work").expect("metadata").permissions().mode(),
+        0o755
+    );
 }
 
 #[test]
@@ -386,7 +446,10 @@ fn an_exclusive_lock_excludes_a_second_handle() {
     held.try_lock().expect("first lock");
 
     let other = File::open("/work/a.txt").expect("open");
-    assert!(matches!(other.try_lock(), Err(std::fs::TryLockError::WouldBlock)));
+    assert!(matches!(
+        other.try_lock(),
+        Err(std::fs::TryLockError::WouldBlock)
+    ));
 }
 
 #[test]
@@ -406,7 +469,10 @@ fn a_shared_lock_excludes_an_exclusive_lock() {
     reader.try_lock_shared().expect("shared lock");
 
     let writer = File::open("/work/a.txt").expect("open");
-    assert!(matches!(writer.try_lock(), Err(std::fs::TryLockError::WouldBlock)));
+    assert!(matches!(
+        writer.try_lock(),
+        Err(std::fs::TryLockError::WouldBlock)
+    ));
 }
 
 #[test]
@@ -416,7 +482,10 @@ fn an_exclusive_lock_excludes_a_shared_lock() {
     writer.try_lock().expect("exclusive lock");
 
     let reader = File::open("/work/a.txt").expect("open");
-    assert!(matches!(reader.try_lock_shared(), Err(std::fs::TryLockError::WouldBlock)));
+    assert!(matches!(
+        reader.try_lock_shared(),
+        Err(std::fs::TryLockError::WouldBlock)
+    ));
 }
 
 #[test]
@@ -451,7 +520,10 @@ fn releasing_one_shared_holder_keeps_the_lock_for_the_rest() {
     drop(first);
 
     let writer = File::open("/work/a.txt").expect("open");
-    assert!(matches!(writer.try_lock(), Err(std::fs::TryLockError::WouldBlock)));
+    assert!(matches!(
+        writer.try_lock(),
+        Err(std::fs::TryLockError::WouldBlock)
+    ));
 }
 
 #[test]
@@ -472,7 +544,10 @@ fn relocking_the_same_handle_converts_the_lock() {
     file.try_lock().expect("conversion to exclusive");
 
     let other = File::open("/work/a.txt").expect("open");
-    assert!(matches!(other.try_lock_shared(), Err(std::fs::TryLockError::WouldBlock)));
+    assert!(matches!(
+        other.try_lock_shared(),
+        Err(std::fs::TryLockError::WouldBlock)
+    ));
 }
 
 #[test]
@@ -498,7 +573,9 @@ fn a_blocking_lock_reports_contention_rather_than_hanging() {
     held.try_lock().expect("first lock");
 
     let other = File::open("/work/a.txt").expect("open");
-    let error = other.lock().expect_err("the second lock cannot be waited for");
+    let error = other
+        .lock()
+        .expect_err("the second lock cannot be waited for");
     assert_eq!(error.kind(), std::io::ErrorKind::WouldBlock);
 }
 
@@ -506,8 +583,10 @@ fn a_blocking_lock_reports_contention_rather_than_hanging() {
 fn creation_time_is_not_recorded() {
     fresh();
     write("/work/a.txt", b"hello").expect("write");
-    let error =
-        metadata("/work/a.txt").expect("metadata").created().expect_err("no creation time");
+    let error = metadata("/work/a.txt")
+        .expect("metadata")
+        .created()
+        .expect_err("no creation time");
     assert_eq!(error.kind(), std::io::ErrorKind::Unsupported);
 }
 
@@ -524,8 +603,8 @@ fn presence_is_reported_for_files_and_directories() {
 fn presence_can_be_reported_fallibly() {
     fresh();
     write("/work/a.txt", b"hello").expect("write");
-    assert_eq!(try_exists("/work/a.txt").expect("try_exists"), true);
-    assert_eq!(try_exists("/work/missing.txt").expect("try_exists"), false);
+    assert!(try_exists("/work/a.txt").expect("try_exists"));
+    assert!(!try_exists("/work/missing.txt").expect("try_exists"));
 }
 
 #[test]
@@ -558,7 +637,11 @@ fn a_symlink_is_followed_when_classifying() {
 fn directory_entries_keep_posix_separators_on_every_host() {
     fresh();
     write("/work/a.txt", b"hello").expect("write");
-    let entry = read_dir("/work").expect("read_dir").next().expect("entry").expect("entry");
+    let entry = read_dir("/work")
+        .expect("read_dir")
+        .next()
+        .expect("entry")
+        .expect("entry");
     assert_eq!(entry.path().display().to_string(), "/work/a.txt");
 }
 
@@ -651,7 +734,10 @@ async fn the_async_directory_surface_walks_entries() {
     seen.sort();
     assert_eq!(
         seen,
-        vec![("/work/a.txt".to_string(), false), ("/work/nested".to_string(), true)]
+        vec![
+            ("/work/a.txt".to_string(), false),
+            ("/work/nested".to_string(), true)
+        ]
     );
 }
 
@@ -659,11 +745,24 @@ async fn the_async_directory_surface_walks_entries() {
 async fn the_async_surface_covers_links_and_probes() {
     fresh();
     write("/work/a.txt", b"hello").expect("write");
-    afs::symlink("/work/a.txt", "/work/link").await.expect("symlink");
-    assert!(afs::symlink_metadata("/work/link").await.expect("symlink_metadata").is_symlink());
-    assert_eq!(afs::read_link("/work/link").await.expect("read_link"), Path::new("/work/a.txt"));
+    afs::symlink("/work/a.txt", "/work/link")
+        .await
+        .expect("symlink");
+    assert!(
+        afs::symlink_metadata("/work/link")
+            .await
+            .expect("symlink_metadata")
+            .is_symlink()
+    );
+    assert_eq!(
+        afs::read_link("/work/link").await.expect("read_link"),
+        Path::new("/work/a.txt")
+    );
     assert!(afs::try_exists("/work/a.txt").await.expect("try_exists"));
-    assert_eq!(afs::copy("/work/a.txt", "/work/b.txt").await.expect("copy"), 5);
+    assert_eq!(
+        afs::copy("/work/a.txt", "/work/b.txt").await.expect("copy"),
+        5
+    );
     afs::create_dir("/work/nested").await.expect("create_dir");
     afs::remove_dir("/work/nested").await.expect("remove_dir");
     assert!(!exists("/work/nested"));
@@ -673,7 +772,9 @@ async fn the_async_surface_covers_links_and_probes() {
 async fn async_hard_links_report_the_same_refusal_as_the_sync_side() {
     fresh();
     write("/work/a.txt", b"hello").expect("write");
-    let error = afs::hard_link("/work/a.txt", "/work/b.txt").await.expect_err("hard_link");
+    let error = afs::hard_link("/work/a.txt", "/work/b.txt")
+        .await
+        .expect_err("hard_link");
     assert_eq!(error.kind(), std::io::ErrorKind::Unsupported);
 }
 
@@ -684,7 +785,13 @@ async fn an_async_file_records_a_modification_time() {
     let stamp = SystemTime::UNIX_EPOCH + Duration::from_secs(1_000);
     let file = afs::File::open("/work/a.txt").await.expect("open");
     file.set_modified(stamp).await.expect("set_modified");
-    assert_eq!(metadata("/work/a.txt").expect("metadata").modified().expect("modified"), stamp);
+    assert_eq!(
+        metadata("/work/a.txt")
+            .expect("metadata")
+            .modified()
+            .expect("modified"),
+        stamp
+    );
 }
 
 #[test]

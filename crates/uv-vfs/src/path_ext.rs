@@ -4,6 +4,10 @@ use std::path::{Path, PathBuf};
 use crate::fs::Metadata;
 
 #[cfg(not(target_family = "wasm"))]
+#[expect(
+    clippy::disallowed_types,
+    reason = "off wasm this alias is the real std::fs::ReadDir, which is the point of the alias"
+)]
 pub type VfsReadDir = std::fs::ReadDir;
 
 #[cfg(target_family = "wasm")]
@@ -128,6 +132,10 @@ impl VfsPathExt for Path {
 }
 
 #[cfg(all(test, not(target_family = "wasm")))]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "these tests compare the VFS wrappers against the real filesystem, so std::fs is the subject rather than an accident"
+)]
 mod tests {
     use super::VfsPathExt;
     use std::path::PathBuf;
@@ -165,7 +173,12 @@ mod tests {
         std::fs::write(&file, b"hello").expect("write");
 
         assert!(file.vfs_try_exists().expect("try_exists"));
-        assert!(!dir.path().join("missing").vfs_try_exists().expect("try_exists"));
+        assert!(
+            !dir.path()
+                .join("missing")
+                .vfs_try_exists()
+                .expect("try_exists")
+        );
     }
 
     #[test]
@@ -187,7 +200,11 @@ mod tests {
         std::fs::write(&file, b"hello").expect("write");
 
         assert_eq!(file.vfs_metadata().expect("metadata").len(), 5);
-        assert!(file.vfs_symlink_metadata().expect("symlink_metadata").is_file());
+        assert!(
+            file.vfs_symlink_metadata()
+                .expect("symlink_metadata")
+                .is_file()
+        );
     }
 
     #[test]

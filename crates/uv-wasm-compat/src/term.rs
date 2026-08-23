@@ -12,13 +12,21 @@ pub struct TermConfig {
 
 impl Default for TermConfig {
     fn default() -> Self {
-        Self { is_tty: false, columns: FALLBACK_WIDTH, rows: FALLBACK_HEIGHT }
+        Self {
+            is_tty: false,
+            columns: FALLBACK_WIDTH,
+            rows: FALLBACK_HEIGHT,
+        }
     }
 }
 
 impl TermConfig {
     pub fn tty(columns: u16, rows: u16) -> Self {
-        Self { is_tty: true, columns: columns.max(1), rows: rows.max(1) }
+        Self {
+            is_tty: true,
+            columns: columns.max(1),
+            rows: rows.max(1),
+        }
     }
 }
 
@@ -63,8 +71,8 @@ pub fn resize(columns: u16, rows: u16) {
 #[cfg(test)]
 mod tests {
     use super::{
-        FALLBACK_HEIGHT, FALLBACK_WIDTH, TermConfig, columns, current, is_tty, reset, resize,
-        rows, set,
+        FALLBACK_HEIGHT, FALLBACK_WIDTH, TermConfig, columns, current, is_tty, reset, resize, rows,
+        set,
     };
 
     #[test]
@@ -96,7 +104,14 @@ mod tests {
     fn resizing_keeps_the_terminal_flag() {
         set(TermConfig::tty(80, 24));
         resize(200, 50);
-        assert_eq!(current(), TermConfig { is_tty: true, columns: 200, rows: 50 });
+        assert_eq!(
+            current(),
+            TermConfig {
+                is_tty: true,
+                columns: 200,
+                rows: 50
+            }
+        );
         reset();
     }
 

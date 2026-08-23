@@ -3,6 +3,10 @@ use std::path::{Component, Path, PathBuf};
 use percent_encoding::percent_decode_str;
 use url::Url;
 
+#[expect(
+    clippy::result_unit_err,
+    reason = "this mirrors url::Url::from_file_path, whose signature uv already depends on"
+)]
 pub trait UrlFilePathExt: Sized {
     fn from_file_path<P: AsRef<Path>>(path: P) -> Result<Self, ()>;
 
@@ -113,7 +117,10 @@ mod tests {
     #[test]
     fn round_trips_an_encoded_path() {
         let url = to_url("/work/a b/c+d");
-        assert_eq!(UrlFilePathExt::to_file_path(&url), Ok(PathBuf::from("/work/a b/c+d")));
+        assert_eq!(
+            UrlFilePathExt::to_file_path(&url),
+            Ok(PathBuf::from("/work/a b/c+d"))
+        );
     }
 
     #[test]
@@ -125,7 +132,10 @@ mod tests {
     #[test]
     fn accepts_a_localhost_host() {
         let url = Url::parse("file://localhost/work/project").expect("valid url");
-        assert_eq!(UrlFilePathExt::to_file_path(&url), Ok(PathBuf::from("/work/project")));
+        assert_eq!(
+            UrlFilePathExt::to_file_path(&url),
+            Ok(PathBuf::from("/work/project"))
+        );
     }
 
     #[test]

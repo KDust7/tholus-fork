@@ -106,7 +106,10 @@ pub trait Vfs: Send + Sync + 'static {
 }
 
 pub fn not_found(path: &Path) -> io::Error {
-    io::Error::new(io::ErrorKind::NotFound, format!("{} was not found", path.display()))
+    io::Error::new(
+        io::ErrorKind::NotFound,
+        format!("{} was not found", path.display()),
+    )
 }
 
 pub fn unsupported(operation: &str, path: &Path) -> io::Error {
@@ -147,7 +150,11 @@ mod tests {
     use web_time::SystemTime;
 
     fn metadata(kind: VfsKind) -> VfsMetadata {
-        VfsMetadata { kind, len: 0, modified: SystemTime::UNIX_EPOCH }
+        VfsMetadata {
+            kind,
+            len: 0,
+            modified: SystemTime::UNIX_EPOCH,
+        }
     }
 
     #[test]
@@ -215,7 +222,9 @@ mod tests {
     #[test]
     fn an_installed_filesystem_replaces_the_default() {
         let replacement = Arc::new(MemoryFs::new());
-        replacement.write(Path::new("/installed"), b"x").expect("write");
+        replacement
+            .write(Path::new("/installed"), b"x")
+            .expect("write");
         install_global(replacement);
         assert!(global().exists(Path::new("/installed")));
     }

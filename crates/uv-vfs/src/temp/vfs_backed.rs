@@ -114,13 +114,21 @@ impl NamedTempFile {
     }
 
     pub fn as_file(&self) -> &File {
-        self.file.as_ref().expect("the handle is present until persist consumes it")
+        self.file
+            .as_ref()
+            .expect("the handle is present until persist consumes it")
     }
 
     pub fn as_file_mut(&mut self) -> &mut File {
-        self.file.as_mut().expect("the handle is present until persist consumes it")
+        self.file
+            .as_mut()
+            .expect("the handle is present until persist consumes it")
     }
 
+    #[expect(
+        clippy::result_large_err,
+        reason = "this mirrors tempfile::NamedTempFile::persist, whose error hands the file back so a caller can retry"
+    )]
     pub fn persist(mut self, destination: impl AsRef<Path>) -> Result<File, PersistError> {
         if let Some(file) = self.file.as_mut() {
             if let Err(error) = io::Write::flush(file) {
@@ -142,14 +150,18 @@ impl NamedTempFile {
     pub fn into_temp_path(mut self) -> TempPath {
         self.persist = true;
         self.file = None;
-        TempPath { path: self.path.clone(), persist: false }
+        TempPath {
+            path: self.path.clone(),
+            persist: false,
+        }
     }
 
     pub fn keep(mut self) -> io::Result<(File, PathBuf)> {
         self.persist = true;
-        let file = self.file.take().ok_or_else(|| {
-            io::Error::other("the temporary file handle was already taken")
-        })?;
+        let file = self
+            .file
+            .take()
+            .ok_or_else(|| io::Error::other("the temporary file handle was already taken"))?;
         Ok((file, self.path.clone()))
     }
 }
@@ -199,7 +211,11 @@ pub struct PersistError {
 
 impl std::fmt::Display for PersistError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "failed to persist temporary file: {}", self.error)
+        write!(
+            formatter,
+            "failed to persist temporary file: {}",
+            self.error
+        )
     }
 }
 
@@ -229,16 +245,21 @@ impl Default for Builder {
 
 impl Builder {
     pub fn new() -> Self {
-        Self { prefix: ".tmp".to_owned(), suffix: String::new() }
+        Self {
+            prefix: ".tmp".to_owned(),
+            suffix: String::new(),
+        }
     }
 
+    #[must_use]
     pub fn prefix(mut self, prefix: &str) -> Self {
-        self.prefix = prefix.to_owned();
+        prefix.clone_into(&mut self.prefix);
         self
     }
 
+    #[must_use]
     pub fn suffix(mut self, suffix: &str) -> Self {
-        self.suffix = suffix.to_owned();
+        suffix.clone_into(&mut self.suffix);
         self
     }
 
@@ -252,7 +273,10 @@ impl Builder {
         vfs.create_dir_all(parent)?;
         let path = parent.join(unique_name(&self.prefix, &self.suffix));
         vfs.create_dir_all(&path)?;
-        Ok(TempDir { path, persist: false })
+        Ok(TempDir {
+            path,
+            persist: false,
+        })
     }
 
     pub fn tempfile(self) -> io::Result<NamedTempFile> {
@@ -265,7 +289,11 @@ impl Builder {
         vfs.create_dir_all(parent)?;
         let path = parent.join(unique_name(&self.prefix, &self.suffix));
         let file = File::create(&path)?;
-        Ok(NamedTempFile { path, file: Some(file), persist: false })
+        Ok(NamedTempFile {
+            path,
+            file: Some(file),
+            persist: false,
+        })
     }
 }
 
@@ -288,6 +316,8 @@ pub fn tempfile_in(parent: impl AsRef<Path>) -> io::Result<File> {
 impl NamedTempFile {
     fn into_file(mut self) -> File {
         self.persist = true;
-        self.file.take().expect("the handle is present until persist consumes it")
+        self.file
+            .take()
+            .expect("the handle is present until persist consumes it")
     }
 }

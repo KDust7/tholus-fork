@@ -55,7 +55,11 @@ fn a_walk_reaches_every_entry() {
 #[test]
 fn contents_first_yields_a_directory_after_its_children() {
     tree();
-    let seen = walked(WalkDir::new("/work").sort_by_file_name().contents_first(true));
+    let seen = walked(
+        WalkDir::new("/work")
+            .sort_by_file_name()
+            .contents_first(true),
+    );
     assert_eq!(
         seen,
         vec![
@@ -85,7 +89,12 @@ fn min_depth_drops_every_shallower_entry() {
     let seen = walked(WalkDir::new("/work").sort_by_file_name().min_depth(2));
     assert_eq!(
         seen,
-        vec!["/work/a/inner", "/work/a/inner/deep.txt", "/work/a/one.txt", "/work/b/two.txt"]
+        vec![
+            "/work/a/inner",
+            "/work/a/inner/deep.txt",
+            "/work/a/one.txt",
+            "/work/b/two.txt"
+        ]
     );
 }
 
@@ -98,7 +107,10 @@ fn filter_entry_prunes_the_subtree_it_rejects() {
         .filter_entry(|entry: &DirEntry| entry.file_name() != "a")
         .map(|entry| entry.expect("entry").path().display().to_string())
         .collect();
-    assert_eq!(seen, vec!["/work", "/work/b", "/work/b/two.txt", "/work/top.txt"]);
+    assert_eq!(
+        seen,
+        vec!["/work", "/work/b", "/work/b/two.txt", "/work/top.txt"]
+    );
 }
 
 #[test]
@@ -138,24 +150,39 @@ fn a_symlink_is_reported_without_being_followed() {
         .into_iter()
         .filter_map(Result::ok)
         .collect();
-    let link = entries.iter().find(|entry| entry.file_name() == "link").expect("link");
+    let link = entries
+        .iter()
+        .find(|entry| entry.file_name() == "link")
+        .expect("link");
     assert!(link.path_is_symlink());
-    assert!(!entries.iter().any(|entry| entry.path().parent() == Some(Path::new("/work/link"))));
+    assert!(
+        !entries
+            .iter()
+            .any(|entry| entry.path().parent() == Some(Path::new("/work/link")))
+    );
 }
 
 #[test]
 fn a_file_root_yields_only_itself() {
     fresh();
     write("/work/only.txt", b"x").expect("write");
-    assert_eq!(walked(WalkDir::new("/work/only.txt")), vec!["/work/only.txt"]);
+    assert_eq!(
+        walked(WalkDir::new("/work/only.txt")),
+        vec!["/work/only.txt"]
+    );
 }
 
 #[test]
 fn a_missing_root_yields_one_error() {
     fresh();
-    let outcomes: Vec<Result<DirEntry, Error>> = WalkDir::new("/work/missing").into_iter().collect();
+    let outcomes: Vec<Result<DirEntry, Error>> =
+        WalkDir::new("/work/missing").into_iter().collect();
     assert_eq!(outcomes.len(), 1);
-    let error = outcomes.into_iter().next().expect("outcome").expect_err("should fail");
+    let error = outcomes
+        .into_iter()
+        .next()
+        .expect("outcome")
+        .expect_err("should fail");
     assert_eq!(error.path(), Some(Path::new("/work/missing")));
     assert!(error.io_error().is_some());
 }
@@ -183,10 +210,15 @@ fn an_archive_directory_walks_as_a_directory() {
     write("/cache/archive-v0/abc/idna/__init__.py", b"x").expect("write");
     write("/cache/archive-v0/abc/idna-3.11.dist-info/WHEEL", b"w").expect("write");
 
-    let mut walk = WalkDir::new("/cache/archive-v0/abc").sort_by_file_name().into_iter();
+    let mut walk = WalkDir::new("/cache/archive-v0/abc")
+        .sort_by_file_name()
+        .into_iter();
     let root = walk.next().expect("root").expect("entry");
     assert_eq!(root.path().display().to_string(), "/cache/archive-v0/abc");
-    assert!(root.file_type().is_dir(), "the archive root must walk as a directory");
+    assert!(
+        root.file_type().is_dir(),
+        "the archive root must walk as a directory"
+    );
     assert!(walked(WalkDir::new("/cache/archive-v0/abc").sort_by_file_name()).len() > 1);
 }
 
@@ -196,8 +228,7 @@ fn a_symlinked_root_reports_itself_as_a_symlink_like_walkdir_does() {
     create_dir_all("/cache/archive-v0/abc").expect("create");
     write("/cache/archive-v0/abc/WHEEL", b"w").expect("write");
     create_dir_all("/cache/sdists-v9/rev").expect("create");
-    os::unix::fs::symlink("../../archive-v0/abc", "/cache/sdists-v9/rev/pkg")
-        .expect("symlink");
+    os::unix::fs::symlink("../../archive-v0/abc", "/cache/sdists-v9/rev/pkg").expect("symlink");
 
     let root = WalkDir::new("/cache/sdists-v9/rev/pkg")
         .into_iter()

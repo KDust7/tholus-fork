@@ -7,7 +7,7 @@ use web_time::Duration;
 
 use crate::time::{Elapsed, timeout};
 
-pub const DEFAULT_LOCK_TIMEOUT: Duration = Duration::from_secs(300);
+pub const DEFAULT_LOCK_TIMEOUT: Duration = Duration::from_mins(5);
 
 #[derive(Debug)]
 pub struct LockedFile {
@@ -38,14 +38,19 @@ impl LockRegistry {
     fn entry(&self, path: &Path) -> Option<Arc<AsyncMutex<()>>> {
         let mut entries = self.entries.lock().ok()?;
         Some(Arc::clone(
-            entries.entry(path.to_path_buf()).or_insert_with(|| Arc::new(AsyncMutex::new(()))),
+            entries
+                .entry(path.to_path_buf())
+                .or_insert_with(|| Arc::new(AsyncMutex::new(()))),
         ))
     }
 
     pub fn try_acquire(&self, path: &Path) -> Option<LockedFile> {
         let entry = self.entry(path)?;
         let guard = entry.try_lock_owned()?;
-        Some(LockedFile { path: path.to_path_buf(), guard: Some(guard) })
+        Some(LockedFile {
+            path: path.to_path_buf(),
+            guard: Some(guard),
+        })
     }
 
     pub async fn acquire(&self, path: &Path, budget: Duration) -> Result<LockedFile, Elapsed> {
@@ -53,7 +58,10 @@ impl LockRegistry {
             return Err(Elapsed);
         };
         let guard = timeout(budget, entry.lock_owned()).await?;
-        Ok(LockedFile { path: path.to_path_buf(), guard: Some(guard) })
+        Ok(LockedFile {
+            path: path.to_path_buf(),
+            guard: Some(guard),
+        })
     }
 }
 
@@ -65,7 +73,7 @@ mod tests {
 
     #[test]
     fn the_default_budget_matches_uv() {
-        assert_eq!(DEFAULT_LOCK_TIMEOUT, Duration::from_secs(300));
+        assert_eq!(DEFAULT_LOCK_TIMEOUT, Duration::from_mins(5));
     }
 
     #[test]
@@ -78,7 +86,9 @@ mod tests {
     #[test]
     fn a_held_lock_blocks_a_second_taker() {
         let registry = LockRegistry::new();
-        let _held = registry.try_acquire(Path::new("/cache/uv.lock")).expect("first acquire");
+        let _held = registry
+            .try_acquire(Path::new("/cache/uv.lock"))
+            .expect("first acquire");
         assert!(registry.try_acquire(Path::new("/cache/uv.lock")).is_none());
     }
 
@@ -92,7 +102,9 @@ mod tests {
     #[test]
     fn releasing_frees_the_lock() {
         let registry = LockRegistry::new();
-        let mut held = registry.try_acquire(Path::new("/cache/uv.lock")).expect("acquire");
+        let mut held = registry
+            .try_acquire(Path::new("/cache/uv.lock"))
+            .expect("acquire");
         held.release();
         assert!(registry.try_acquire(Path::new("/cache/uv.lock")).is_some());
     }
@@ -100,30 +112,41 @@ mod tests {
     #[test]
     fn dropping_frees_the_lock() {
         let registry = LockRegistry::new();
-        drop(registry.try_acquire(Path::new("/cache/uv.lock")).expect("acquire"));
+        drop(
+            registry
+                .try_acquire(Path::new("/cache/uv.lock"))
+                .expect("acquire"),
+        );
         assert!(registry.try_acquire(Path::new("/cache/uv.lock")).is_some());
     }
 
     #[test]
     fn a_lock_remembers_its_path() {
         let registry = LockRegistry::new();
-        let held = registry.try_acquire(Path::new("/cache/uv.lock")).expect("acquire");
+        let held = registry
+            .try_acquire(Path::new("/cache/uv.lock"))
+            .expect("acquire");
         assert_eq!(held.path(), Path::new("/cache/uv.lock"));
     }
 
     #[tokio::test]
     async fn waiting_for_a_free_lock_succeeds() {
         let registry = LockRegistry::new();
-        let lock = registry.acquire(Path::new("/cache/uv.lock"), Duration::from_secs(1)).await;
+        let lock = registry
+            .acquire(Path::new("/cache/uv.lock"), Duration::from_secs(1))
+            .await;
         assert!(lock.is_ok());
     }
 
     #[tokio::test]
     async fn waiting_for_a_held_lock_times_out() {
         let registry = LockRegistry::new();
-        let _held = registry.try_acquire(Path::new("/cache/uv.lock")).expect("acquire");
-        let outcome =
-            registry.acquire(Path::new("/cache/uv.lock"), Duration::from_millis(20)).await;
+        let _held = registry
+            .try_acquire(Path::new("/cache/uv.lock"))
+            .expect("acquire");
+        let outcome = registry
+            .acquire(Path::new("/cache/uv.lock"), Duration::from_millis(20))
+            .await;
         assert!(outcome.is_err());
     }
 }

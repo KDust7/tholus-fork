@@ -33,7 +33,9 @@ pub const BROWSER_CONTROLLED: [&str; 8] = [
 
 pub fn strip_browser_controlled(headers: &mut Headers) {
     headers.retain(|(key, _)| {
-        !BROWSER_CONTROLLED.iter().any(|forbidden| key.eq_ignore_ascii_case(forbidden))
+        !BROWSER_CONTROLLED
+            .iter()
+            .any(|forbidden| key.eq_ignore_ascii_case(forbidden))
     });
 }
 
@@ -93,7 +95,10 @@ mod tests {
     #[test]
     fn keeps_headers_the_index_needs() {
         let mut headers = vec![
-            ("accept".to_owned(), "application/vnd.pypi.simple.v1+json".to_owned()),
+            (
+                "accept".to_owned(),
+                "application/vnd.pypi.simple.v1+json".to_owned(),
+            ),
             ("authorization".to_owned(), "Bearer token".to_owned()),
             ("range".to_owned(), "bytes=0-1023".to_owned()),
         ];

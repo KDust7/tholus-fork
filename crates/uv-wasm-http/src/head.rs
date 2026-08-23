@@ -15,7 +15,11 @@ pub fn rewrite_head_as_range(request: &TransportRequest) -> Option<TransportRequ
 }
 
 pub fn restore_head_response(response: TransportResponse) -> TransportResponse {
-    let TransportResponse { status, mut headers, .. } = response;
+    let TransportResponse {
+        status,
+        mut headers,
+        ..
+    } = response;
 
     if status == 206 {
         let length = headers::get(&headers, "content-range")
@@ -25,11 +29,19 @@ pub fn restore_head_response(response: TransportResponse) -> TransportResponse {
             Some(length) => headers::set(&mut headers, "content-length", &length.to_string()),
             None => headers::remove(&mut headers, "content-length"),
         }
-        return TransportResponse { status: 200, headers, body: Vec::new() };
+        return TransportResponse {
+            status: 200,
+            headers,
+            body: Vec::new(),
+        };
     }
 
     headers::remove(&mut headers, "content-length");
-    TransportResponse { status, headers, body: Vec::new() }
+    TransportResponse {
+        status,
+        headers,
+        body: Vec::new(),
+    }
 }
 
 #[cfg(test)]
@@ -48,7 +60,11 @@ mod tests {
     }
 
     fn response(status: u16, headers: Vec<(String, String)>) -> TransportResponse {
-        TransportResponse { status, headers, body: b"partial".to_vec() }
+        TransportResponse {
+            status,
+            headers,
+            body: b"partial".to_vec(),
+        }
     }
 
     #[test]
@@ -88,7 +104,10 @@ mod tests {
         ));
         assert_eq!(restored.status, 200);
         assert!(restored.body.is_empty());
-        assert_eq!(headers::get(&restored.headers, "content-length"), Some("11050"));
+        assert_eq!(
+            headers::get(&restored.headers, "content-length"),
+            Some("11050")
+        );
     }
 
     #[test]
@@ -140,6 +159,9 @@ mod tests {
                 ("accept-ranges".to_owned(), "bytes".to_owned()),
             ],
         ));
-        assert_eq!(headers::get(&restored.headers, "accept-ranges"), Some("bytes"));
+        assert_eq!(
+            headers::get(&restored.headers, "accept-ranges"),
+            Some("bytes")
+        );
     }
 }

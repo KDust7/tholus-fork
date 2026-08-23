@@ -1,3 +1,8 @@
+#![expect(
+    clippy::disallowed_methods,
+    reason = "these tests compare the VFS wrappers against the real filesystem, so std::fs is the subject rather than an accident"
+)]
+
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 

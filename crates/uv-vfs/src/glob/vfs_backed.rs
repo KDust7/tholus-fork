@@ -35,7 +35,7 @@ pub fn glob(pattern: &str) -> Result<Paths, PatternError> {
         .into_iter()
         .filter_map(Result::ok)
         .filter(|entry| !directories_only || entry.file_type().is_dir())
-        .map(|entry| entry.into_path())
+        .map(super::super::walk::vfs_backed::DirEntry::into_path)
         .filter(|path| compiled.matches_path_with(path, options))
         .collect();
     matches.sort();

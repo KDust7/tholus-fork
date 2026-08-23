@@ -2,18 +2,13 @@ use std::cell::RefCell;
 
 use rustc_hash::FxHashMap;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum PromptPolicy {
     AlwaysConfirm,
     AlwaysDeny,
+    #[default]
     Refuse,
     Scripted(FxHashMap<String, String>),
-}
-
-impl Default for PromptPolicy {
-    fn default() -> Self {
-        Self::Refuse
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,7 +19,7 @@ pub enum PromptError {
 impl std::fmt::Display for PromptError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PromptError::Unavailable(question) => write!(
+            Self::Unavailable(question) => write!(
                 formatter,
                 "interactive prompt required in the browser: {question}; pass --yes or configure a prompt policy"
             ),
@@ -54,7 +49,10 @@ pub fn confirm(question: &str) -> Result<bool, PromptError> {
         PromptPolicy::AlwaysDeny => Ok(false),
         PromptPolicy::Refuse => Err(PromptError::Unavailable(question.to_owned())),
         PromptPolicy::Scripted(answers) => match answers.get(question) {
-            Some(answer) => Ok(matches!(answer.trim().to_ascii_lowercase().as_str(), "y" | "yes")),
+            Some(answer) => Ok(matches!(
+                answer.trim().to_ascii_lowercase().as_str(),
+                "y" | "yes"
+            )),
             None => Err(PromptError::Unavailable(question.to_owned())),
         },
     })
@@ -86,7 +84,10 @@ mod tests {
     #[test]
     fn refuses_by_default() {
         reset();
-        assert!(matches!(confirm("Proceed?"), Err(PromptError::Unavailable(_))));
+        assert!(matches!(
+            confirm("Proceed?"),
+            Err(PromptError::Unavailable(_))
+        ));
     }
 
     #[test]
@@ -138,7 +139,10 @@ mod tests {
     #[test]
     fn an_unscripted_question_is_refused() {
         set(scripted(&[("Proceed?", "y")]));
-        assert!(matches!(confirm("Something else?"), Err(PromptError::Unavailable(_))));
+        assert!(matches!(
+            confirm("Something else?"),
+            Err(PromptError::Unavailable(_))
+        ));
         reset();
     }
 

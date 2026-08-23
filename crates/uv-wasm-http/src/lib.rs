@@ -20,10 +20,10 @@ pub enum Method {
 impl Method {
     pub fn as_str(self) -> &'static str {
         match self {
-            Method::Get => "GET",
-            Method::Head => "HEAD",
-            Method::Post => "POST",
-            Method::Put => "PUT",
+            Self::Get => "GET",
+            Self::Head => "HEAD",
+            Self::Post => "POST",
+            Self::Put => "PUT",
         }
     }
 }
@@ -38,13 +38,24 @@ pub struct TransportRequest {
 
 impl TransportRequest {
     pub fn get(url: impl Into<String>) -> Self {
-        Self { method: Method::Get, url: url.into(), headers: Vec::new(), body: None }
+        Self {
+            method: Method::Get,
+            url: url.into(),
+            headers: Vec::new(),
+            body: None,
+        }
     }
 
     pub fn head(url: impl Into<String>) -> Self {
-        Self { method: Method::Head, url: url.into(), headers: Vec::new(), body: None }
+        Self {
+            method: Method::Head,
+            url: url.into(),
+            headers: Vec::new(),
+            body: None,
+        }
     }
 
+    #[must_use]
     pub fn with_header(mut self, name: &str, value: &str) -> Self {
         headers::set(&mut self.headers, name, value);
         self
@@ -84,10 +95,15 @@ pub enum TransportError {
 impl std::fmt::Display for TransportError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TransportError::Network(detail) => write!(formatter, "network request failed: {detail}"),
-            TransportError::Cancelled => write!(formatter, "the request was cancelled"),
-            TransportError::Unsupported(detail) => {
-                write!(formatter, "the transport does not support this request: {detail}")
+            Self::Network(detail) => {
+                write!(formatter, "network request failed: {detail}")
+            }
+            Self::Cancelled => write!(formatter, "the request was cancelled"),
+            Self::Unsupported(detail) => {
+                write!(
+                    formatter,
+                    "the transport does not support this request: {detail}"
+                )
             }
         }
     }
@@ -138,7 +154,11 @@ mod tests {
 
     fn recording(status: u16, headers: Vec<(String, String)>) -> Recording {
         Recording {
-            response: TransportResponse { status, headers, body: b"x".to_vec() },
+            response: TransportResponse {
+                status,
+                headers,
+                body: b"x".to_vec(),
+            },
             seen: RefCell::new(Vec::new()),
         }
     }
@@ -156,14 +176,25 @@ mod tests {
         let request = TransportRequest::get("https://pypi.org/simple/rich/")
             .with_header("accept", "application/vnd.pypi.simple.v1+json");
         assert_eq!(request.method, Method::Get);
-        assert_eq!(headers::get(&request.headers, "Accept"), Some("application/vnd.pypi.simple.v1+json"));
+        assert_eq!(
+            headers::get(&request.headers, "Accept"),
+            Some("application/vnd.pypi.simple.v1+json")
+        );
     }
 
     #[test]
     fn success_covers_the_two_hundreds() {
-        let ok = TransportResponse { status: 204, headers: Vec::new(), body: Vec::new() };
+        let ok = TransportResponse {
+            status: 204,
+            headers: Vec::new(),
+            body: Vec::new(),
+        };
         assert!(ok.is_success());
-        let missing = TransportResponse { status: 404, headers: Vec::new(), body: Vec::new() };
+        let missing = TransportResponse {
+            status: 404,
+            headers: Vec::new(),
+            body: Vec::new(),
+        };
         assert!(!missing.is_success());
     }
 
@@ -179,7 +210,11 @@ mod tests {
 
     #[test]
     fn a_missing_content_length_is_absent() {
-        let response = TransportResponse { status: 200, headers: Vec::new(), body: Vec::new() };
+        let response = TransportResponse {
+            status: 200,
+            headers: Vec::new(),
+            body: Vec::new(),
+        };
         assert_eq!(response.content_length(), None);
     }
 
@@ -195,15 +230,30 @@ mod tests {
 
     #[test]
     fn a_partial_response_implies_range_support() {
-        let response = TransportResponse { status: 206, headers: Vec::new(), body: Vec::new() };
+        let response = TransportResponse {
+            status: 206,
+            headers: Vec::new(),
+            body: Vec::new(),
+        };
         assert!(response.supports_ranges());
     }
 
     #[test]
     fn errors_describe_themselves() {
-        assert!(TransportError::Network("offline".to_owned()).to_string().contains("offline"));
-        assert_eq!(TransportError::Cancelled.to_string(), "the request was cancelled");
-        assert!(TransportError::Unsupported("streams".to_owned()).to_string().contains("streams"));
+        assert!(
+            TransportError::Network("offline".to_owned())
+                .to_string()
+                .contains("offline")
+        );
+        assert_eq!(
+            TransportError::Cancelled.to_string(),
+            "the request was cancelled"
+        );
+        assert!(
+            TransportError::Unsupported("streams".to_owned())
+                .to_string()
+                .contains("streams")
+        );
     }
 
     #[tokio::test]
@@ -212,10 +262,12 @@ mod tests {
             206,
             vec![("content-range".to_owned(), "bytes 0-0/11050".to_owned())],
         );
-        let response =
-            send_with_head_support(&transport, TransportRequest::head("https://example.invalid/a"))
-                .await
-                .expect("should succeed");
+        let response = send_with_head_support(
+            &transport,
+            TransportRequest::head("https://example.invalid/a"),
+        )
+        .await
+        .expect("should succeed");
 
         let sent = transport.seen.borrow();
         assert_eq!(sent[0].method, Method::Get);
@@ -228,10 +280,12 @@ mod tests {
     #[tokio::test]
     async fn a_get_passes_through_untouched() {
         let transport = recording(200, Vec::new());
-        let response =
-            send_with_head_support(&transport, TransportRequest::get("https://example.invalid/a"))
-                .await
-                .expect("should succeed");
+        let response = send_with_head_support(
+            &transport,
+            TransportRequest::get("https://example.invalid/a"),
+        )
+        .await
+        .expect("should succeed");
 
         assert_eq!(transport.seen.borrow()[0].method, Method::Get);
         assert_eq!(response.body, b"x".to_vec());

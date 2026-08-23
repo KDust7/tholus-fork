@@ -50,13 +50,17 @@ mod tests {
     async fn a_blocking_task_runs_its_side_effects() {
         let flag = Arc::new(AtomicBool::new(false));
         let observed = Arc::clone(&flag);
-        spawn_blocking(move || observed.store(true, Ordering::SeqCst)).await.expect("join");
+        spawn_blocking(move || observed.store(true, Ordering::SeqCst))
+            .await
+            .expect("join");
         assert!(flag.load(Ordering::SeqCst));
     }
 
     #[tokio::test]
     async fn a_blocking_task_carries_a_value_that_is_not_copy() {
-        let carried = spawn_blocking(|| String::from("payload")).await.expect("join");
+        let carried = spawn_blocking(|| String::from("payload"))
+            .await
+            .expect("join");
         assert_eq!(carried, "payload");
     }
 

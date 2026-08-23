@@ -14,38 +14,50 @@ const SYMLINK_HOP_LIMIT: usize = 16;
 
 #[derive(Debug, Clone)]
 enum Node {
-    File { data: Vec<u8>, modified: SystemTime },
-    Directory { modified: SystemTime },
-    Symlink { target: PathBuf, modified: SystemTime },
+    File {
+        data: Vec<u8>,
+        modified: SystemTime,
+    },
+    Directory {
+        modified: SystemTime,
+    },
+    Symlink {
+        target: PathBuf,
+        modified: SystemTime,
+    },
 }
 
 impl Node {
     fn kind(&self) -> VfsKind {
         match self {
-            Node::File { .. } => VfsKind::File,
-            Node::Directory { .. } => VfsKind::Directory,
-            Node::Symlink { .. } => VfsKind::Symlink,
+            Self::File { .. } => VfsKind::File,
+            Self::Directory { .. } => VfsKind::Directory,
+            Self::Symlink { .. } => VfsKind::Symlink,
         }
     }
 
     fn modified(&self) -> SystemTime {
         match self {
-            Node::File { modified, .. }
-            | Node::Directory { modified, .. }
-            | Node::Symlink { modified, .. } => *modified,
+            Self::File { modified, .. }
+            | Self::Directory { modified, .. }
+            | Self::Symlink { modified, .. } => *modified,
         }
     }
 
     fn len(&self) -> u64 {
         match self {
-            Node::File { data, .. } => data.len() as u64,
-            Node::Directory { .. } => 0,
-            Node::Symlink { target, .. } => target.as_os_str().len() as u64,
+            Self::File { data, .. } => data.len() as u64,
+            Self::Directory { .. } => 0,
+            Self::Symlink { target, .. } => target.as_os_str().len() as u64,
         }
     }
 
     fn metadata(&self) -> VfsMetadata {
-        VfsMetadata { kind: self.kind(), len: self.len(), modified: self.modified() }
+        VfsMetadata {
+            kind: self.kind(),
+            len: self.len(),
+            modified: self.modified(),
+        }
     }
 }
 
@@ -68,7 +80,9 @@ impl MemoryFs {
             normalize(Path::new(crate::temp::vfs_backed::TEMP_ROOT)),
             Node::Directory { modified: now() },
         );
-        Self { nodes: RwLock::new(nodes) }
+        Self {
+            nodes: RwLock::new(nodes),
+        }
     }
 
     fn resolve(
@@ -93,10 +107,7 @@ impl MemoryFs {
                     if hops > SYMLINK_HOP_LIMIT {
                         return Err(io::Error::new(
                             io::ErrorKind::InvalidData,
-                            format!(
-                                "too many symbolic links while resolving {}",
-                                path.display()
-                            ),
+                            format!("too many symbolic links while resolving {}", path.display()),
                         ));
                     }
                     let followed = match parent_of(&current) {
@@ -152,25 +163,25 @@ fn now() -> SystemTime {
 impl Vfs for MemoryFs {
     fn metadata(&self, path: &Path) -> io::Result<VfsMetadata> {
         let nodes = self.nodes.read().map_err(poisoned)?;
-        let (_, node) = MemoryFs::resolve(&nodes, path, true)?;
+        let (_, node) = Self::resolve(&nodes, path, true)?;
         Ok(node.metadata())
     }
 
     fn symlink_metadata(&self, path: &Path) -> io::Result<VfsMetadata> {
         let nodes = self.nodes.read().map_err(poisoned)?;
-        let (_, node) = MemoryFs::resolve(&nodes, path, false)?;
+        let (_, node) = Self::resolve(&nodes, path, false)?;
         Ok(node.metadata())
     }
 
     fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
         let nodes = self.nodes.read().map_err(poisoned)?;
-        let (resolved, _) = MemoryFs::resolve(&nodes, path, true)?;
+        let (resolved, _) = Self::resolve(&nodes, path, true)?;
         Ok(resolved)
     }
 
     fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
         let nodes = self.nodes.read().map_err(poisoned)?;
-        let (resolved, node) = MemoryFs::resolve(&nodes, path, true)?;
+        let (resolved, node) = Self::resolve(&nodes, path, true)?;
         match node {
             Node::File { data, .. } => Ok(data),
             _ => Err(io::Error::new(
@@ -184,7 +195,7 @@ impl Vfs for MemoryFs {
         let target = named(path)?;
         let mut nodes = self.nodes.write().map_err(poisoned)?;
         if let Some(parent) = parent_of(&target) {
-            MemoryFs::require_directory(&nodes, &parent)?;
+            Self::require_directory(&nodes, &parent)?;
         }
         if let Some(Node::Directory { .. }) = nodes.get(&target) {
             return Err(io::Error::new(
@@ -192,13 +203,19 @@ impl Vfs for MemoryFs {
                 format!("{} is a directory", target.display()),
             ));
         }
-        nodes.insert(target, Node::File { data: contents.to_vec(), modified: now() });
+        nodes.insert(
+            target,
+            Node::File {
+                data: contents.to_vec(),
+                modified: now(),
+            },
+        );
         Ok(())
     }
 
     fn read_dir(&self, path: &Path) -> io::Result<Vec<VfsDirEntry>> {
         let nodes = self.nodes.read().map_err(poisoned)?;
-        let (resolved, node) = MemoryFs::resolve(&nodes, path, true)?;
+        let (resolved, node) = Self::resolve(&nodes, path, true)?;
         if !matches!(node, Node::Directory { .. }) {
             return Err(io::Error::new(
                 io::ErrorKind::NotADirectory,
@@ -213,7 +230,10 @@ impl Vfs for MemoryFs {
                     return None;
                 }
                 let name = candidate.file_name()?.to_str()?.to_owned();
-                Some(VfsDirEntry { name, kind: node.kind() })
+                Some(VfsDirEntry {
+                    name,
+                    kind: node.kind(),
+                })
             })
             .collect();
         entries.sort_by(|left, right| left.name.cmp(&right.name));
@@ -278,7 +298,7 @@ impl Vfs for MemoryFs {
             return Err(not_found(&source));
         }
         if let Some(parent) = parent_of(&destination) {
-            MemoryFs::require_directory(&nodes, &parent)?;
+            Self::require_directory(&nodes, &parent)?;
         }
 
         let moved: Vec<PathBuf> = nodes
@@ -309,16 +329,21 @@ impl Vfs for MemoryFs {
         let location = named(link)?;
         let mut nodes = self.nodes.write().map_err(poisoned)?;
         if let Some(parent) = parent_of(&location) {
-            MemoryFs::require_directory(&nodes, &parent)?;
+            Self::require_directory(&nodes, &parent)?;
         }
-        nodes
-            .insert(location, Node::Symlink { target: target.to_path_buf(), modified: now() });
+        nodes.insert(
+            location,
+            Node::Symlink {
+                target: target.to_path_buf(),
+                modified: now(),
+            },
+        );
         Ok(())
     }
 
     fn read_link(&self, path: &Path) -> io::Result<PathBuf> {
         let nodes = self.nodes.read().map_err(poisoned)?;
-        let (resolved, node) = MemoryFs::resolve(&nodes, path, false)?;
+        let (resolved, node) = Self::resolve(&nodes, path, false)?;
         match node {
             Node::Symlink { target, .. } => Ok(target),
             _ => Err(io::Error::new(
@@ -362,21 +387,32 @@ mod tests {
     #[test]
     fn reads_through_a_symlink_that_is_not_the_last_component() {
         let fs = MemoryFs::new();
-        fs.create_dir_all(Path::new("/cache/archive-v0/abc/pkg-1.0.dist-info")).expect("create");
-        fs.write(Path::new("/cache/archive-v0/abc/pkg-1.0.dist-info/WHEEL"), b"Wheel-Version: 1.0")
-            .expect("write");
-        fs.create_dir_all(Path::new("/cache/sdists-v9/index/pkg/1.0/rev")).expect("create");
+        fs.create_dir_all(Path::new("/cache/archive-v0/abc/pkg-1.0.dist-info"))
+            .expect("create");
+        fs.write(
+            Path::new("/cache/archive-v0/abc/pkg-1.0.dist-info/WHEEL"),
+            b"Wheel-Version: 1.0",
+        )
+        .expect("write");
+        fs.create_dir_all(Path::new("/cache/sdists-v9/index/pkg/1.0/rev"))
+            .expect("create");
         fs.symlink(
             Path::new("../../../../../archive-v0/abc"),
             Path::new("/cache/sdists-v9/index/pkg/1.0/rev/pkg-1.0-py3-none-any"),
         )
         .expect("symlink");
 
-        let through =
-            Path::new("/cache/sdists-v9/index/pkg/1.0/rev/pkg-1.0-py3-none-any/pkg-1.0.dist-info/WHEEL");
-        assert_eq!(fs.read(through).expect("read through the link"), b"Wheel-Version: 1.0");
+        let through = Path::new(
+            "/cache/sdists-v9/index/pkg/1.0/rev/pkg-1.0-py3-none-any/pkg-1.0.dist-info/WHEEL",
+        );
         assert_eq!(
-            fs.symlink_metadata(through.parent().expect("parent")).expect("metadata").kind,
+            fs.read(through).expect("read through the link"),
+            b"Wheel-Version: 1.0"
+        );
+        assert_eq!(
+            fs.symlink_metadata(through.parent().expect("parent"))
+                .expect("metadata")
+                .kind,
             VfsKind::Directory,
         );
     }
@@ -385,12 +421,18 @@ mod tests {
     fn a_symlink_is_still_reported_as_one_when_it_is_the_last_component() {
         let fs = MemoryFs::new();
         fs.create_dir_all(Path::new("/target")).expect("create");
-        fs.symlink(Path::new("/target"), Path::new("/link")).expect("symlink");
+        fs.symlink(Path::new("/target"), Path::new("/link"))
+            .expect("symlink");
         assert_eq!(
-            fs.symlink_metadata(Path::new("/link")).expect("metadata").kind,
+            fs.symlink_metadata(Path::new("/link"))
+                .expect("metadata")
+                .kind,
             VfsKind::Symlink,
         );
-        assert_eq!(fs.metadata(Path::new("/link")).expect("metadata").kind, VfsKind::Directory);
+        assert_eq!(
+            fs.metadata(Path::new("/link")).expect("metadata").kind,
+            VfsKind::Directory
+        );
     }
 
     #[test]
@@ -406,28 +448,38 @@ mod tests {
     #[test]
     fn refuses_a_symlink_loop_rather_than_hanging() {
         let fs = MemoryFs::new();
-        fs.symlink(Path::new("/b"), Path::new("/a")).expect("symlink");
-        fs.symlink(Path::new("/a"), Path::new("/b")).expect("symlink");
+        fs.symlink(Path::new("/b"), Path::new("/a"))
+            .expect("symlink");
+        fs.symlink(Path::new("/a"), Path::new("/b"))
+            .expect("symlink");
         assert!(fs.read(Path::new("/a/file")).is_err());
     }
 
     fn populated() -> MemoryFs {
         let fs = MemoryFs::new();
-        fs.create_dir_all(Path::new("/work/project")).expect("create");
-        fs.write(Path::new("/work/project/pyproject.toml"), b"[project]").expect("write");
+        fs.create_dir_all(Path::new("/work/project"))
+            .expect("create");
+        fs.write(Path::new("/work/project/pyproject.toml"), b"[project]")
+            .expect("write");
         fs
     }
 
     #[test]
     fn reads_back_what_was_written() {
         let fs = populated();
-        assert_eq!(fs.read(Path::new("/work/project/pyproject.toml")).expect("read"), b"[project]");
+        assert_eq!(
+            fs.read(Path::new("/work/project/pyproject.toml"))
+                .expect("read"),
+            b"[project]"
+        );
     }
 
     #[test]
     fn reports_file_metadata() {
         let fs = populated();
-        let metadata = fs.metadata(Path::new("/work/project/pyproject.toml")).expect("metadata");
+        let metadata = fs
+            .metadata(Path::new("/work/project/pyproject.toml"))
+            .expect("metadata");
         assert_eq!(metadata.kind, VfsKind::File);
         assert_eq!(metadata.len, 9);
     }
@@ -442,7 +494,9 @@ mod tests {
     #[test]
     fn writing_without_a_parent_directory_fails() {
         let fs = MemoryFs::new();
-        let error = fs.write(Path::new("/missing/file"), b"x").expect_err("should fail");
+        let error = fs
+            .write(Path::new("/missing/file"), b"x")
+            .expect_err("should fail");
         assert_eq!(error.kind(), ErrorKind::NotFound);
     }
 
@@ -464,7 +518,8 @@ mod tests {
     #[test]
     fn lists_immediate_children_in_name_order() {
         let fs = populated();
-        fs.write(Path::new("/work/project/README.md"), b"docs").expect("write");
+        fs.write(Path::new("/work/project/README.md"), b"docs")
+            .expect("write");
         let entries = fs.read_dir(Path::new("/work/project")).expect("read_dir");
         let names: Vec<&str> = entries.iter().map(|entry| entry.name.as_str()).collect();
         assert_eq!(names, vec!["README.md", "pyproject.toml"]);
@@ -480,17 +535,30 @@ mod tests {
     #[test]
     fn an_empty_path_is_not_the_root() {
         let fs = populated();
-        assert_eq!(fs.metadata(Path::new("")).unwrap_err().kind(), ErrorKind::NotFound);
-        assert_eq!(fs.read_dir(Path::new("")).unwrap_err().kind(), ErrorKind::NotFound);
-        assert_eq!(fs.create_dir_all(Path::new("")).unwrap_err().kind(), ErrorKind::NotFound);
-        assert_eq!(fs.write(Path::new(""), b"x").unwrap_err().kind(), ErrorKind::NotFound);
+        assert_eq!(
+            fs.metadata(Path::new("")).unwrap_err().kind(),
+            ErrorKind::NotFound
+        );
+        assert_eq!(
+            fs.read_dir(Path::new("")).unwrap_err().kind(),
+            ErrorKind::NotFound
+        );
+        assert_eq!(
+            fs.create_dir_all(Path::new("")).unwrap_err().kind(),
+            ErrorKind::NotFound
+        );
+        assert_eq!(
+            fs.write(Path::new(""), b"x").unwrap_err().kind(),
+            ErrorKind::NotFound
+        );
     }
 
     #[test]
     fn listing_a_file_fails() {
         let fs = populated();
-        let error =
-            fs.read_dir(Path::new("/work/project/pyproject.toml")).expect_err("should fail");
+        let error = fs
+            .read_dir(Path::new("/work/project/pyproject.toml"))
+            .expect_err("should fail");
         assert_eq!(error.kind(), ErrorKind::NotADirectory);
     }
 
@@ -498,7 +566,10 @@ mod tests {
     fn removes_a_subtree() {
         let fs = populated();
         fs.remove_dir_all(Path::new("/work")).expect("remove");
-        assert!(fs.metadata(Path::new("/work/project/pyproject.toml")).is_err());
+        assert!(
+            fs.metadata(Path::new("/work/project/pyproject.toml"))
+                .is_err()
+        );
         assert!(fs.metadata(Path::new("/")).is_ok());
     }
 
@@ -513,32 +584,52 @@ mod tests {
     fn renames_a_subtree() {
         let fs = populated();
         fs.create_dir_all(Path::new("/other")).expect("create");
-        fs.rename(Path::new("/work/project"), Path::new("/other/moved")).expect("rename");
+        fs.rename(Path::new("/work/project"), Path::new("/other/moved"))
+            .expect("rename");
 
-        assert_eq!(fs.read(Path::new("/other/moved/pyproject.toml")).expect("read"), b"[project]");
+        assert_eq!(
+            fs.read(Path::new("/other/moved/pyproject.toml"))
+                .expect("read"),
+            b"[project]"
+        );
         assert!(fs.metadata(Path::new("/work/project")).is_err());
     }
 
     #[test]
     fn renaming_a_missing_path_fails() {
         let fs = MemoryFs::new();
-        let error = fs.rename(Path::new("/a"), Path::new("/b")).expect_err("should fail");
+        let error = fs
+            .rename(Path::new("/a"), Path::new("/b"))
+            .expect_err("should fail");
         assert_eq!(error.kind(), ErrorKind::NotFound);
     }
 
     #[test]
     fn follows_symlinks_when_reading() {
         let fs = populated();
-        fs.symlink(Path::new("/work/project/pyproject.toml"), Path::new("/work/link")).expect("link");
-        assert_eq!(fs.read(Path::new("/work/link")).expect("read"), b"[project]");
+        fs.symlink(
+            Path::new("/work/project/pyproject.toml"),
+            Path::new("/work/link"),
+        )
+        .expect("link");
+        assert_eq!(
+            fs.read(Path::new("/work/link")).expect("read"),
+            b"[project]"
+        );
     }
 
     #[test]
     fn symlink_metadata_does_not_follow() {
         let fs = populated();
-        fs.symlink(Path::new("/work/project/pyproject.toml"), Path::new("/work/link")).expect("link");
+        fs.symlink(
+            Path::new("/work/project/pyproject.toml"),
+            Path::new("/work/link"),
+        )
+        .expect("link");
         assert_eq!(
-            fs.symlink_metadata(Path::new("/work/link")).expect("metadata").kind,
+            fs.symlink_metadata(Path::new("/work/link"))
+                .expect("metadata")
+                .kind,
             VfsKind::Symlink
         );
     }
@@ -547,24 +638,37 @@ mod tests {
     fn follows_a_relative_symlink_from_the_directory_holding_it() {
         let fs = populated();
         fs.create_dir_all(Path::new("/work/links")).expect("create");
-        fs.symlink(Path::new("../project/pyproject.toml"), Path::new("/work/links/toml"))
-            .expect("link");
-        assert_eq!(fs.read(Path::new("/work/links/toml")).expect("read"), b"[project]");
+        fs.symlink(
+            Path::new("../project/pyproject.toml"),
+            Path::new("/work/links/toml"),
+        )
+        .expect("link");
+        assert_eq!(
+            fs.read(Path::new("/work/links/toml")).expect("read"),
+            b"[project]"
+        );
     }
 
     #[test]
     fn follows_a_relative_symlink_that_climbs_several_directories() {
         let fs = populated();
         fs.create_dir_all(Path::new("/work/a/b/c")).expect("create");
-        fs.symlink(Path::new("../../../project/pyproject.toml"), Path::new("/work/a/b/c/toml"))
-            .expect("link");
-        assert_eq!(fs.read(Path::new("/work/a/b/c/toml")).expect("read"), b"[project]");
+        fs.symlink(
+            Path::new("../../../project/pyproject.toml"),
+            Path::new("/work/a/b/c/toml"),
+        )
+        .expect("link");
+        assert_eq!(
+            fs.read(Path::new("/work/a/b/c/toml")).expect("read"),
+            b"[project]"
+        );
     }
 
     #[test]
     fn reports_the_symlink_target() {
         let fs = populated();
-        fs.symlink(Path::new("/work/project"), Path::new("/work/link")).expect("link");
+        fs.symlink(Path::new("/work/project"), Path::new("/work/link"))
+            .expect("link");
         assert_eq!(
             fs.read_link(Path::new("/work/link")).expect("read_link"),
             Path::new("/work/project")
@@ -574,7 +678,9 @@ mod tests {
     #[test]
     fn reading_a_link_that_is_not_one_fails() {
         let fs = populated();
-        let error = fs.read_link(Path::new("/work/project")).expect_err("should fail");
+        let error = fs
+            .read_link(Path::new("/work/project"))
+            .expect_err("should fail");
         assert_eq!(error.kind(), ErrorKind::InvalidInput);
     }
 
@@ -591,9 +697,12 @@ mod tests {
     fn records_an_explicit_modification_time() {
         let fs = populated();
         let stamp = SystemTime::UNIX_EPOCH + Duration::from_secs(1_700_000_000);
-        fs.set_modified(Path::new("/work/project/pyproject.toml"), stamp).expect("set");
+        fs.set_modified(Path::new("/work/project/pyproject.toml"), stamp)
+            .expect("set");
         assert_eq!(
-            fs.metadata(Path::new("/work/project/pyproject.toml")).expect("metadata").modified,
+            fs.metadata(Path::new("/work/project/pyproject.toml"))
+                .expect("metadata")
+                .modified,
             stamp
         );
     }
@@ -602,7 +711,10 @@ mod tests {
     fn hard_links_are_unsupported() {
         let fs = populated();
         let error = fs
-            .hard_link(Path::new("/work/project/pyproject.toml"), Path::new("/work/copy"))
+            .hard_link(
+                Path::new("/work/project/pyproject.toml"),
+                Path::new("/work/copy"),
+            )
             .expect_err("should fail");
         assert_eq!(error.kind(), ErrorKind::Unsupported);
     }

@@ -47,7 +47,8 @@ pub async fn sleep(duration: Duration) {
         });
         let global = js_sys::global();
         let set_timeout = js_sys::Reflect::get(&global, &"setTimeout".into()).ok();
-        if let Some(function) = set_timeout.and_then(|value| value.dyn_into::<js_sys::Function>().ok())
+        if let Some(function) =
+            set_timeout.and_then(|value| value.dyn_into::<js_sys::Function>().ok())
         {
             let _ = function.call2(&global, &closure, &millis.into());
         }
@@ -60,7 +61,9 @@ pub async fn timeout<F>(duration: Duration, future: F) -> Result<F::Output, Elap
 where
     F: Future,
 {
-    tokio::time::timeout(duration, future).await.map_err(|_| Elapsed)
+    tokio::time::timeout(duration, future)
+        .await
+        .map_err(|_| Elapsed)
 }
 
 #[cfg(target_family = "wasm")]

@@ -17,9 +17,17 @@ pub fn parse_content_range(value: &str) -> Option<ContentRange> {
     }
 
     let total = total.trim();
-    let complete_length = if total == "*" { None } else { Some(total.parse::<u64>().ok()?) };
+    let complete_length = if total == "*" {
+        None
+    } else {
+        Some(total.parse::<u64>().ok()?)
+    };
 
-    Some(ContentRange { first, last, complete_length })
+    Some(ContentRange {
+        first,
+        last,
+        complete_length,
+    })
 }
 
 pub fn probe_range_header() -> (&'static str, &'static str) {
@@ -34,7 +42,11 @@ mod tests {
     fn parses_a_complete_range() {
         assert_eq!(
             parse_content_range("bytes 0-0/11050"),
-            Some(ContentRange { first: 0, last: 0, complete_length: Some(11050) })
+            Some(ContentRange {
+                first: 0,
+                last: 0,
+                complete_length: Some(11050)
+            })
         );
     }
 
@@ -42,7 +54,11 @@ mod tests {
     fn parses_a_mid_file_range() {
         assert_eq!(
             parse_content_range("bytes 200-1023/4096"),
-            Some(ContentRange { first: 200, last: 1023, complete_length: Some(4096) })
+            Some(ContentRange {
+                first: 200,
+                last: 1023,
+                complete_length: Some(4096)
+            })
         );
     }
 
@@ -50,7 +66,11 @@ mod tests {
     fn accepts_an_unknown_total_length() {
         assert_eq!(
             parse_content_range("bytes 0-99/*"),
-            Some(ContentRange { first: 0, last: 99, complete_length: None })
+            Some(ContentRange {
+                first: 0,
+                last: 99,
+                complete_length: None
+            })
         );
     }
 
@@ -58,7 +78,11 @@ mod tests {
     fn tolerates_surrounding_whitespace() {
         assert_eq!(
             parse_content_range("  bytes 0-0/10  "),
-            Some(ContentRange { first: 0, last: 0, complete_length: Some(10) })
+            Some(ContentRange {
+                first: 0,
+                last: 0,
+                complete_length: Some(10)
+            })
         );
     }
 

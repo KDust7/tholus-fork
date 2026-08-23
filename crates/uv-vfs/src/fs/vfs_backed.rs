@@ -50,12 +50,21 @@ impl Metadata {
     }
 
     pub fn permissions(&self) -> Permissions {
-        let mode = if self.inner.is_dir() { DIRECTORY_MODE } else { FILE_MODE };
-        Permissions { readonly: false, mode }
+        let mode = if self.inner.is_dir() {
+            DIRECTORY_MODE
+        } else {
+            FILE_MODE
+        };
+        Permissions {
+            readonly: false,
+            mode,
+        }
     }
 
     pub fn file_type(&self) -> FileType {
-        FileType { kind: self.inner.kind }
+        FileType {
+            kind: self.inner.kind,
+        }
     }
 }
 
@@ -196,19 +205,27 @@ pub fn try_exists(path: impl AsRef<Path>) -> io::Result<bool> {
 }
 
 pub fn is_file(path: impl AsRef<Path>) -> bool {
-    global().metadata(path.as_ref()).is_ok_and(|entry| entry.is_file())
+    global()
+        .metadata(path.as_ref())
+        .is_ok_and(|entry| entry.is_file())
 }
 
 pub fn is_dir(path: impl AsRef<Path>) -> bool {
-    global().metadata(path.as_ref()).is_ok_and(|entry| entry.is_dir())
+    global()
+        .metadata(path.as_ref())
+        .is_ok_and(|entry| entry.is_dir())
 }
 
 pub fn metadata(path: impl AsRef<Path>) -> io::Result<Metadata> {
-    Ok(Metadata { inner: global().metadata(path.as_ref())? })
+    Ok(Metadata {
+        inner: global().metadata(path.as_ref())?,
+    })
 }
 
 pub fn symlink_metadata(path: impl AsRef<Path>) -> io::Result<Metadata> {
-    Ok(Metadata { inner: global().symlink_metadata(path.as_ref())? })
+    Ok(Metadata {
+        inner: global().symlink_metadata(path.as_ref())?,
+    })
 }
 
 pub fn read_link(path: impl AsRef<Path>) -> io::Result<PathBuf> {
@@ -235,7 +252,9 @@ pub fn read_dir(path: impl AsRef<Path>) -> io::Result<ReadDir> {
             kind: entry.kind,
         })
         .collect::<Vec<_>>();
-    Ok(ReadDir { entries: entries.into_iter() })
+    Ok(ReadDir {
+        entries: entries.into_iter(),
+    })
 }
 
 pub mod os {
@@ -395,14 +414,18 @@ impl File {
         let buffer = if exists && !options.truncate {
             vfs.read(&normalized)?
         } else {
-            if !exists && !(options.create || options.create_new) {
+            if !exists && !options.create && !options.create_new {
                 return Err(crate::not_found(&normalized));
             }
             Vec::new()
         };
 
         let writable = options.write || options.append || options.create || options.create_new;
-        let cursor = if options.append { buffer.len() as u64 } else { 0 };
+        let cursor = if options.append {
+            buffer.len() as u64
+        } else {
+            0
+        };
 
         if writable && (!exists || options.truncate) {
             vfs.write(&normalized, &buffer)?;
@@ -411,7 +434,11 @@ impl File {
         Ok(Self {
             path: normalized,
             writable,
-            state: Mutex::new(FileState { buffer, cursor, dirty: false }),
+            state: Mutex::new(FileState {
+                buffer,
+                cursor,
+                dirty: false,
+            }),
             holding: Holding::new(None),
         })
     }
@@ -513,7 +540,9 @@ impl File {
 impl Read for &File {
     fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
         let mut state = advisory_locks::guard(&self.state);
-        let start = usize::try_from(state.cursor).unwrap_or(usize::MAX).min(state.buffer.len());
+        let start = usize::try_from(state.cursor)
+            .unwrap_or(usize::MAX)
+            .min(state.buffer.len());
         let count = (state.buffer.len() - start).min(out.len());
         out[..count].copy_from_slice(&state.buffer[start..start + count]);
         state.cursor += count as u64;
@@ -547,13 +576,13 @@ impl Write for &File {
 impl Seek for &File {
     fn seek(&mut self, position: SeekFrom) -> io::Result<u64> {
         let mut state = advisory_locks::guard(&self.state);
-        let length = state.buffer.len() as i64;
+        let length = i64::try_from(state.buffer.len()).unwrap_or(i64::MAX);
         let target = match position {
             SeekFrom::Start(offset) => i64::try_from(offset).unwrap_or(i64::MAX),
             SeekFrom::End(offset) => length.saturating_add(offset),
-            SeekFrom::Current(offset) => {
-                i64::try_from(state.cursor).unwrap_or(i64::MAX).saturating_add(offset)
-            }
+            SeekFrom::Current(offset) => i64::try_from(state.cursor)
+                .unwrap_or(i64::MAX)
+                .saturating_add(offset),
         };
         if target < 0 {
             return Err(io::Error::new(
@@ -561,7 +590,7 @@ impl Seek for &File {
                 "cannot seek before the start of the file",
             ));
         }
-        state.cursor = target as u64;
+        state.cursor = u64::try_from(target).unwrap_or(0);
         Ok(state.cursor)
     }
 }
@@ -596,6 +625,10 @@ impl Drop for File {
 }
 
 #[cfg(feature = "tokio")]
+#[expect(
+    clippy::unused_async,
+    reason = "these mirror tokio::fs so uv's call sites need no change, and the bodies are synchronous because the filesystem is in memory"
+)]
 pub mod tokio {
     use std::io::{self, Read as _, Seek as _, SeekFrom, Write as _};
     use std::path::{Path, PathBuf};
@@ -683,7 +716,9 @@ pub mod tokio {
     }
 
     pub async fn read_dir(path: impl AsRef<Path>) -> io::Result<ReadDir> {
-        Ok(ReadDir { inner: super::read_dir(path)? })
+        Ok(ReadDir {
+            inner: super::read_dir(path)?,
+        })
     }
 
     pub struct ReadDir {
@@ -692,7 +727,10 @@ pub mod tokio {
 
     impl ReadDir {
         pub async fn next_entry(&mut self) -> io::Result<Option<DirEntry>> {
-            self.inner.next().transpose().map(|entry| entry.map(|inner| DirEntry { inner }))
+            self.inner
+                .next()
+                .transpose()
+                .map(|entry| entry.map(|inner| DirEntry { inner }))
         }
     }
 
@@ -731,7 +769,9 @@ pub mod tokio {
 
     impl OpenOptions {
         pub fn new() -> Self {
-            Self { inner: super::OpenOptions::new() }
+            Self {
+                inner: super::OpenOptions::new(),
+            }
         }
 
         pub fn read(&mut self, value: bool) -> &mut Self {
@@ -777,7 +817,10 @@ pub mod tokio {
 
     impl File {
         fn new(inner: super::File) -> Self {
-            Self { inner, seeked: None }
+            Self {
+                inner,
+                seeked: None,
+            }
         }
 
         pub fn from_std(file: super::File) -> Self {
@@ -797,7 +840,12 @@ pub mod tokio {
         }
 
         pub async fn create_new(path: impl AsRef<Path>) -> io::Result<Self> {
-            Ok(Self::new(super::OpenOptions::new().write(true).create_new(true).open(path)?))
+            Ok(Self::new(
+                super::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(path)?,
+            ))
         }
 
         pub fn options() -> OpenOptions {
@@ -864,10 +912,7 @@ pub mod tokio {
             Poll::Ready(self.inner.flush())
         }
 
-        fn poll_shutdown(
-            self: Pin<&mut Self>,
-            context: &mut Context<'_>,
-        ) -> Poll<io::Result<()>> {
+        fn poll_shutdown(self: Pin<&mut Self>, context: &mut Context<'_>) -> Poll<io::Result<()>> {
             self.poll_flush(context)
         }
     }

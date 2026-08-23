@@ -15,7 +15,10 @@ pub struct Error {
 
 impl Error {
     pub(crate) fn new(path: &Path, inner: io::Error) -> Self {
-        Self { path: Some(path.to_path_buf()), inner }
+        Self {
+            path: Some(path.to_path_buf()),
+            inner,
+        }
     }
 
     pub fn path(&self) -> Option<&Path> {
@@ -34,7 +37,12 @@ impl Error {
 impl Display for Error {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match &self.path {
-            Some(path) => write!(formatter, "IO error for operation on {}: {}", path.display(), self.inner),
+            Some(path) => write!(
+                formatter,
+                "IO error for operation on {}: {}",
+                path.display(),
+                self.inner
+            ),
             None => Display::fmt(&self.inner, formatter),
         }
     }
@@ -167,7 +175,10 @@ pub struct IntoIter {
 
 impl IntoIter {
     pub fn filter_entry<P: FnMut(&DirEntry) -> bool>(self, predicate: P) -> FilterEntry<P> {
-        FilterEntry { inner: self, predicate }
+        FilterEntry {
+            inner: self,
+            predicate,
+        }
     }
 
     fn children_of(&self, entry: &DirEntry) -> Result<Vec<Result<DirEntry, Error>>, Error> {
@@ -202,7 +213,10 @@ impl IntoIter {
         }
     }
 
-    fn advance(&mut self, mut accepts: impl FnMut(&DirEntry) -> bool) -> Option<Result<DirEntry, Error>> {
+    fn advance(
+        &mut self,
+        mut accepts: impl FnMut(&DirEntry) -> bool,
+    ) -> Option<Result<DirEntry, Error>> {
         loop {
             match self.stack.pop()? {
                 Step::Emit(entry) => {
@@ -221,8 +235,8 @@ impl IntoIter {
                         }
                         continue;
                     }
-                    let announce =
-                        (!self.contents_first && entry.depth >= self.min_depth).then(|| entry.clone());
+                    let announce = (!self.contents_first && entry.depth >= self.min_depth)
+                        .then(|| entry.clone());
                     self.expand(entry);
                     if announce.is_some() {
                         return announce.map(Ok);
