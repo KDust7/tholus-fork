@@ -1,8 +1,3 @@
-#![expect(
-    clippy::missing_const_for_thread_local,
-    reason = "the initialisers already use const blocks; clippy does not see through thread_local!"
-)]
-
 use std::cell::RefCell;
 use std::io::{BufRead, Cursor, Result};
 
