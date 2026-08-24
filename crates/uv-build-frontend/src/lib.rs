@@ -1252,6 +1252,11 @@ impl PythonRunner {
                 }
             })?;
 
+        let mut printer = Printer::from(self.level);
+        for line in output.stdout.iter().chain(output.stderr.iter()) {
+            let _ = printer.write_str(line);
+        }
+
         Ok(PythonRunnerOutput {
             stdout: output.stdout,
             stderr: output.stderr,
@@ -1375,7 +1380,10 @@ impl Write for Printer {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         match self {
             Self::Stderr => {
-                anstream::eprintln!("{s}");
+                uv_wasm_compat::io::stderr(&format!(
+                    "{s}
+"
+                ));
             }
             Self::Debug => {
                 debug!("{s}");
