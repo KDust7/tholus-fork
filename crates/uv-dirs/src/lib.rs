@@ -144,6 +144,14 @@ pub fn legacy_user_cache_dir() -> Option<PathBuf> {
 /// Returns an appropriate user-level directory for storing application state.
 ///
 /// Corresponds to `$XDG_DATA_HOME/uv` on Unix.
+/// Return the path to the user's data directory.
+///
+/// Uses the `XDG_DATA_HOME` environment variable if set, otherwise falling back to
+/// `$HOME/.local/share` on Unix and `%LOCALAPPDATA%` on Windows.
+pub fn user_data_dir() -> Option<PathBuf> {
+    base::data_dir()
+}
+
 pub fn user_state_dir() -> Option<PathBuf> {
     base::data_dir().map(|dir| dir.join("uv"))
 }

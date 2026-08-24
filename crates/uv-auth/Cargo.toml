@@ -18,6 +18,7 @@ workspace = true
 [dependencies]
 uv-vfs = { workspace = true }
 uv-cache-key = { workspace = true }
+uv-dirs = { workspace = true }
 uv-fs = { workspace = true }
 uv-keyring = { workspace = true, features = ["apple-native", "secret-service", "windows-native"] }
 uv-netrc = { workspace = true }
@@ -33,7 +34,6 @@ anyhow = { workspace = true }
 arcstr = { workspace = true }
 async-trait = { workspace = true }
 base64 = { workspace = true }
-etcetera = { workspace = true }
 http = { workspace = true }
 jiff = { workspace = true }
 percent-encoding = { workspace = true }

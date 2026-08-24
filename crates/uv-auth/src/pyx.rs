@@ -4,7 +4,6 @@ use std::time::Duration;
 
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
-use etcetera::BaseStrategy;
 use reqwest_middleware::ClientWithMiddleware;
 use tracing::debug;
 use url::Url;
@@ -195,14 +194,14 @@ impl PyxDirectories {
         }
 
         // Otherwise, use (e.g.) `~/.local/share/pyx`.
-        let Ok(xdg) = etcetera::base_strategy::choose_base_strategy() else {
+        let Some(data_dir) = uv_dirs::user_data_dir() else {
             return Err(io::Error::new(
                 io::ErrorKind::NotFound,
                 "Could not determine user data directory",
             ));
         };
 
-        let root = xdg.data_dir().join("pyx").join("credentials");
+        let root = data_dir.join("pyx").join("credentials");
         let subdirectory = root.join(&digest);
         Ok(Self { root, subdirectory })
     }
