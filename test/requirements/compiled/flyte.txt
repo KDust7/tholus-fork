@@ -118,7 +118,7 @@ numpy==1.26.3
     #   scipy
     #   tensorboard
     #   tensorflow
-oauthlib==3.2.2
+oauthlib==4.0.0
     # via requests-oauthlib
 opt-einsum==3.3.0
     # via tensorflow
@@ -242,7 +242,7 @@ urllib3==2.1.0
     # via
     #   requests
     #   types-requests
-virtualenv==20.25.0
+virtualenv==21.7.13
     # via pre-commit
 wcwidth==0.2.13
     # via prompt-toolkit
