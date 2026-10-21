@@ -24,7 +24,7 @@ classifiers = [
 requires-python = ">=3.12.0"
 dependencies    = [
     "aiodns==3.2.0",
-    "aiohttp==3.9.5",
+    "aiohttp==3.14.4",
     "aiohttp_cors==0.7.0",
     "aiohttp-fast-url-dispatcher==0.3.0",
     "aiohttp-fast-zlib==0.1.0",
@@ -66,7 +66,7 @@ dependencies    = [
     # Constrain urllib3 to ensure we deal with CVE-2020-26137 and CVE-2021-33503
     # Temporary setting an upper bound, to prevent compat issues with urllib3>=2
     # https://github.com/home-assistant/core/issues/97248
-    "urllib3>=1.26.5,<2",
+    "urllib3>=1.26.5,<3",
     "voluptuous==0.13.1",
     "voluptuous-serialize==2.6.0",
     "yarl==1.9.4",
