@@ -59,7 +59,7 @@ dependencies = [
   "pyramid_tm>=0.12",
   "python-slugify",
   "pytz",
-  "PyJWT[crypto]>=2.8.0",
+  "PyJWT[crypto]>=2.15.1",
   "readme-renderer[md]>=36.0",
   "requests",
   "requests-aws4auth",
@@ -85,7 +85,7 @@ dependencies = [
 [project.optional-dependencies]
 deploy = [
   "gunicorn==22.0.0",
-  "ddtrace==2.8.5"
+  "ddtrace==4.15.6"
 ]
 
 [tool.uv]
